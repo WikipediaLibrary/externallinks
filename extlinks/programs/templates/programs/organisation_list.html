@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% for organisation in object_list %}
+        <a href="{% url 'programs:organisation-detail' organisation.pk %}">{{ organisation }}</a>
+    {% endfor %}
+{% endblock %}

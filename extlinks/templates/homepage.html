@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block content %}
+Wikimedia External Links Tool!
+
+You can go to:<br/>
+
+<a href="{% url 'programs:list' %}">Program overviews</a><br/>
+
+<a href="{% url 'programs:organisation-list' %}">Organisation pages</a><br/>
+{% endblock %}
