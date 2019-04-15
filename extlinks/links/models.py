@@ -6,6 +6,8 @@ from extlinks.programs.models import Collection
 class URLPattern(models.Model):
     class Meta:
         app_label = "links"
+        verbose_name = "URL pattern"
+        verbose_name_plural = "URL patterns"
 
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=60)
@@ -13,10 +15,15 @@ class URLPattern(models.Model):
     collection = models.ForeignKey(Collection, null=True,
                                    on_delete=models.SET_NULL)
 
+    def __str__(self):
+        return self.url
+
 
 class LinkSearchTotal(models.Model):
     class Meta:
         app_label = "links"
+        verbose_name = "LinkSearch total"
+        verbose_name_plural = "LinkSearch totals"
 
     url = models.ForeignKey(URLPattern, null=True,
                             on_delete=models.SET_NULL)

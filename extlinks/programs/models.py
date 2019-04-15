@@ -7,6 +7,9 @@ class Program(models.Model):
 
     name = models.CharField(max_length=40)
 
+    def __str__(self):
+        return self.name
+
 
 class Organisation(models.Model):
     class Meta:
@@ -24,6 +27,9 @@ class Organisation(models.Model):
     # If a URL is placed here, we'll use it to regularly update username_list
     username_list_url = models.URLField(blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
 
 class Collection(models.Model):
     class Meta:
@@ -33,3 +39,6 @@ class Collection(models.Model):
 
     organisation = models.ForeignKey(Organisation, null=True,
                                      on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.name
