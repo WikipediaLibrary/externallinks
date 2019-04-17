@@ -51,7 +51,6 @@ class LinkEvent(models.Model):
     username = models.CharField(max_length=255)
     rev_id = models.PositiveIntegerField()
     user_id = models.PositiveIntegerField()
-    username = models.CharField(max_length=255)
     page_title = models.CharField(max_length=255)
     page_namespace = models.IntegerField()
 
@@ -65,3 +64,7 @@ class LinkEvent(models.Model):
     )
 
     change = models.IntegerField(choices=CHANGE_CHOICES)
+
+    # Flags whether this event was from a user on the user list for the
+    # organisation tracking its URL.
+    on_user_list = models.BooleanField(default=False)
