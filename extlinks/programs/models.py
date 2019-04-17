@@ -10,6 +10,12 @@ class Program(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def get_org_count(self):
+        return Organisation.objects.filter(
+            program=self
+        ).count()
+
 
 class Organisation(models.Model):
     class Meta:

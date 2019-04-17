@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
-{% load staticfiles %}
 
 {% block content %}
-Wikimedia External Links Tool!
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="intro">
+            Wikimedia External Links Tool
+        </div>
+    </div>
+</div>
 
-You can go to:<br/>
+This tool can be used to track external links to specific URLs over time. Links are associated to organisations, which
+can be bundled into programs to get high level overviews of multiple organisations.
 
-<a href="{% url 'programs:list' %}">Program overviews</a><br/>
-
-<a href="{% url 'programs:organisation-list' %}">Organisation pages</a><br/>
 {% endblock %}
