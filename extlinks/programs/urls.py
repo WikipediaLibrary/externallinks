@@ -7,9 +7,9 @@ from .views import (ProgramListView,
 
 urlpatterns = [
     path('', ProgramListView.as_view(), name='list'),
-    path('/<int:pk>', ProgramDetailView.as_view(), name='detail'),
-    path('/organisations/<int:pk>', OrganisationDetailView.as_view(),
+    path('<int:pk>', ProgramDetailView.as_view(), name='detail'),
+    path('organisations/<int:pk>', OrganisationDetailView.as_view(),
          name='organisation-detail'),
-    path('/organisations', OrganisationListView.as_view(),
+    path('organisations', OrganisationListView.as_view(),
          name='organisation-list')
 ]
