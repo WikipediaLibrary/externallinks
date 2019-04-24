@@ -13,7 +13,8 @@ class URLPattern(models.Model):
     url = models.CharField(max_length=60)
 
     collection = models.ForeignKey(Collection, null=True,
-                                   on_delete=models.SET_NULL)
+                                   on_delete=models.SET_NULL,
+                                   related_name='url')
 
     def __str__(self):
         return self.url
@@ -42,7 +43,7 @@ class LinkEvent(models.Model):
         app_label = "links"
 
     url = models.ForeignKey(URLPattern, null=True,
-                            on_delete=models.SET_NULL)
+                            on_delete=models.SET_NULL, related_name='linkevent')
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
@@ -68,3 +69,6 @@ class LinkEvent(models.Model):
     # Flags whether this event was from a user on the user list for the
     # organisation tracking its URL.
     on_user_list = models.BooleanField(default=False)
+
+    def organisation(self):
+        return self.url.collection.organisation

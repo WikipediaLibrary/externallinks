@@ -9,6 +9,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', Homepage.as_view(), name='homepage'),
 
-    path('programs', include((programs_urls, 'programs'),
+    path('programs/', include((programs_urls, 'programs'),
                              namespace='programs'))
 ]

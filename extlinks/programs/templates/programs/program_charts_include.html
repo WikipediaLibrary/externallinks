@@ -1,0 +1,171 @@
+{% load static %}
+
+<div class="container-fluid">
+    <div class="row">
+    </div>
+    Date form and user list limit checkbox
+    <div class="row">
+        <div class="col-8">
+            <canvas id="eventStreamChart" width="700" height="400"></canvas>
+        </div>
+        <div class="col-4 stat-box">
+            <h4>Statistics</h4>
+            <table style="width:100%;">
+                <tr style="line-height:55px;">
+                    <td>Total added</td>
+                    <td>{{ total_added }}</td>
+                </tr>
+                <tr style="line-height:55px;">
+                    <td>Total removed</td>
+                    <td>{{ total_removed }}</td>
+                </tr>
+                <tr style="line-height:55px;">
+                    <td>Total editors</td>
+                    <td>{{ total_editors }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div class="row" style="margin-top:40px;">
+        <h2>Totals</h2>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table">
+                <tr>
+                    <th>Organisation</th>
+                    <th>Added</th>
+                    <th>Removed</th>
+                </tr>
+                {% for organisation in top_3_organisations %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                        </td>
+                        <td>
+                            {{ organisation.links_added }}
+                        </td>
+                        <td>
+                            {{ organisation.links_removed }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align:right;">
+                [Download CSV]
+            </div>
+        </div>
+        <div class="col">
+            <table class="table">
+                <tr>
+                    <th>Project</th>
+                    <th>Added</th>
+                    <th>Removed</th>
+                </tr>
+                {% for project in top_3_projects %}
+                    <tr>
+                        <td>
+                            {{ project.domain }}
+                        </td>
+                        <td>
+                            {{ project.links_added }}
+                        </td>
+                        <td>
+                            {{ project.links_removed }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align:right;">
+                [Download CSV]
+            </div>
+        </div>
+        <div class="col">
+            <table class="table">
+                <tr>
+                    <th>Username</th>
+                    <th>Added</th>
+                    <th>Removed</th>
+                </tr>
+                {% for user in top_3_users %}
+                    <tr>
+                        <td>
+                            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username }}</a>
+                        </td>
+                        <td>
+                            {{ user.links_added }}
+                        </td>
+                        <td>
+                            {{ user.links_removed }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align:right;">
+                [Download CSV]
+            </div>
+        </div>
+    </div>
+    <div class="row" style="margin-top:40px;">
+        <h2>Latest links</h2>
+        <table class="table">
+            <tr>
+                <th>Link</th>
+                <th>User</th>
+                <th>Page</th>
+                <th>Project</th>
+                <th>Organisation</th>
+                <th>Timestamp</th>
+            </tr>
+            {% for linkevent in latest_linkevents %}
+                <tr>
+                    <td><a href="{{ linkevent.link }}">{{ linkevent.link }}</a></td>
+                    <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
+                    <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title }}</a></td>
+                    <td>{{ linkevent.domain }}</td>
+                    <td><a href="{% url 'programs:organisation-detail' pk=linkevent.organisation.pk %}">{{ linkevent.organisation }}</a></td>
+                    <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+        <div style="text-align:right;">
+            [Download CSV]
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+<script type="text/javascript">
+    var ctx = document.getElementById('eventStreamChart').getContext('2d');
+    var eventStreamChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ eventstream_dates | safe }},
+            datasets: [
+                {
+                    label: "Added",
+                    fill: false,
+                    borderColor: 'rgba(100,220,128,0.81)',
+                    data: {{ eventstream_added_data }},
+                    tension: 0.2
+                },
+                {
+                    label: "Removed",
+                    fill: false,
+                    borderColor: 'rgba(220,44,42,0.81)',
+                    data: {{ eventstream_removed_data }},
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        min: 0,
+                        callback: function (value) { if (Number.isInteger(value)) { return value; } },
+                    }
+                }]
+            },
+        },
+    })
+</script>

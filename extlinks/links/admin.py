@@ -18,7 +18,7 @@ admin.site.register(LinkSearchTotal, LinkSearchTotalAdmin)
 
 
 class LinkEventAdmin(admin.ModelAdmin):
-    list_display = ('url', 'timestamp', 'domain', 'username', 'change')
+    list_display = ('url', 'organisation', 'timestamp', 'domain', 'username', 'change')
 
 
 admin.site.register(LinkEvent, LinkEventAdmin)

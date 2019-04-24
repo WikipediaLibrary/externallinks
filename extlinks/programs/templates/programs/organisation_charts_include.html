@@ -1,0 +1,48 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="tab">
+            <button class="tablinks" onclick="openGraph(event, 'LinkEvents')" id="linkEvents">Link events</button>
+            <button class="tablinks" onclick="openGraph(event, 'TotalLinks')">Total links</button>
+        </div>
+    </div>
+    <div class="row">
+        <div id="LinkEvents" class="col-8 graph-box tabcontent">
+            EventStream graph for {{ object }}
+        </div>
+        <div id="TotalLinks" class="col-8 graph-box tabcontent">
+            Total links graph for {{ object }}
+        </div>
+        <div class="col-4 stat-box">
+            Stat block
+        </div>
+    </div>
+    <div class="row" style="margin-top:40px;">
+
+    </div>
+</div>
+
+<script>
+function openGraph(evt, graphName) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(graphName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+// Get the element with id="defaultOpen" and click on it
+document.getElementById("linkEvents").click();
+</script>
