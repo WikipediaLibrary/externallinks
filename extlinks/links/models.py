@@ -41,19 +41,23 @@ class LinkEvent(models.Model):
     """
     class Meta:
         app_label = "links"
+        get_latest_by = "timestamp"
 
-    url = models.ForeignKey(URLPattern, null=True,
-                            on_delete=models.SET_NULL, related_name='linkevent')
+    url = models.ManyToManyField(URLPattern,
+                                 related_name='linkevent')
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32)
     username = models.CharField(max_length=255)
-    rev_id = models.PositiveIntegerField()
+    # rev_id has null=True because some tracked revisions don't have a
+    # revision ID, like page moves.
+    rev_id = models.PositiveIntegerField(null=True)
     user_id = models.PositiveIntegerField()
     page_title = models.CharField(max_length=255)
     page_namespace = models.IntegerField()
+    event_id = models.CharField(max_length=36)
 
     # Were links added or removed?
     REMOVED = 0
@@ -70,5 +74,6 @@ class LinkEvent(models.Model):
     # organisation tracking its URL.
     on_user_list = models.BooleanField(default=False)
 
-    def organisation(self):
-        return self.url.collection.organisation
+    def organisations(self):
+        url_patterns = URLPattern.objects.filter(url=self.url)
+        return [org.collection.organisation for org in url_patterns]

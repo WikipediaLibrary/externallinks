@@ -123,7 +123,11 @@
                     <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
                     <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title }}</a></td>
                     <td>{{ linkevent.domain }}</td>
-                    <td><a href="{% url 'programs:organisation-detail' pk=linkevent.organisation.pk %}">{{ linkevent.organisation }}</a></td>
+                    <td>
+                        {% for organisation in linkevent.organisations %}
+                            <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                        {% endfor %}
+                    </td>
                     <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
                 </tr>
             {% endfor %}

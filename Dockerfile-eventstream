@@ -1,0 +1,14 @@
+# Dockerfile
+FROM python:3.5.2
+
+ENV DJANGO_SETTINGS_MODULE=extlinks.settings
+
+WORKDIR /app
+COPY . extlinks
+COPY requirements/django.txt /app/
+
+RUN mkdir logs
+
+RUN pip install -r django.txt
+
+CMD ["python", "extlinks/manage.py", "linkevents_collect"]

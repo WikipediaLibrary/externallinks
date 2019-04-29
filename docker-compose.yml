@@ -37,6 +37,18 @@ services:
      - main
    depends_on:
      - app
+ eventstream:
+   build:
+    context: .
+    dockerfile: 'Dockerfile-eventstream'
+   networks:
+     - main
+   depends_on:
+     - db
+   env_file:
+     - '.env'
+   volumes:
+     - ./:/eventstream
 
 networks:
  main:
