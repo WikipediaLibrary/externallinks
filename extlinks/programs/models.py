@@ -38,6 +38,12 @@ class Organisation(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def get_collection_count(self):
+        return Collection.objects.filter(
+            organisation=self
+        ).count()
+
 
 class Collection(models.Model):
     class Meta:
