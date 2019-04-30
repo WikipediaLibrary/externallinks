@@ -20,7 +20,8 @@ class Command(BaseCommand):
 
         for i in range(num_programs):
             new_program = Program(
-                name="Program {num}".format(num=i)
+                name="Program {num}".format(num=i),
+                description=fake.text(max_nb_chars=200)
             )
             new_program.save()
 
