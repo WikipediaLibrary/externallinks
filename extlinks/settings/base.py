@@ -4,13 +4,11 @@ Django settings for extlinks project.
 
 import os
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Usually we'd define this relative to the settings file, but we're always
+# starting from /app in Docker.
+BASE_DIR = "/app"
 
 SECRET_KEY = 'et=o&42)q3r8ztu&b^sjs2+%vv3^mg%3amzcia8^)fq*w6#oj3'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
