@@ -1,9 +1,17 @@
 {% load static %}
 
+<hr>
 <div class="container-fluid">
-    <div class="row">
+    <div class="row" style="margin-bottom:15px;">
+        <form method="GET" id="graph-date-form">
+            <div class="form-row">
+                {{ form }}
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </form>
     </div>
-    Date form and user list limit checkbox
     <div class="row">
         <div class="col-8">
             <canvas id="eventStreamChart" width="700" height="400"></canvas>
