@@ -29,6 +29,21 @@ class Command(BaseCommand):
 
         for _ in range(num_events):
             urlpattern = random.choice(urlpatterns)
+            organisation = urlpattern.collection.organisation
+            random_user = random.choice(usernames)
+
+            # If this org limits by user, choose either a random user who
+            # isn't on the org's user list, or from the org's user list.
+            on_user_list = False
+            if organisation.limit_by_user:
+                username_list = organisation.username_list.split(",")
+                user = random.choice([random_user,
+                                     random.choice(username_list)])
+                if user in username_list:
+                    on_user_list = True
+            else:
+                user = random_user
+
             new_event = LinkEvent(
                 link=urlpattern.url + "/" + fake.word(),
                 timestamp=fake.date_time_between(
@@ -37,13 +52,14 @@ class Command(BaseCommand):
                     tzinfo=timezone.utc
                 ),
                 domain=random.choice(languages) + ".wikipedia.org",
-                username=random.choice(usernames),
+                username=user,
                 rev_id=random.randint(10000000, 100000000),
                 user_id=random.randint(10000000, 100000000),
                 page_title=fake.word(),
                 page_namespace=0,
                 event_id=fake.uuid4(),
-                change=random.choice(change_choices)
+                change=random.choice(change_choices),
+                on_user_list=on_user_list,
             )
             new_event.save()
 

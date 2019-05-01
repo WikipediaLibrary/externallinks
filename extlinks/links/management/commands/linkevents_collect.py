@@ -7,7 +7,9 @@ import pytz
 from sseclient import SSEClient as EventSource
 
 from django.core.management.base import BaseCommand
-from ...models import LinkEvent, URLPattern
+
+from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.programs.models import Organisation
 
 
 class Command(BaseCommand):
@@ -73,9 +75,9 @@ class Command(BaseCommand):
                                                  event_dict)
 
     def add_linkevent_to_db(self, link, change, event_data):
-        # Create objects etc.
         datetime_object = datetime.strptime(event_data['meta']['dt'],
                                             '%Y-%m-%dT%H:%M:%S+00:00')
+        username = event_data['performer']['user_text']
 
         # Log actions such as page moves and image uploads have no
         # revision ID.
@@ -84,24 +86,38 @@ class Command(BaseCommand):
         except KeyError:
             revision_id = None
 
+        # All URL patterns matching this link
+        url_patterns = [pattern for pattern in URLPattern.objects.all()
+                        if pattern.url in link]
+
+        # We make a hard assumption here that a given link, despite
+        # potentially being associated with multiple url patterns, should
+        # ultimately only be associated with a single organisation.
+        # I can't think of any situation when this wouldn't be the
+        # case, but I can't wait to find out why I'm wrong.
+        on_user_list = False
+        this_link_org = url_patterns[0].collection.organisation
+        if this_link_org.limit_by_user:
+            username_list = this_link_org.username_list
+            if username in username_list:
+                on_user_list = True
+
         new_event = LinkEvent(
             link=link,
             timestamp=pytz.utc.localize(datetime_object),
             domain=event_data['meta']['domain'],
-            username=event_data['performer']['user_text'],
+            username=username,
             rev_id=revision_id,
             user_id=event_data['performer']['user_id'],
             page_title=event_data['page_title'],
             page_namespace=event_data['page_namespace'],
             event_id=event_data['meta']['id'],
             change=change,
-            on_user_list=False  # TODO: Implement, check.
+            on_user_list=on_user_list,
         )
         new_event.save()
 
         # LinkEvent.url is a ManyToMany field, so we need to link these
         # objects in a different way.
-        url_patterns = [pattern for pattern in URLPattern.objects.all()
-                        if pattern.url in link]
         for pattern in url_patterns:
             new_event.url.add(pattern)

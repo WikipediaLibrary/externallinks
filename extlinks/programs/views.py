@@ -47,6 +47,12 @@ class ProgramDetailView(DetailView):
                     timestamp__lte=end_date
                 )
 
+            limit_to_user_list = form_data['limit_to_user_list']
+            if limit_to_user_list:
+                this_program_linkevents = this_program_linkevents.filter(
+                    on_user_list=True
+                )
+
         context['top_3_organisations'] = this_program_organisations.annotate(
             links_added=Count('collection__url__linkevent',
                               filter=Q(
