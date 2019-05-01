@@ -132,7 +132,7 @@
                     <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title }}</a></td>
                     <td>{{ linkevent.domain }}</td>
                     <td>
-                        {% for organisation in linkevent.organisations %}
+                        {% for organisation in linkevent.get_organisations %}
                             <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
                         {% endfor %}
                     </td>

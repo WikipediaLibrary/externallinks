@@ -74,6 +74,7 @@ class LinkEvent(models.Model):
     # organisation tracking its URL.
     on_user_list = models.BooleanField(default=False)
 
-    def organisations(self):
-        url_patterns = URLPattern.objects.filter(url=self.url)
+    @property
+    def get_organisations(self):
+        url_patterns = self.url.all()
         return [org.collection.organisation for org in url_patterns]
