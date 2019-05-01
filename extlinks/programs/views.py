@@ -3,6 +3,7 @@ from django.views.generic import ListView, DetailView
 
 from extlinks.links.models import LinkEvent
 
+from .forms import FilterForm
 from .helpers import get_change_data_by_time
 from .models import Program, Organisation
 
@@ -17,25 +18,45 @@ class ProgramListView(ListView):
 
 class ProgramDetailView(DetailView):
     model = Program
+    form_class = FilterForm
 
     def get_context_data(self, **kwargs):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
         this_program_organisations = Organisation.objects.filter(
             program=self.object)
         context['organisations'] = this_program_organisations
-
-        context['top_3_organisations'] = this_program_organisations.annotate(
-            links_added=Count('collection__url__linkevent',
-                              filter=Q(
-                                  collection__url__linkevent__change=LinkEvent.ADDED)),
-            links_removed=Count('collection__url__linkevent',
-                                filter=Q(
-                                    collection__url__linkevent__change=LinkEvent.REMOVED)),
-        ).order_by('-links_added')[:5]
+        form = self.form_class(self.request.GET)
+        context['form'] = form
 
         this_program_linkevents = LinkEvent.objects.filter(
             url__collection__organisation__program=self.object
         )
+
+        if form.is_valid():
+            form_data = form.cleaned_data
+            start_date = form_data['start_date']
+
+            if start_date:
+                this_program_linkevents = this_program_linkevents.filter(
+                    timestamp__gte=start_date
+                )
+            end_date = form_data['end_date']
+
+            if end_date:
+                this_program_linkevents = this_program_linkevents.filter(
+                    timestamp__lte=end_date
+                )
+
+        context['top_3_organisations'] = this_program_organisations.annotate(
+            links_added=Count('collection__url__linkevent',
+                              filter=Q(
+                                  collection__url__linkevent__in=this_program_linkevents,
+                                  collection__url__linkevent__change=LinkEvent.ADDED)),
+            links_removed=Count('collection__url__linkevent',
+                                filter=Q(
+                                    collection__url__linkevent__in=this_program_linkevents,
+                                    collection__url__linkevent__change=LinkEvent.REMOVED)),
+        ).order_by('-links_added')[:5]
 
         context['top_3_projects'] = this_program_linkevents.values(
             'domain').annotate(
