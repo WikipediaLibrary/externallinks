@@ -13,3 +13,5 @@ class FilterForm(forms.Form):
                                  widget=DateInput())
     end_date = forms.DateField(required=False, label="End date:",
                                widget=DateInput())
+
+    limit_to_user_list = forms.BooleanField(required=False)
