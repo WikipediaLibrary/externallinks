@@ -1,48 +1,263 @@
-<div class="container-fluid">
-    <div class="row">
-        <div class="tab">
-            <button class="tablinks" onclick="openGraph(event, 'LinkEvents')" id="linkEvents">Link events</button>
-            <button class="tablinks" onclick="openGraph(event, 'TotalLinks')">Total links</button>
-        </div>
-    </div>
-    <div class="row">
-        <div id="LinkEvents" class="col-8 graph-box tabcontent">
-            EventStream graph for {{ object }}
-        </div>
-        <div id="TotalLinks" class="col-8 graph-box tabcontent">
-            Total links graph for {{ object }}
-        </div>
-        <div class="col-4 stat-box">
-            Stat block
-        </div>
-    </div>
-    <div class="row" style="margin-top:40px;">
+{% load static %}
 
+<hr>
+<div class="container-fluid">
+    <div class="row" style="margin-bottom:15px;">
+        <form method="GET" id="graph-date-form">
+            <div class="form-row">
+                {{ form }}
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </form>
     </div>
+    {% for key, collection in collections.items %}
+        <hr>
+        <div class="row">
+            <h2 id="{{ key }}">{{ collection.object.name }}</h2>
+        </div>
+        <div class="row" style="margin-bottom:25px;">
+            {% for urlpattern in collection.urls %}
+                {{ urlpattern }}
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div class="tab">
+                <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>
+                <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_TotalLinks')" id="{{ key }}_totalLinks_button">Total links</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-8">
+                <div id="{{ key }}_LinkEvents" class="graph-box tabcontent">
+                    <canvas id="{{ key }}_eventStreamChart" width="700" height="400"></canvas>
+                </div>
+                <div id="{{ key }}_TotalLinks" class="graph-box tabcontent">
+                    <canvas id="{{ key }}_totalLinksChart" width="700" height="400"></canvas>
+                </div>
+            </div>
+            <div class="col-4 stat-box">
+                <h4>Statistics</h4>
+                <table style="width:100%;">
+                    <tr style="line-height:55px;">
+                        <td>Total added</td>
+                        <td>{{ collection.total_added }}</td>
+                    </tr>
+                    <tr style="line-height:55px;">
+                        <td>Total removed</td>
+                        <td>{{ collection.total_removed }}</td>
+                    </tr>
+                    <tr style="line-height:55px;">
+                        <td>Total editors</td>
+                        <td>{{ collection.total_editors }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="row" style="margin-top:40px;">
+            <h3>Totals</h3>
+        </div>
+        <div class="row">
+            <div class="col">
+                <table class="table">
+                    <tr>
+                        <th>Page</th>
+                        <th>Added</th>
+                        <th>Removed</th>
+                    </tr>
+                    {% for page in collection.top_3_pages %}
+                        <tr>
+                            <td>
+                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title }}</a>
+                            </td>
+                            <td>
+                                {{ page.links_added }}
+                            </td>
+                            <td>
+                                {{ page.links_removed }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div style="text-align:right;">
+                    [Download CSV]
+                </div>
+            </div>
+            <div class="col">
+                <table class="table">
+                    <tr>
+                        <th>Project</th>
+                        <th>Added</th>
+                        <th>Removed</th>
+                    </tr>
+                    {% for project in collection.top_3_projects %}
+                        <tr>
+                            <td>
+                                {{ project.domain }}
+                            </td>
+                            <td>
+                                {{ project.links_added }}
+                            </td>
+                            <td>
+                                {{ project.links_removed }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div style="text-align:right;">
+                    [Download CSV]
+                </div>
+            </div>
+            <div class="col">
+                <table class="table">
+                    <tr>
+                        <th>Username</th>
+                        <th>Added</th>
+                        <th>Removed</th>
+                    </tr>
+                    {% for user in collection.top_3_users %}
+                        <tr>
+                            <td>
+                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username }}</a>
+                            </td>
+                            <td>
+                                {{ user.links_added }}
+                            </td>
+                            <td>
+                                {{ user.links_removed }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div style="text-align:right;">
+                    [Download CSV]
+                </div>
+            </div>
+        </div>
+        <div class="row" style="margin-top:40px;">
+            <h3>Latest links</h3>
+            <table class="table">
+                <tr>
+                    <th>Link</th>
+                    <th>User</th>
+                    <th>Page</th>
+                    <th>Project</th>
+                    <th>Organisation</th>
+                    <th>Timestamp</th>
+                </tr>
+                {% for linkevent in collection.latest_linkevents %}
+                    <tr>
+                        <td><a href="{{ linkevent.link }}">{{ linkevent.link }}</a></td>
+                        <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
+                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title }}</a></td>
+                        <td>{{ linkevent.domain }}</td>
+                        <td>
+                            {% for organisation in linkevent.get_organisations %}
+                                <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                            {% endfor %}
+                        </td>
+                        <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align:right;">
+                [Download CSV]
+            </div>
+        </div>
+    {% endfor %}
 </div>
 
-<script>
-function openGraph(evt, graphName) {
-  // Declare all variables
-  var i, tabcontent, tablinks;
+<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+<script type="text/javascript">
+    {% for collection_name, collection in collections.items %}
+        var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
+        var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
+            type: 'line',
+            data: {
+                labels: {{ collection.eventstream_dates | safe }},
+                datasets: [
+                    {
+                        label: "Added",
+                        fill: false,
+                        borderColor: 'rgba(100,220,128,0.81)',
+                        data: {{ collection.eventstream_added_data }},
+                        tension: 0.2
+                    },
+                    {
+                        label: "Removed",
+                        fill: false,
+                        borderColor: 'rgba(220,44,42,0.81)',
+                        data: {{ collection.eventstream_removed_data }},
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            min: 0,
+                            callback: function (value) { if (Number.isInteger(value)) { return value; } },
+                        }
+                    }]
+                },
+            },
+        });
 
-  // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
+        var {{ collection_name }}_ctx_ls = document.getElementById('{{ collection_name }}_totalLinksChart').getContext('2d');
+        var {{ collection_name }}_totalLinksChart = new Chart({{ collection_name }}_ctx_ls, {
+            type: 'line',
+            data: {
+                labels: {{ collection.linksearch_dates | safe }},
+                datasets: [
+                    {
+                        label: "Total",
+                        fill: false,
+                        borderColor: 'rgba(100,220,128,0.81)',
+                        data: {{ collection.linksearch_data }},
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            min: 0,
+                            callback: function (value) { if (Number.isInteger(value)) { return value; } },
+                        }
+                    }]
+                },
+            },
+        });
+    {% endfor %}
 
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
+    function openGraph(evt, collection, graphName) {
+      // Declare all variables
+      var i, tabcontent, tablinks;
 
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(graphName).style.display = "block";
-  evt.currentTarget.className += " active";
-}
+      // Hide all graphs related to the clicked graph's collection
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        if (tabcontent[i].id.indexOf(collection)!=-1) {
+            tabcontent[i].style.display = "none";
+        }
+      }
 
-// Get the element with id="defaultOpen" and click on it
-document.getElementById("linkEvents").click();
+      // Get all elements with class="tablinks" and remove the class "active"
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+
+      // Show the current tab, and add an "active" class to the button that opened the tab
+      document.getElementById(graphName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
+
+    // Click all Link Events buttons
+    {% for collection_name, collection in collections.items %}
+        document.getElementById('{{ collection_name }}_linkEvents_button').click();
+    {% endfor %}
 </script>

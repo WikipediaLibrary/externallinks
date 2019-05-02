@@ -1,11 +1,10 @@
 from django.db.models import Count, Q
 from django.views.generic import ListView, DetailView
 
-from extlinks.links.models import LinkEvent
-
+from extlinks.links.models import LinkEvent, LinkSearchTotal, URLPattern
 from .forms import FilterForm
-from .helpers import get_change_data_by_time
-from .models import Program, Organisation
+from .helpers import get_linkevent_context, get_linksearchtotal_data_by_time
+from .models import Program, Organisation, Collection
 
 from logging import getLogger
 
@@ -32,26 +31,9 @@ class ProgramDetailView(DetailView):
             url__collection__organisation__program=self.object
         )
 
-        if form.is_valid():
-            form_data = form.cleaned_data
-            start_date = form_data['start_date']
-
-            if start_date:
-                this_program_linkevents = this_program_linkevents.filter(
-                    timestamp__gte=start_date
-                )
-            end_date = form_data['end_date']
-
-            if end_date:
-                this_program_linkevents = this_program_linkevents.filter(
-                    timestamp__lte=end_date
-                )
-
-            limit_to_user_list = form_data['limit_to_user_list']
-            if limit_to_user_list:
-                this_program_linkevents = this_program_linkevents.filter(
-                    on_user_list=True
-                )
+        context = get_linkevent_context(context,
+                                        this_program_linkevents,
+                                        form)
 
         context['top_3_organisations'] = this_program_organisations.annotate(
             links_added=Count('collection__url__linkevent',
@@ -64,41 +46,6 @@ class ProgramDetailView(DetailView):
                                     collection__url__linkevent__change=LinkEvent.REMOVED)),
         ).order_by('-links_added')[:5]
 
-        context['top_3_projects'] = this_program_linkevents.values(
-            'domain').annotate(
-                links_added=Count('change',
-                    filter=Q(change=LinkEvent.ADDED)),
-                links_removed=Count('change',
-                                  filter=Q(change=LinkEvent.REMOVED))).order_by(
-            '-links_added'
-        )[:5]
-
-        context['top_3_users'] = this_program_linkevents.values(
-            'username').annotate(
-                links_added=Count('change',
-                    filter=Q(change=LinkEvent.ADDED)),
-                links_removed=Count('change',
-                                  filter=Q(change=LinkEvent.REMOVED))).order_by(
-            '-links_added'
-        )[:5]
-
-        context['latest_linkevents'] = this_program_linkevents.order_by(
-            '-timestamp')[:10]
-
-        # EventStream chart data
-        dates, added_data_series, removed_data_series = get_change_data_by_time(
-            this_program_linkevents)
-
-        context['eventstream_dates'] = dates
-        context['eventstream_added_data'] = added_data_series
-        context['eventstream_removed_data'] = removed_data_series
-
-        # Stat block
-        context['total_added'] = sum(added_data_series)
-        context['total_removed'] = sum(removed_data_series)
-        context['total_editors'] = this_program_linkevents.values_list(
-            'username').distinct().count()
-
         return context
 
 
@@ -108,3 +55,54 @@ class OrganisationListView(ListView):
 
 class OrganisationDetailView(DetailView):
     model = Organisation
+    form_class = FilterForm
+
+    # This is almost, but not exactly, the same as the program view.
+    # As such, most context gathering is split out to a helper.
+    def get_context_data(self, **kwargs):
+        context = super(OrganisationDetailView, self).get_context_data(**kwargs)
+        form = self.form_class(self.request.GET)
+        context['form'] = form
+
+        organisation_collections = Collection.objects.filter(
+            organisation=self.object
+        )
+
+        context['collections'] = {}
+        for collection in organisation_collections:
+            this_collection_linkevents = LinkEvent.objects.filter(
+                url__collection=collection
+            )
+            collection_key = collection.name.replace(" ", "_")
+
+            context['collections'][collection_key] = {}
+            context['collections'][collection_key]['object'] = collection
+            context['collections'][collection_key]['urls'] = URLPattern.objects.filter(
+                collection=collection
+            )
+            context['collections'][collection_key] = get_linkevent_context(
+                context['collections'][collection_key],
+                this_collection_linkevents,
+                form)
+
+            context['collections'][collection_key]['top_3_pages'] = this_collection_linkevents.values(
+                'page_title', 'domain').annotate(
+                links_added=Count('change',
+                                  filter=Q(change=LinkEvent.ADDED)),
+                links_removed=Count('change',
+                                    filter=Q(change=LinkEvent.REMOVED))).order_by(
+                '-links_added'
+            )[:5]
+
+            # totalLinks chart data
+            this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
+                url__collection=collection
+            )
+
+            dates, linksearch_data = get_linksearchtotal_data_by_time(
+                this_collection_linksearchtotals)
+
+            context['collections'][collection_key]['linksearch_dates'] = dates
+            context['collections'][collection_key]['linksearch_data'] = linksearch_data
+
+        return context
