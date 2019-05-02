@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    Test {{ object }}
-    {% include "programs/program_charts_include.html" %}
+    <div class="wrapper">
+        <nav id="content" class="body">
+            <h1>{{ object }}</h1>
+
+            {% include "programs/organisation_charts_include.html" %}
+        </nav>
+    </div>
 {% endblock %}
