@@ -1,7 +1,7 @@
 from django.db.models import Count, Q
 from django.views.generic import ListView, DetailView
 
-from extlinks.links.models import LinkEvent, LinkSearchTotal
+from extlinks.links.models import LinkEvent, LinkSearchTotal, URLPattern
 from .forms import FilterForm
 from .helpers import get_linkevent_context, get_linksearchtotal_data_by_time
 from .models import Program, Organisation, Collection
@@ -77,6 +77,9 @@ class OrganisationDetailView(DetailView):
 
             context['collections'][collection_key] = {}
             context['collections'][collection_key]['object'] = collection
+            context['collections'][collection_key]['urls'] = URLPattern.objects.filter(
+                collection=collection
+            )
             context['collections'][collection_key] = get_linkevent_context(
                 context['collections'][collection_key],
                 this_collection_linkevents,
@@ -99,8 +102,6 @@ class OrganisationDetailView(DetailView):
             dates, linksearch_data = get_linksearchtotal_data_by_time(
                 this_collection_linksearchtotals)
 
-            logger.info(dates)
-            logger.info(linksearch_data)
             context['collections'][collection_key]['linksearch_dates'] = dates
             context['collections'][collection_key]['linksearch_data'] = linksearch_data
 

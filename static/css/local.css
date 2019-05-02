@@ -40,3 +40,9 @@ h1 {
     padding: 20px;
     background: #e8f0ff;
 }
+
+.sidebar-sub-entry {
+    text-indent: 2em;
+    font-style: italic;
+    font-size: 14px;
+}

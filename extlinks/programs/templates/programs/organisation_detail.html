@@ -11,6 +11,9 @@
                 {% for key, collection in collections.items %}
                     <li>
                         <a href="#{{ key }}">{{ collection.object }}</a>
+                        {% for urlpattern in collection.urls %}
+                            <div class="sidebar-sub-entry">{{ urlpattern }}</div>
+                        {% endfor %}
                     </li>
                 {% endfor %}
             </ul>

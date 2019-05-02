@@ -14,7 +14,14 @@
     </div>
     {% for key, collection in collections.items %}
         <hr>
-        <h2 id="{{ key }}">{{ collection.object.name }}</h2>
+        <div class="row">
+            <h2 id="{{ key }}">{{ collection.object.name }}</h2>
+        </div>
+        <div class="row" style="margin-bottom:25px;">
+            {% for urlpattern in collection.urls %}
+                {{ urlpattern }}
+            {% endfor %}
+        </div>
         <div class="row">
             <div class="tab">
                 <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>
