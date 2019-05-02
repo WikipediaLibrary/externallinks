@@ -14,7 +14,7 @@
     </div>
     {% for key, collection in collections.items %}
         <hr>
-        <h2>{{ collection.object.name }}</h2>
+        <h2 id="{{ key }}">{{ collection.object.name }}</h2>
         <div class="row">
             <div class="tab">
                 <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>

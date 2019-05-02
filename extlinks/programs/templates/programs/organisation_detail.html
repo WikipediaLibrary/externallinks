@@ -2,6 +2,19 @@
 
 {% block content %}
     <div class="wrapper">
+        <nav id="sidebar">
+            <div class="sidebar-header" style="margin-bottom:50px;">
+                <h4>{{ object }}</h4>
+            </div>
+            <ul class="list-unstyled components">
+                <p>Collections</p>
+                {% for key, collection in collections.items %}
+                    <li>
+                        <a href="#{{ key }}">{{ collection.object }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
         <nav id="content" class="body">
             <h1>{{ object }}</h1>
 
