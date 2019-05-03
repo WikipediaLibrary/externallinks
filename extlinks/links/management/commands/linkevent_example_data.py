@@ -8,7 +8,7 @@ from ...models import URLPattern, LinkEvent
 
 
 class Command(BaseCommand):
-    help = "Backfills a set of LinkSearchTotals for each url pattern"
+    help = "Backfills a set of linkevents for each url pattern"
 
     def add_arguments(self, parser):
         parser.add_argument('num_events', nargs='+', type=int)

@@ -41,9 +41,11 @@ def get_change_data_by_time(queryset):
             while current_date >= earliest_date:
                 num_links_added.append(queryset.filter(
                     timestamp__date__month=current_date.month,
+                    timestamp__date__year=current_date.year,
                     change=LinkEvent.ADDED).count())
                 num_links_removed.append(queryset.filter(
                     timestamp__date__month=current_date.month,
+                    timestamp__date__year=current_date.year,
                     change=LinkEvent.REMOVED).count())
                 dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
@@ -82,7 +84,9 @@ def get_linksearchtotal_data_by_time(queryset):
         else:
             while current_date >= earliest_date:
                 linksearch_data.append(queryset.filter(
-                    timestamp__date__month=current_date.month).count())
+                    timestamp__date__month=current_date.month,
+                    timestamp__date__year=current_date.year,
+                ).count())
                 dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
                 # Figure out what the last month is regardless of today's date
