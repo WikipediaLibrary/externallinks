@@ -3,7 +3,9 @@ from django.views.generic import ListView, DetailView
 
 from extlinks.links.models import LinkEvent, LinkSearchTotal, URLPattern
 from .forms import FilterForm
-from .helpers import get_linkevent_context, get_linksearchtotal_data_by_time
+from .helpers import (get_linkevent_context,
+                      get_linksearchtotal_data_by_time,
+                      annotate_top)
 from .models import Program, Organisation, Collection
 
 from logging import getLogger
@@ -35,15 +37,17 @@ class ProgramDetailView(DetailView):
                                         this_program_linkevents,
                                         form)
 
-        context['top_3_organisations'] = this_program_organisations.annotate(
-            links_added=Count('collection__url__linkevent',
-                              filter=Q(
-                                  collection__url__linkevent__in=this_program_linkevents,
-                                  collection__url__linkevent__change=LinkEvent.ADDED)),
-            links_removed=Count('collection__url__linkevent',
-                                filter=Q(
-                                    collection__url__linkevent__in=this_program_linkevents,
-                                    collection__url__linkevent__change=LinkEvent.REMOVED)),
+        context['top_organisations'] = this_program_organisations.annotate(
+            links_added=Count(
+                'collection__url__linkevent',
+                filter=Q(
+                    collection__url__linkevent__in=this_program_linkevents,
+                    collection__url__linkevent__change=LinkEvent.ADDED)),
+            links_removed=Count(
+                'collection__url__linkevent',
+                filter=Q(
+                    collection__url__linkevent__in=this_program_linkevents,
+                    collection__url__linkevent__change=LinkEvent.REMOVED)),
         ).order_by('-links_added')[:5]
 
         return context
@@ -85,14 +89,12 @@ class OrganisationDetailView(DetailView):
                 this_collection_linkevents,
                 form)
 
-            context['collections'][collection_key]['top_3_pages'] = this_collection_linkevents.values(
-                'page_title', 'domain').annotate(
-                links_added=Count('change',
-                                  filter=Q(change=LinkEvent.ADDED)),
-                links_removed=Count('change',
-                                    filter=Q(change=LinkEvent.REMOVED))).order_by(
-                '-links_added'
-            )[:5]
+            context['collections'][collection_key]['top_pages'] = annotate_top(
+                this_collection_linkevents,
+                '-links_added',
+                5,
+                'page_title', 'domain'
+            )
 
             # totalLinks chart data
             this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
