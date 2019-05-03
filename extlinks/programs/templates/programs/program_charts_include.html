@@ -45,7 +45,7 @@
                     <th>Added</th>
                     <th>Removed</th>
                 </tr>
-                {% for organisation in top_3_organisations %}
+                {% for organisation in top_organisations %}
                     <tr>
                         <td>
                             <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
@@ -70,7 +70,7 @@
                     <th>Added</th>
                     <th>Removed</th>
                 </tr>
-                {% for project in top_3_projects %}
+                {% for project in top_projects %}
                     <tr>
                         <td>
                             {{ project.domain }}
@@ -95,7 +95,7 @@
                     <th>Added</th>
                     <th>Removed</th>
                 </tr>
-                {% for user in top_3_users %}
+                {% for user in top_users %}
                     <tr>
                         <td>
                             <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username }}</a>

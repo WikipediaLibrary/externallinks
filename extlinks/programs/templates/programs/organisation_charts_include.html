@@ -66,7 +66,7 @@
                         <th>Added</th>
                         <th>Removed</th>
                     </tr>
-                    {% for page in collection.top_3_pages %}
+                    {% for page in collection.top_pages %}
                         <tr>
                             <td>
                                 <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title }}</a>
@@ -91,7 +91,7 @@
                         <th>Added</th>
                         <th>Removed</th>
                     </tr>
-                    {% for project in collection.top_3_projects %}
+                    {% for project in collection.top_projects %}
                         <tr>
                             <td>
                                 {{ project.domain }}
@@ -116,7 +116,7 @@
                         <th>Added</th>
                         <th>Removed</th>
                     </tr>
-                    {% for user in collection.top_3_users %}
+                    {% for user in collection.top_users %}
                         <tr>
                             <td>
                                 <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username }}</a>

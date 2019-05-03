@@ -97,45 +97,51 @@ def get_linksearchtotal_data_by_time(queryset):
         return [], []
 
 
+def annotate_top(queryset, order_by, num_results, *fields):
+    queryset = queryset.values(
+        *fields).annotate(
+        links_added=Count('change',
+                          filter=Q(change=LinkEvent.ADDED)),
+        links_removed=Count('change',
+                            filter=Q(change=LinkEvent.REMOVED))).order_by(
+        order_by
+    )[:num_results]
+    return queryset
+
+
+def filter_queryset(queryset, filter_dict):
+    start_date = filter_dict['start_date']
+
+    if start_date:
+        queryset = queryset.filter(
+            timestamp__gte=start_date
+        )
+    end_date = filter_dict['end_date']
+
+    if end_date:
+        queryset = queryset.filter(
+            timestamp__lte=end_date
+        )
+
+    limit_to_user_list = filter_dict['limit_to_user_list']
+    if limit_to_user_list:
+        queryset = queryset.filter(
+            on_user_list=True
+        )
+
+    return queryset
+
+
 def get_linkevent_context(context, queryset, form):
     if form.is_valid():
         form_data = form.cleaned_data
-        start_date = form_data['start_date']
+        queryset = filter_queryset(queryset, form_data)
 
-        if start_date:
-            queryset = queryset.filter(
-                timestamp__gte=start_date
-            )
-        end_date = form_data['end_date']
+    context['top_projects'] = annotate_top(queryset,
+                                           '-links_added', 5, 'domain')
 
-        if end_date:
-            queryset = queryset.filter(
-                timestamp__lte=end_date
-            )
-
-        limit_to_user_list = form_data['limit_to_user_list']
-        if limit_to_user_list:
-            queryset = queryset.filter(
-                on_user_list=True
-            )
-
-    context['top_3_projects'] = queryset.values(
-        'domain').annotate(
-        links_added=Count('change',
-                          filter=Q(change=LinkEvent.ADDED)),
-        links_removed=Count('change',
-                            filter=Q(change=LinkEvent.REMOVED))).order_by(
-        '-links_added'
-    )[:5]
-
-    context['top_3_users'] = queryset.values(
-        'username').annotate(
-        links_added=Count('change',
-                          filter=Q(change=LinkEvent.ADDED)),
-        links_removed=Count('change',
-                            filter=Q(change=LinkEvent.REMOVED))).order_by(
-        '-links_added'
-    )[:5]
+    context['top_users'] = annotate_top(queryset,
+                                        '-links_added', 5, 'username')
 
     context['latest_linkevents'] = queryset.order_by(
         '-timestamp')[:10]
