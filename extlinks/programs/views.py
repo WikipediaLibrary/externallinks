@@ -186,7 +186,6 @@ class CSVPageTotals(_CSVDownloadView):
                              page['links_added'], page['links_removed']])
 
 
-
 class CSVProjectTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs['pk']
