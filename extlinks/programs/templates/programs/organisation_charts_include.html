@@ -81,7 +81,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    [Download CSV]
+                    <a href="{% url 'programs:csv_page_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
             <div class="col">
@@ -106,7 +106,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    [Download CSV]
+                    <a href="{% url 'programs:csv_project_totals_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
             <div class="col">
@@ -131,12 +131,12 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    [Download CSV]
+                    <a href="{% url 'programs:csv_user_totals_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
         </div>
         <div class="row" style="margin-top:40px;">
-            <h3>Latest links</h3>
+            <h3>Latest links added</h3>
             <table class="table">
                 <tr>
                     <th>Link</th>
@@ -146,7 +146,7 @@
                     <th>Organisation</th>
                     <th>Timestamp</th>
                 </tr>
-                {% for linkevent in collection.latest_linkevents %}
+                {% for linkevent in collection.latest_additions %}
                     <tr>
                         <td><a href="{{ linkevent.link }}">{{ linkevent.link }}</a></td>
                         <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
@@ -162,7 +162,7 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                [Download CSV]
+                <a href="{% url 'programs:csv_all_links_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
             </div>
         </div>
     {% endfor %}
