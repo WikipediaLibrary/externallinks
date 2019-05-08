@@ -97,7 +97,7 @@ def get_linksearchtotal_data_by_time(queryset):
         return [], []
 
 
-def annotate_top(queryset, order_by, num_results, *fields):
+def annotate_top(queryset, order_by, fields, num_results=None):
     queryset = queryset.values(
         *fields).annotate(
         links_added=Count('change',
@@ -105,46 +105,72 @@ def annotate_top(queryset, order_by, num_results, *fields):
         links_removed=Count('change',
                             filter=Q(change=LinkEvent.REMOVED))).order_by(
         order_by
-    )[:num_results]
-    return queryset
+    )
+    if num_results:
+        return queryset[:num_results]
+    else:
+        return queryset
+
+
+def top_organisations(org_list, linkevents, num_results=None):
+    annotated_orgs = org_list.annotate(
+        links_added=Count(
+            'collection__url__linkevent',
+            filter=Q(
+                collection__url__linkevent__in=linkevents,
+                collection__url__linkevent__change=LinkEvent.ADDED)),
+        links_removed=Count(
+            'collection__url__linkevent',
+            filter=Q(
+                collection__url__linkevent__in=linkevents,
+                collection__url__linkevent__change=LinkEvent.REMOVED)),
+    ).order_by('-links_added')
+    if num_results:
+        return annotated_orgs[:5]
+    else:
+        return annotated_orgs
 
 
 def filter_queryset(queryset, filter_dict):
-    start_date = filter_dict['start_date']
+    if 'start_date' in filter_dict:
+        start_date = filter_dict['start_date']
+        if start_date:
+            queryset = queryset.filter(
+                timestamp__gte=start_date
+            )
 
-    if start_date:
-        queryset = queryset.filter(
-            timestamp__gte=start_date
-        )
-    end_date = filter_dict['end_date']
+    if 'end_date' in filter_dict:
+        end_date = filter_dict['end_date']
+        if end_date:
+            queryset = queryset.filter(
+                timestamp__lte=end_date
+            )
 
-    if end_date:
-        queryset = queryset.filter(
-            timestamp__lte=end_date
-        )
-
-    limit_to_user_list = filter_dict['limit_to_user_list']
-    if limit_to_user_list:
-        queryset = queryset.filter(
-            on_user_list=True
-        )
+    if 'limit_to_user_list' in filter_dict:
+        limit_to_user_list = filter_dict['limit_to_user_list']
+        if limit_to_user_list:
+            queryset = queryset.filter(
+                on_user_list=True
+            )
 
     return queryset
 
 
-def get_linkevent_context(context, queryset, form):
-    if form.is_valid():
-        form_data = form.cleaned_data
-        queryset = filter_queryset(queryset, form_data)
+def get_linkevent_context(context, queryset):
 
     context['top_projects'] = annotate_top(queryset,
-                                           '-links_added', 5, 'domain')
+                                           '-links_added',
+                                           ['domain'],
+                                           num_results=5)
 
     context['top_users'] = annotate_top(queryset,
-                                        '-links_added', 5, 'username')
+                                        '-links_added',
+                                        ['username'],
+                                        num_results=5)
 
-    context['latest_linkevents'] = queryset.order_by(
-        '-timestamp')[:10]
+    context['latest_additions'] = queryset.filter(
+        change=LinkEvent.ADDED).order_by(
+            '-timestamp')[:10]
 
     # EventStream chart data
     dates, added_data_series, removed_data_series = get_change_data_by_time(
