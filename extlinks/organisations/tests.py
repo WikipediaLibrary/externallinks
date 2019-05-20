@@ -25,7 +25,7 @@ class OrganisationListTest(TestCase):
         """
         factory = RequestFactory()
 
-        request = factory.get(reverse('programs:organisation-list'))
+        request = factory.get(reverse('programs:list'))
         response = OrganisationListView.as_view()(request)
 
         self.assertEqual(response.status_code, 200)
@@ -37,7 +37,7 @@ class OrganisationListTest(TestCase):
 
         factory = RequestFactory()
 
-        request = factory.get(reverse('programs:organisation-list'))
+        request = factory.get(reverse('programs:list'))
         response = OrganisationListView.as_view()(request)
 
         self.assertContains(response, self.organisation_one.name)
@@ -52,7 +52,7 @@ class OrganisationDetailTest(TestCase):
     def setUp(self):
         self.program1 = ProgramFactory()
         self.organisation1 = OrganisationFactory(program=self.program1)
-        self.url1 = reverse('programs:organisation-detail',
+        self.url1 = reverse('programs:detail',
                             kwargs={'pk': self.organisation1.pk})
 
         self.collection1 = CollectionFactory(organisation=self.organisation1)
