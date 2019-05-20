@@ -48,7 +48,7 @@
                 {% for organisation in top_organisations %}
                     <tr>
                         <td>
-                            <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                            <a href="{% url 'organisations:detail' pk=organisation.pk %}">{{ organisation }}</a>
                         </td>
                         <td>
                             {{ organisation.links_added }}
@@ -133,7 +133,7 @@
                     <td>{{ linkevent.domain }}</td>
                     <td>
                         {% for organisation in linkevent.get_organisations %}
-                            <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                            <a href="{% url 'organisations:detail' pk=organisation.pk %}">{{ organisation }}</a>
                         {% endfor %}
                     </td>
                     <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>

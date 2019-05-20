@@ -9,7 +9,6 @@ from sseclient import SSEClient as EventSource
 from django.core.management.base import BaseCommand
 
 from extlinks.links.models import LinkEvent, URLPattern
-from extlinks.programs.models import Organisation
 
 
 class Command(BaseCommand):

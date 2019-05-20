@@ -3,8 +3,9 @@ from faker import Faker
 
 from django.core.management import BaseCommand
 
-from ...models import Program, Organisation, Collection
-from ....links.models import URLPattern
+from extlinks.links.models import URLPattern
+from extlinks.organisations.models import Organisation, Collection
+from extlinks.programs.models import Program
 
 
 class Command(BaseCommand):

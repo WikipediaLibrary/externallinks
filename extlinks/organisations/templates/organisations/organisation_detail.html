@@ -7,19 +7,21 @@
                 <h4>{{ object }}</h4>
             </div>
             <ul class="list-unstyled components">
-                <p>Organisations</p>
-                {% for organisation in organisations %}
+                <p>Collections</p>
+                {% for key, collection in collections.items %}
                     <li>
-                        <a href="{% url "organisations:detail" pk=organisation.pk %}">{{ organisation }}</a>
+                        <a href="#{{ key }}">{{ collection.object }}</a>
+                        {% for urlpattern in collection.urls %}
+                            <div class="sidebar-sub-entry">{{ urlpattern }}</div>
+                        {% endfor %}
                     </li>
                 {% endfor %}
             </ul>
         </nav>
         <nav id="content" class="body">
             <h1>{{ object }}</h1>
-            <p>Organisations: {{ program.get_org_count }}</p>
 
-            {% include "programs/program_charts_include.html" %}
+            {% include "organisations/organisation_charts_include.html" %}
         </nav>
     </div>
 {% endblock %}
