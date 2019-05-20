@@ -285,7 +285,6 @@ class OrganisationDetailTest(TestCase):
         response = OrganisationDetailView.as_view()(request,
                                                     pk=self.organisation1.pk)
 
-        print(response.context_data)
         self.assertEqual(response.context_data['collections'][self.collection1_key]['total_added'], 3)
 
     def test_organisation_detail_links_removed(self):
