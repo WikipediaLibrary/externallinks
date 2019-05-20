@@ -1,6 +1,6 @@
 from django.db import models
 
-from extlinks.programs.models import Collection
+from extlinks.organisations.models import Collection
 
 
 class URLPattern(models.Model):

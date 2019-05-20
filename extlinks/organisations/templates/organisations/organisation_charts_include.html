@@ -81,7 +81,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'programs:csv_page_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
             <div class="col">
@@ -106,7 +106,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'programs:csv_project_totals_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
             <div class="col">
@@ -131,7 +131,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'programs:csv_user_totals_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
                 </div>
             </div>
         </div>
@@ -154,7 +154,7 @@
                         <td>{{ linkevent.domain }}</td>
                         <td>
                             {% for organisation in linkevent.get_organisations %}
-                                <a href="{% url 'programs:organisation-detail' pk=organisation.pk %}">{{ organisation }}</a>
+                                <a href="{% url 'organisations:detail' pk=organisation.pk %}">{{ organisation }}</a>
                             {% endfor %}
                         </td>
                         <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
@@ -162,7 +162,7 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                <a href="{% url 'programs:csv_all_links_org' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
             </div>
         </div>
     {% endfor %}
