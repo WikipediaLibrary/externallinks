@@ -67,30 +67,21 @@ def get_linksearchtotal_data_by_time(queryset):
         earliest_date = queryset.earliest('date').date
         current_date = date.today()
 
-        data_range = current_date - earliest_date
-
         linksearch_data = []
         dates = []
 
         # Split data by day
-        if data_range.days < 90:
-            while current_date >= earliest_date:
+        while current_date >= earliest_date:
+            earliest_month_data = queryset.filter(
+                date__month=current_date.month,
+                date__year=current_date.year,
+            ).first()
 
-                linksearch_data.append(queryset.filter(
-                    date=current_date).count())
+            linksearch_data.append(earliest_month_data.total)
+            dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
-                dates.append(current_date.strftime('%Y-%m-%d'))
-                current_date -= timedelta(days=1)
-        else:
-            while current_date >= earliest_date:
-                linksearch_data.append(queryset.filter(
-                    timestamp__date__month=current_date.month,
-                    timestamp__date__year=current_date.year,
-                ).count())
-                dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
-
-                # Figure out what the last month is regardless of today's date
-                current_date = current_date.replace(day=1) - timedelta(days=1)
+            # Figure out what the last month is regardless of today's date
+            current_date = current_date.replace(day=1) - timedelta(days=1)
 
         return dates[::-1], linksearch_data[::-1]
     else:

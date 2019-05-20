@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import models
 
 from extlinks.organisations.models import Collection
@@ -29,7 +31,7 @@ class LinkSearchTotal(models.Model):
     url = models.ForeignKey(URLPattern, null=True,
                             on_delete=models.SET_NULL)
 
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=date.today)
     total = models.PositiveIntegerField()
 
 
