@@ -4,14 +4,14 @@ from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (filter_queryset,
                                      get_linkevent_context,
                                      annotate_top,
-                                     get_linksearchtotal_data_by_time)
+                                     get_linksearchtotal_data_by_time,
+                                     filter_linksearchtotals)
 from extlinks.links.models import LinkEvent, LinkSearchTotal, URLPattern
 from .models import Organisation, Collection
 
 
 class OrganisationListView(ListView):
     model = Organisation
-    #template_name = 'organisations/organisation_list.html'
 
 
 class OrganisationDetailView(DetailView):
@@ -34,11 +34,20 @@ class OrganisationDetailView(DetailView):
             this_collection_linkevents = LinkEvent.objects.filter(
                 url__collection=collection
             )
+            this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
+                url__collection=collection
+            )
+
             if form.is_valid():
                 form_data = form.cleaned_data
                 this_collection_linkevents = filter_queryset(
                     this_collection_linkevents,
                     form_data)
+                this_collection_linksearchtotals = filter_linksearchtotals(
+                    this_collection_linksearchtotals,
+                    form_data
+                )
+
             collection_key = collection.name.replace(" ", "_")
 
             context['collections'][collection_key] = {}
@@ -58,10 +67,6 @@ class OrganisationDetailView(DetailView):
             )
 
             # totalLinks chart data
-            this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
-                url__collection=collection
-            )
-
             dates, linksearch_data = get_linksearchtotal_data_by_time(
                 this_collection_linksearchtotals)
 

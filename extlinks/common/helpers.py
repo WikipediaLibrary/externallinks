@@ -147,6 +147,24 @@ def filter_queryset(queryset, filter_dict):
     return queryset
 
 
+def filter_linksearchtotals(queryset, filter_dict):
+    if 'start_date' in filter_dict:
+        start_date = filter_dict['start_date']
+        if start_date:
+            queryset = queryset.filter(
+                date__gte=start_date
+            )
+
+    if 'end_date' in filter_dict:
+        end_date = filter_dict['end_date']
+        if end_date:
+            queryset = queryset.filter(
+                date__lte=end_date
+            )
+
+    return queryset
+
+
 def get_linkevent_context(context, queryset):
 
     context['top_projects'] = annotate_top(queryset,
