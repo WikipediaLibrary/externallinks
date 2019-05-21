@@ -27,6 +27,11 @@ class LinkSearchTotal(models.Model):
         app_label = "links"
         verbose_name = "LinkSearch total"
         verbose_name_plural = "LinkSearch totals"
+        # We only want one record for each URL on any particular date
+        constraints = [
+            models.UniqueConstraint(fields=['url', 'date'],
+                                    name='unique_date_total')
+        ]
 
     url = models.ForeignKey(URLPattern, null=True,
                             on_delete=models.SET_NULL)
