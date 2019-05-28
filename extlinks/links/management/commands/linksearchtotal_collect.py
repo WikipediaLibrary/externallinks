@@ -53,7 +53,7 @@ class Command(BaseCommand):
 
         for urlpattern_pk, total_count in total_links_dictionary.items():
             linksearch_object = LinkSearchTotal(
-                url=urlpattern_pk,
+                url=URLPattern.objects.get(pk=urlpattern_pk),
                 total=total_count
             )
             linksearch_object.save()
