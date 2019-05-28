@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 optimised_url, url_pattern_end = split_url_for_query(url)
 
                 for protocol in protocols:
-                    url_pattern_start = protocol + "://" + url_pattern_end
+                    url_pattern_start = protocol + "://" + optimised_url
 
                     cur.execute('''SELECT COUNT(*) FROM externallinks
                                 WHERE el_index LIKE '{url_start}'
