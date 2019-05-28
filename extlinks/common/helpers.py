@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg
 
 from extlinks.links.models import LinkEvent
 
@@ -60,7 +60,7 @@ def get_change_data_by_time(queryset):
 def get_linksearchtotal_data_by_time(queryset):
     """
     Given a queryset of LinkSearchTotal objects, returns the totals
-    per unit time. Returns lists of dates and totals
+    per month. Returns lists of dates and totals
     """
 
     if queryset:
@@ -70,14 +70,14 @@ def get_linksearchtotal_data_by_time(queryset):
         linksearch_data = []
         dates = []
 
-        # Split data by day
         while current_date >= earliest_date:
+            # Find the average link count for this month
             earliest_month_data = queryset.filter(
                 date__month=current_date.month,
                 date__year=current_date.year,
-            ).first()
+            ).aggregate(Avg('total'))
 
-            linksearch_data.append(earliest_month_data.total)
+            linksearch_data.append(earliest_month_data['total__avg'])
             dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
             # Figure out what the last month is regardless of today's date
