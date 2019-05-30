@@ -29,6 +29,7 @@ class Command(BaseCommand):
 
         with open(file_path, 'r') as input_file:
             csv_reader = csv.reader(input_file)
+            csv_reader.next()
             for row in csv_reader:
                 organisation = row[0]
                 collection = row[1]
