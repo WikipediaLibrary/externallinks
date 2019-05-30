@@ -12,7 +12,7 @@ class URLPattern(models.Model):
         verbose_name_plural = "URL patterns"
 
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
-    url = models.CharField(max_length=60)
+    url = models.CharField(max_length=150)
 
     collection = models.ForeignKey(Collection, null=True,
                                    on_delete=models.SET_NULL,
