@@ -113,15 +113,16 @@ LOGGING = {
     'disable_existing_loggers': False,
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'extlinks', 'logs', 'extlinks.log'),
+            'filename': os.path.join(BASE_DIR, 'extlinks', 'logs',
+                                     os.environ['LOG_FILE']),
         },
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
     },
