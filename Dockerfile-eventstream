@@ -1,7 +1,7 @@
 # Dockerfile
 FROM python:3.5.2
 
-ENV DJANGO_SETTINGS_MODULE=extlinks.settings
+ENV LOG_FILE="eventstream.log"
 
 WORKDIR /app
 COPY . extlinks
@@ -11,4 +11,4 @@ RUN mkdir logs
 
 RUN pip install -r django.txt
 
-CMD ["python", "extlinks/manage.py", "linkevents_collect"]
+CMD ["python", "manage.py", "linkevents_collect"]

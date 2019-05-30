@@ -48,7 +48,7 @@ services:
    env_file:
      - '.env'
    volumes:
-     - ./:/eventstream
+     - ./:/app
 
 networks:
  main:

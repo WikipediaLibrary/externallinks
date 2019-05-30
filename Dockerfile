@@ -1,7 +1,7 @@
 # Dockerfile
 FROM python:3.5.2
 
-ENV DJANGO_SETTINGS_MODULE=extlinks.settings
+ENV LOG_FILE="extlinks.log"
 
 WORKDIR /app
 COPY . extlinks
