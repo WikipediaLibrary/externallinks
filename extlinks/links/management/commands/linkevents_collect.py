@@ -101,13 +101,19 @@ class Command(BaseCommand):
             if username in username_list:
                 on_user_list = True
 
+        try:
+            user_id = event_data['performer']['user_id']
+        except KeyError:
+            # IPs have no user_id
+            user_id = None
+
         new_event = LinkEvent(
             link=link,
             timestamp=pytz.utc.localize(datetime_object),
             domain=event_data['meta']['domain'],
             username=username,
             rev_id=revision_id,
-            user_id=event_data['performer']['user_id'],
+            user_id=user_id,
             page_title=event_data['page_title'],
             page_namespace=event_data['page_namespace'],
             event_id=event_data['meta']['id'],

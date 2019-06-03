@@ -61,7 +61,8 @@ class LinkEvent(models.Model):
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
     rev_id = models.PositiveIntegerField(null=True)
-    user_id = models.PositiveIntegerField()
+    # IPs have no user_id, so this can be blank too.
+    user_id = models.PositiveIntegerField(null=True)
     page_title = models.CharField(max_length=255)
     page_namespace = models.IntegerField()
     event_id = models.CharField(max_length=36)
