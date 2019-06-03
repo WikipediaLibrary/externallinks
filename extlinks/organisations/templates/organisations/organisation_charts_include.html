@@ -148,9 +148,9 @@
                 </tr>
                 {% for linkevent in collection.latest_additions %}
                     <tr>
-                        <td><a href="{{ linkevent.link }}">{{ linkevent.link }}</a></td>
+                        <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
                         <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
-                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title }}</a></td>
+                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|truncatechars:20 }}</a></td>
                         <td>{{ linkevent.domain }}</td>
                         <td>
                             {% for organisation in linkevent.get_organisations %}
