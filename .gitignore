@@ -6,4 +6,3 @@ __pycache__/
 *.pyc
 
 static/admin
-static/js
