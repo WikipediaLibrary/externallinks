@@ -6,6 +6,7 @@ from extlinks.organisations.models import Organisation
 class Program(models.Model):
     class Meta:
         app_label = "programs"
+        ordering = ['name']
 
     name = models.CharField(max_length=40)
 

@@ -4,6 +4,7 @@ from django.db import models
 class Organisation(models.Model):
     class Meta:
         app_label = "organisations"
+        ordering = ['name']
 
     name = models.CharField(max_length=40)
 
@@ -31,6 +32,7 @@ class Organisation(models.Model):
 class Collection(models.Model):
     class Meta:
         app_label = "organisations"
+        ordering = ['name']
 
     name = models.CharField(max_length=40)
 
