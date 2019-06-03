@@ -31,7 +31,7 @@ class ProgramDetailView(DetailView):
 
         this_program_linkevents = LinkEvent.objects.filter(
             url__collection__organisation__program=self.object
-        )
+        ).distinct()
 
         if form.is_valid():
             form_data = form.cleaned_data
