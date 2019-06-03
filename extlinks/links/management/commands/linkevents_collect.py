@@ -86,7 +86,8 @@ class Command(BaseCommand):
             revision_id = None
 
         # All URL patterns matching this link
-        url_patterns = [pattern for pattern in URLPattern.objects.all()
+        tracked_urls = URLPattern.objects.all()
+        url_patterns = [pattern for pattern in tracked_urls
                         if pattern.url in link]
 
         # We make a hard assumption here that a given link, despite

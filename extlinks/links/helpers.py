@@ -4,11 +4,10 @@ def split_url_for_query(url):
     url_optimised: URL and domain name in the el_index format
     (https://www.mediawiki.org/wiki/Manual:Externallinks_table#el_index)
     url_pattern_end: Anything following the domain name
-    Returned with % in the place of * ready for db querying
     """
     url = url.strip()  # Catch any trailing spaces
     # Start after *. if present
-    if url[0] == "*":
+    if url.startswith("*."):
         url = url[2:]
 
     url_start = url.split("/")[0].split(".")[::-1]
