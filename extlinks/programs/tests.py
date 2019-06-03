@@ -48,8 +48,8 @@ class ProgramDetailTest(TestCase):
 
     def setUp(self):
         self.program1 = ProgramFactory()
-        self.organisation1 = OrganisationFactory(program=self.program1)
-        self.organisation2 = OrganisationFactory(program=self.program1)
+        self.organisation1 = OrganisationFactory(program=(self.program1,))
+        self.organisation2 = OrganisationFactory(program=(self.program1,))
         self.url1 = reverse('programs:detail',
                             kwargs={'pk': self.program1.pk})
 

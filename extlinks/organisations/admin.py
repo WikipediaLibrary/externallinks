@@ -4,7 +4,7 @@ from .models import Organisation, Collection
 
 
 class OrganisationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'program')
+    list_display = ('name',)
 
 
 admin.site.register(Organisation, OrganisationAdmin)

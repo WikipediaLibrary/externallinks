@@ -16,8 +16,8 @@ class OrganisationListTest(TestCase):
 
     def setUp(self):
         self.program = ProgramFactory()
-        self.organisation_one = OrganisationFactory(program=self.program)
-        self.organisation_two = OrganisationFactory(program=self.program)
+        self.organisation_one = OrganisationFactory(program=(self.program,))
+        self.organisation_two = OrganisationFactory(program=(self.program,))
 
     def test_organisation_list_view(self):
         """
@@ -51,7 +51,7 @@ class OrganisationDetailTest(TestCase):
 
     def setUp(self):
         self.program1 = ProgramFactory()
-        self.organisation1 = OrganisationFactory(program=self.program1)
+        self.organisation1 = OrganisationFactory(program=(self.program1,))
         self.url1 = reverse('programs:detail',
                             kwargs={'pk': self.organisation1.pk})
 

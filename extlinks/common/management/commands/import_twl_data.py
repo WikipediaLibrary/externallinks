@@ -46,9 +46,9 @@ class Command(BaseCommand):
                     organisation_object = Organisation(
                         name=organisation
                     )
-                    if twl_link == 'x':
-                        organisation_object.program = twl_program
                     organisation_object.save()
+                    if twl_link == 'x':
+                        organisation_object.program.add(twl_program)
 
                 # Create Collection
                 try:

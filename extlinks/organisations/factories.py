@@ -11,6 +11,14 @@ class OrganisationFactory(factory.django.DjangoModelFactory):
 
     name = factory.Faker('company')
 
+    @factory.post_generation
+    def program(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            for program in extracted:
+                self.program.add(program)
+
 
 class CollectionFactory(factory.django.DjangoModelFactory):
 

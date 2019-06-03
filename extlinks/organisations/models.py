@@ -9,8 +9,7 @@ class Organisation(models.Model):
     name = models.CharField(max_length=40)
 
     # organisations.Program syntax required to avoid circular import.
-    program = models.ForeignKey('programs.Program', blank=True, null=True,
-                                on_delete=models.SET_NULL)
+    program = models.ManyToManyField('programs.Program')
 
     # Some organisation use cases will want to limit link change tracking
     # to a particular list of users.

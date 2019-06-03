@@ -31,8 +31,7 @@ class Command(BaseCommand):
                 limit_by_user = random.choice([True, False])
 
                 new_org = Organisation(
-                    name=fake.company(),
-                    program=new_program
+                    name=fake.company()
                 )
                 if limit_by_user:
                     # Between 10 and 50 users on the list.
@@ -41,6 +40,7 @@ class Command(BaseCommand):
                     new_org.limit_by_user = True
                     new_org.username_list = ",".join(username_list)
                 new_org.save()
+                new_org.program.add(new_program)
 
                 for k in range(random.randint(1, 3)):
                     new_collection = Collection(
