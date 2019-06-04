@@ -6,6 +6,7 @@ import json
 import logging
 import pytz
 from sseclient import SSEClient as EventSource
+from urllib.parse import unquote
 
 from django.core.management.base import BaseCommand
 
@@ -68,12 +69,14 @@ class Command(BaseCommand):
         for link in link_list:
             if link['external']:
                 if any(links in link['link'] for links in tracked_links):
+                    # URLs in the stream are encoded (e.g. %3D instead of =)
+                    unquoted_url = unquote(link['link'])
 
                     event_id = event_dict['meta']['id']
-                    event_objects = LinkEvent.objects.filter(link=link['link'],
+                    event_objects = LinkEvent.objects.filter(link=unquoted_url,
                                                              event_id=event_id)
                     if not event_objects.exists():
-                        self.add_linkevent_to_db(link['link'], change,
+                        self.add_linkevent_to_db(unquoted_url, change,
                                                  event_dict)
 
     def add_linkevent_to_db(self, link, change, event_data):
