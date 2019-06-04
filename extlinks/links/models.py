@@ -66,6 +66,7 @@ class LinkEvent(models.Model):
     page_title = models.CharField(max_length=255)
     page_namespace = models.IntegerField()
     event_id = models.CharField(max_length=36)
+    user_is_bot = models.BooleanField(default=False)
 
     # Were links added or removed?
     REMOVED = 0

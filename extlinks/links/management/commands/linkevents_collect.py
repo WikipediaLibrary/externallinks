@@ -75,7 +75,13 @@ class Command(BaseCommand):
                     event_id = event_dict['meta']['id']
                     event_objects = LinkEvent.objects.filter(link=unquoted_url,
                                                              event_id=event_id)
-                    if not event_objects.exists():
+
+                    # We want to avoid link additions from e.g. InternetArchive
+                    # where the URL takes the structure
+                    # https://web.archive.org/https://test.com/
+                    protocol_count = unquoted_url.count("://")
+
+                    if not event_objects.exists() and protocol_count < 2:
                         self.add_linkevent_to_db(unquoted_url, change,
                                                  event_dict)
 
@@ -135,6 +141,7 @@ class Command(BaseCommand):
             event_id=event_data['meta']['id'],
             change=change,
             on_user_list=on_user_list,
+            user_is_bot=event_data['performer']['user_is_bot']
         )
         new_event.save()
 
