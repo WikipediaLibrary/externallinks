@@ -3,12 +3,15 @@
 
 from datetime import datetime
 import json
+import logging
 import pytz
 from sseclient import SSEClient as EventSource
 
 from django.core.management.base import BaseCommand
 
 from extlinks.links.models import LinkEvent, URLPattern
+
+logger = logging.getLogger('django')
 
 
 class Command(BaseCommand):
@@ -76,7 +79,16 @@ class Command(BaseCommand):
     def add_linkevent_to_db(self, link, change, event_data):
         datetime_object = datetime.strptime(event_data['meta']['dt'],
                                             '%Y-%m-%dT%H:%M:%S+00:00')
-        username = event_data['performer']['user_text']
+        try:
+            username = event_data['performer']['user_text']
+        except KeyError:
+            # Per https://phabricator.wikimedia.org/T216726, edits to Flow
+            # pages have no performer, so we'll abandon logging this event
+            # rather than worry about how to present such an edit.
+            logger.info('Skipped event {event_id} due to no performer'.format(
+                event_id=event_data['meta']['id']
+            ))
+            return
 
         # Log actions such as page moves and image uploads have no
         # revision ID.
