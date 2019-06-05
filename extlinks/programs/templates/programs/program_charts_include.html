@@ -1,35 +1,46 @@
 {% load static %}
 
-<hr>
+<hr style="width: 100%;">
 <div class="container-fluid">
-    <div class="row" style="margin-bottom:15px;">
-        <form method="GET" id="graph-date-form">
-            <div class="form-row">
-                {{ form }}
-                <div class="col">
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                </div>
-            </div>
-        </form>
-    </div>
     <div class="row">
         <div class="col-8">
             <canvas id="eventStreamChart" width="700" height="400"></canvas>
         </div>
-        <div class="col-4 stat-box">
+        <div class="col-3 stat-box">
             <h4>Statistics</h4>
-            <table style="width:100%;">
-                <tr style="line-height:55px;">
-                    <td>Total added</td>
-                    <td>{{ total_added }}</td>
+            <table style="width:90%; margin-top: 30px;">
+                <tr class="stat-table-header">
+                    <td>Link events</td>
+                </tr>
+                <tr>
+                    <td>Total added:</td>
+                    <td style="text-align: right;">{{ total_added }}</td>
+                </tr>
+                <tr>
+                    <td>Total removed:</td>
+                    <td style="text-align: right;">{{ total_removed }}</td>
                 </tr>
                 <tr style="line-height:55px;">
-                    <td>Total removed</td>
-                    <td>{{ total_removed }}</td>
+                    <td></td>
+                    <td style="text-align: right; font-weight: bold;
+                        {% if total_diff > 0 %}
+                                color: green;">+
+                        {% else %}
+                                color: red;">
+                        {% endif %}
+                        {{ total_diff }}
+                    </td>
                 </tr>
-                <tr style="line-height:55px;">
-                    <td>Total editors</td>
-                    <td>{{ total_editors }}</td>
+                <tr class="stat-table-header">
+                    <td>Other</td>
+                </tr>
+                <tr>
+                    <td>Total editors:</td>
+                    <td style="text-align: right;">{{ total_editors }}</td>
+                </tr>
+                <tr>
+                    <td>Total projects:</td>
+                    <td style="text-align: right;">{{ total_projects }}</td>
                 </tr>
             </table>
         </div>
@@ -60,7 +71,7 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
         <div class="col">
@@ -85,7 +96,7 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
         <div class="col">
@@ -110,7 +121,7 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
     </div>
@@ -141,11 +152,10 @@
             {% endfor %}
         </table>
         <div style="text-align:right;">
-            <a href="{% url 'programs:csv_all_links' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+            <a href="{% url 'programs:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
     </div>
 </div>
-<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
 <script type="text/javascript">
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {

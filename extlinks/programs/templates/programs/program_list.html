@@ -5,12 +5,14 @@
         <h1>Programs</h1>
         <div class="row row-flex">
             {% for program in object_list %}
-                <div class="card" style="width: 18rem;">
+                <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">{{ program }}</h5>
+                        <h5 class="card-title">
+                            <a href="{% url 'programs:detail' program.pk %}" style="color: #000000">{{ program }}</a>
+                        </h5>
                         <h6 class="card-subtitle mb-2 text-muted">Organisations: {{ program.get_org_count }}</h6>
                         <p class="card-text">{{ program.description }}</p>
-                        <a href="{% url 'programs:detail' program.pk %}" class="card-link">Overview</a>
+                        <a href="{% url 'programs:detail' program.pk %}" class="btn btn-outline-dark">Overview</a>
                     </div>
                 </div>
             {% empty %}

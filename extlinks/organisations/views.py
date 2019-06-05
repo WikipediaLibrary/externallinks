@@ -73,6 +73,19 @@ class OrganisationDetailView(DetailView):
             context['collections'][collection_key]['linksearch_dates'] = dates
             context['collections'][collection_key]['linksearch_data'] = linksearch_data
 
+            # Statistics
+            if linksearch_data:
+                total_start = linksearch_data[0]
+                total_current = linksearch_data[-1]
+                total_diff = total_current - total_start
+            else:
+                total_start = None
+                total_current = None
+                total_diff = None
+            context['collections'][collection_key]['linksearch_total_start'] = total_start
+            context['collections'][collection_key]['linksearch_total_current'] = total_current
+            context['collections'][collection_key]['linksearch_total_diff'] = total_diff
+
             context['query_string'] = self.request.META['QUERY_STRING']
 
         return context

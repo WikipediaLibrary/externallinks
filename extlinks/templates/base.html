@@ -15,11 +15,12 @@
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-light shadow-sm">
-    <a class="navbar-brand" href="{% url 'homepage' %}">External Links Tool</a>
+    <a class="navbar-brand" href="{% url 'homepage' %}">Wikilink</a>
     <div class="collapse navbar-collapse" id="navbarNav">
         <div class="navbar-nav">
             <a class="nav-item nav-link" href="{% url 'programs:list' %}">Programs</a>
             <a class="nav-item nav-link" href="{% url 'organisations:list' %}">Organisations</a>
+            <a class="nav-item nav-link" href="{% url 'documentation' %}">What is this?</a>
         </div>
     </div>
 </nav>
@@ -32,6 +33,14 @@
 <div class="main-content">
     {% block content %}
     {% endblock %}
+</div>
+
+<hr/>
+<div class="footer">
+    A <a href="https://meta.wikimedia.org/wiki/The_Wikipedia_Library">Wikipedia Library</a> project -
+    <a href="https://github.com/Samwalton9/externallinks">Github</a> -
+    <a href="https://phabricator.wikimedia.org/project/board/4082/">Phabricator</a> -
+    <a href="https://meta.wikimedia.org/wiki/Wikilink_tool">Meta</a>
 </div>
 
 </body>

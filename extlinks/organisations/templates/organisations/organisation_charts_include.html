@@ -1,17 +1,6 @@
 {% load static %}
 
-<hr>
 <div class="container-fluid">
-    <div class="row" style="margin-bottom:15px;">
-        <form method="GET" id="graph-date-form">
-            <div class="form-row">
-                {{ form }}
-                <div class="col">
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                </div>
-            </div>
-        </form>
-    </div>
     {% for key, collection in collections.items %}
         <hr>
         <div class="row">
@@ -23,7 +12,7 @@
             {% endfor %}
         </div>
         <div class="row">
-            <div class="tab">
+            <div class="tab col-8">
                 <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>
                 <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_TotalLinks')" id="{{ key }}_totalLinks_button">Total links</button>
             </div>
@@ -37,23 +26,68 @@
                     <canvas id="{{ key }}_totalLinksChart" width="700" height="400"></canvas>
                 </div>
             </div>
-            <div class="col-4 stat-box">
-                <h4>Statistics</h4>
-                <table style="width:100%;">
-                    <tr style="line-height:55px;">
-                        <td>Total added</td>
-                        <td>{{ collection.total_added }}</td>
+        <div class="col-3 stat-box">
+            <h4>Statistics</h4>
+            <table style="width:90%; margin-top: 30px;">
+                <tr class="stat-table-header">
+                    <td>Link events</td>
+                </tr>
+                <tr>
+                    <td>Total added:</td>
+                    <td style="text-align: right;">{{ collection.total_added }}</td>
+                </tr>
+                <tr>
+                    <td>Total removed:</td>
+                    <td style="text-align: right;">{{ collection.total_removed }}</td>
+                </tr>
+                <tr style="line-height:55px;">
+                    <td></td>
+                    <td style="text-align: right; font-weight: bold;
+                        {% if collection.total_diff > 0 %}
+                                color: green;">+
+                        {% else %}
+                                color: red;">
+                        {% endif %}
+                        {{ collection.total_diff }}
+                    </td>
+                </tr>
+                {% if total_start %}
+                    <tr class="stat-table-header">
+                        <td>Total links</td>
+                    </tr>
+                    <tr>
+                        <td>Initial total:</td>
+                        <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
+                    </tr>
+                    <tr>
+                        <td>Current total:</td>
+                        <td style="text-align: right;">{{ collection.linksearch_total_current }}</td>
                     </tr>
                     <tr style="line-height:55px;">
-                        <td>Total removed</td>
-                        <td>{{ collection.total_removed }}</td>
+                        <td></td>
+                        <td style="text-align: right; font-weight: bold;
+                            {% if collection.total_diff > 0 %}
+                                    color: green;">+
+                            {% else %}
+                                    color: red;">
+                            {% endif %}
+                            {{ collection.linksearch_total_diff }}
+                        </td>
                     </tr>
-                    <tr style="line-height:55px;">
-                        <td>Total editors</td>
-                        <td>{{ collection.total_editors }}</td>
-                    </tr>
-                </table>
-            </div>
+                {% endif %}
+                <tr class="stat-table-header">
+                    <td>Other</td>
+                </tr>
+                <tr>
+                    <td>Total editors:</td>
+                    <td style="text-align: right;">{{ collection.total_editors }}</td>
+                </tr>
+                <tr>
+                    <td>Total projects:</td>
+                    <td style="text-align: right;">{{ collection.total_projects }}</td>
+                </tr>
+            </table>
+        </div>
         </div>
         <div class="row" style="margin-top:40px;">
             <h3>Totals</h3>
@@ -81,7 +115,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
                 </div>
             </div>
             <div class="col">
@@ -106,7 +140,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
                 </div>
             </div>
             <div class="col">
@@ -131,7 +165,7 @@
                     {% endfor %}
                 </table>
                 <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                    <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
                 </div>
             </div>
         </div>
@@ -162,13 +196,12 @@
                 {% endfor %}
             </table>
             <div style="text-align:right;">
-                <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}">[Download CSV]</a>
+                <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
     {% endfor %}
 </div>
 
-<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
 <script type="text/javascript">
     {% for collection_name, collection in collections.items %}
         var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
@@ -248,7 +281,9 @@
       // Get all elements with class="tablinks" and remove the class "active"
       tablinks = document.getElementsByClassName("tablinks");
       for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
+          if (tabcontent[i].id.indexOf(collection)!=-1) {
+              tablinks[i].className = tablinks[i].className.replace(" active", "");
+          }
       }
 
       // Show the current tab, and add an "active" class to the button that opened the tab
