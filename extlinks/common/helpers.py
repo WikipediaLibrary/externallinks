@@ -72,12 +72,12 @@ def get_linksearchtotal_data_by_time(queryset):
 
         while current_date >= earliest_date:
             # Find the average link count for this month
-            earliest_month_data = queryset.filter(
+            average_month_data = queryset.filter(
                 date__month=current_date.month,
                 date__year=current_date.year,
             ).aggregate(Avg('total'))
 
-            linksearch_data.append(earliest_month_data['total__avg'])
+            linksearch_data.append(round(average_month_data['total__avg']))
             dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
             # Figure out what the last month is regardless of today's date
@@ -192,7 +192,11 @@ def get_linkevent_context(context, queryset):
     # Stat block
     context['total_added'] = sum(added_data_series)
     context['total_removed'] = sum(removed_data_series)
+    context['total_diff'] = context['total_added'] - context['total_removed']
+
     context['total_editors'] = queryset.values_list(
         'username').distinct().count()
+    context['total_projects'] = queryset.values_list(
+        'domain').distinct().count()
 
     return context

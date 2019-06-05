@@ -10,8 +10,10 @@ class DateInput(forms.DateInput):
 class FilterForm(forms.Form):
 
     start_date = forms.DateField(required=False, label="Start date:",
-                                 widget=DateInput())
+                                 widget=DateInput(
+                                     attrs={'class': 'form-control'}))
     end_date = forms.DateField(required=False, label="End date:",
-                               widget=DateInput())
+                               widget=DateInput(
+                                   attrs={'class': 'form-control'}))
 
     limit_to_user_list = forms.BooleanField(required=False)

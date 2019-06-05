@@ -2,16 +2,38 @@ h1 {
     margin-bottom: 20px;
 }
 
+hr {
+    margin-top: 2%;
+    width: 70%;
+}
+
 .body {
-    padding: 35px;
+    padding-left: 10%;
+    padding-right: 10%;
+    padding-top: 2%;
+}
+
+.charts-body {
+    padding: 2%;
 }
 
 .navbar {
-    background-color: #b3d8ff;
+    background-color: #fbfbfb;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: rgba(0, 0, 0, 0.7);
 }
 
 .intro {
-    font-size:20pt;
+    font-size:30pt;
+    padding-bottom:25px;
+}
+
+.footer {
+    font-size: 14px;
+    text-align: center;
+    padding-bottom:5%;
 }
 
 .wrapper {
@@ -23,10 +45,21 @@ h1 {
 .stat-box {
     border-style: solid;
     border-width: 2px;
+    border-top-width: 0;
+    border-bottom-width: 0;
     border-color: rgba(197, 197, 197);
     border-radius: 25px;
-    background: #f9f9f9;
-    padding: 15px 25px;
+    padding: 25px 30px;
+}
+
+.stat-table-header {
+    border-bottom-style: solid;
+    border-bottom-color: lightgrey;
+    border-bottom-width: 1px;
+}
+
+.tr {
+    line-height: 25px;
 }
 
 .tabcontent {
@@ -38,11 +71,53 @@ h1 {
     max-width: 250px;
     min-height: 100vh;
     padding: 20px;
-    background: #e8f0ff;
+    padding-top: 40px;
+    background-color: #fbfbfb;
 }
 
 .sidebar-sub-entry {
     text-indent: 2em;
     font-style: italic;
     font-size: 14px;
+}
+
+.card {
+    margin: 1%;
+    width: 20em;
+}
+
+.tablinks {
+    border: none;
+    min-height: 50px;
+    margin: 0;
+    float: left;
+    background-color: #f2f2f4;
+    transition: 0.2s;
+    border-top-style: solid;
+    border-top-color: #cdcdcd;
+    border-top-width: 2px;
+}
+
+.tab {
+    border-bottom-color: #ebebeb;
+    border-bottom-style: solid;
+    border-bottom-width: 2px;
+    padding-left: 0;
+    padding-right: 30px;
+    margin-bottom: 10px;
+}
+
+.tab button:hover {
+    background-color: #e5e5e5;
+}
+
+.tab button:focus {
+    outline: 0;
+}
+
+.active {
+    background-color: #d6d6d6;
+    border-top-style: solid;
+    border-top-color: #9a9a9a;
+    border-top-width: 4px;
 }

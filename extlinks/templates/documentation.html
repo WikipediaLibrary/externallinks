@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="body">
+    <h1>Wikilink</h1>
+    <p>
+        The Wikilink tool helps program organisers and organisations track external links on Wikimedia projects. While
+        MediaWiki has the ability to <a href="https://en.wikipedia.org/wiki/Special:LinkSearch">search existing
+        links</a>, at the time of writing there is no way to easily monitor link additions and removals over time. The
+        tool was built primarily for The Wikipedia Library's use case. Publishers donate access to Wikipedia editors,
+        and while it was possible to monitor the total number of links over time, there was no simple way to investigate
+        that data further - to find out where links were being added, who was adding them, or in the case of a drop
+        in link numbers, why those links were removed.
+    </p>
+    <hr style="width:30%">
+    <h2>Using the tool</h2>
+    <p>
+        There are two primary views into the data - the 'program' level and 'organisation' level.
+    </p>
+    <h3>Programs</h3>
+    <p>
+        Programs are collections of organisations. Program pages provide a high level overview of the link additions
+        and removals for many organisations in one place. If you have partnerships with multiple organisations,
+        the program pages can provide data about their data in aggregate for reporting purposes.
+    </p>
+    <h3>Organisations</h3>
+    <p>
+        Organisation pages provide data relevant to an individual organisation. Organisations can have multiple
+        collections of tracked URLs - these could be different websites or simply different URL patterns. Results
+        for each collection are presented individually. Additionally, each collection can have multiple URLs. This is
+        useful primarily in the case that a website has moved; both URLs can continue to be tracked in the same place.
+    </p>
+    <hr style="width:30%">
+    <h2>Data collection</h2>
+    <p>
+        Two sets of data are collected: Link events and totals
+    </p>
+    <h2>Link events</h2>
+    <p>
+        A <a href="https://github.com/Samwalton9/externallinks/blob/master/extlinks/links/management/commands/linkevents_collect.py">
+        script</a> is always monitoring the
+        <a href="https://stream.wikimedia.org/?doc#!/Streams/get_v2_stream_page_links_change">page-links-change</a>
+        event stream; when a link tracked by Wikilink is added or removed, the data is stored in Wikilink's database.
+    </p>
+    <p>
+        The event stream reports link additions and removals from all Wikimedia projects and languages, and tracks
+        events from all namespaces. If a link is changed, it will register both an addition (the new URL) and a removal
+        (the old URL). Editing the same URL multiple times in one edit will only send a single event.
+    </p>
+    <p>
+        Please be aware there is currently <a href="https://phabricator.wikimedia.org/T216504">a known bug</a> with the
+        event stream whereby some additional events are being sent related to template transclusions.
+    </p>
+    <h2>Link totals</h2>
+    <p>
+        The tool also tracks the total number of links to each tracked URL on a weekly basis. These totals are
+        retrieved from the <a href="https://www.mediawiki.org/wiki/Manual:Externallinks_table">externallinks</a> table,
+        for [?] languages. Currently, these totals only consider Wikipedia projects. Unlike with the event stream,
+        queries have to be made against each project's database individually, and it is therefore prohibitive to
+        collect total data for every Wikimedia project.
+    </p>
+</div>
+{% endblock %}
