@@ -177,8 +177,7 @@ def get_linkevent_context(context, queryset):
                                         ['username'],
                                         num_results=5)
 
-    context['latest_additions'] = queryset.filter(
-        change=LinkEvent.ADDED).order_by(
+    context['latest_links'] = queryset.order_by(
             '-timestamp')[:10]
 
     # EventStream chart data
