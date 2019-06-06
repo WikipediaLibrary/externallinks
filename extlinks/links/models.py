@@ -86,4 +86,6 @@ class LinkEvent(models.Model):
     @property
     def get_organisations(self):
         url_patterns = self.url.all()
-        return [org.collection.organisation for org in url_patterns]
+        organisations = [org.collection.organisation for org in url_patterns]
+        # Ensure that we're not listing the same orgs more than once
+        return list(set(organisations))
