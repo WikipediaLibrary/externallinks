@@ -146,11 +146,11 @@ class CSVAllLinkEvents(_CSVDownloadView):
 
         writer = csv.writer(response)
 
-        writer.writerow(['Link', 'User', 'Page title',
+        writer.writerow(['Link', 'User', 'Bot user', 'Page title',
                          'Project', 'Timestamp', 'Revision ID',
                          'Change'])
 
         for link in linkevents.order_by('-timestamp'):
-            writer.writerow([link.link, link.username, link.page_title,
-                             link.domain, link.timestamp, link.rev_id,
-                             link.change])
+            writer.writerow([link.link, link.username, link.user_is_bot,
+                             link.page_title, link.domain, link.timestamp,
+                             link.rev_id, link.change])
