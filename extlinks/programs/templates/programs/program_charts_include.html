@@ -49,7 +49,7 @@
         <h2>Totals</h2>
     </div>
     <div class="row">
-        <div class="col">
+        <div class="col-4">
             <table class="table">
                 <tr>
                     <th>Organisation</th>
@@ -74,7 +74,7 @@
                 <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
-        <div class="col">
+        <div class="col-4">
             <table class="table">
                 <tr>
                     <th>Project</th>
@@ -99,7 +99,7 @@
                 <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
             </div>
         </div>
-        <div class="col">
+        <div class="col-4">
             <table class="table">
                 <tr>
                     <th>Username</th>
