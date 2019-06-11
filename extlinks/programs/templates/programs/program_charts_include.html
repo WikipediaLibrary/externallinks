@@ -59,7 +59,7 @@
                 {% for organisation in top_organisations %}
                     <tr>
                         <td>
-                            <a href="{% url 'organisations:detail' pk=organisation.pk %}">{{ organisation|truncatechars:12 }}</a>
+                            <a href="{% url 'organisations:detail' pk=organisation.pk %}">{{ organisation|truncatechars:20 }}</a>
                         </td>
                         <td>
                             {{ organisation.links_added }}
@@ -109,7 +109,7 @@
                 {% for user in top_users %}
                     <tr>
                         <td>
-                            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:12 }}</a>
+                            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
                         </td>
                         <td>
                             {{ user.links_added }}
