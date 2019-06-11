@@ -20,3 +20,9 @@ class Program(models.Model):
         return Organisation.objects.filter(
             program=self
         ).count()
+
+    @property
+    def any_orgs_user_list(self):
+        return Organisation.objects.filter(
+            program=self,
+            limit_by_user=True).exists()
