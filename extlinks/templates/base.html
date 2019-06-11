@@ -16,12 +16,10 @@
 
 <nav class="navbar navbar-expand-lg navbar-light shadow-sm">
     <a class="navbar-brand" href="{% url 'homepage' %}">Wikilink</a>
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <div class="navbar-nav">
-            <a class="nav-item nav-link" href="{% url 'programs:list' %}">Programs</a>
-            <a class="nav-item nav-link" href="{% url 'organisations:list' %}">Organisations</a>
-            <a class="nav-item nav-link" href="{% url 'documentation' %}">What is this?</a>
-        </div>
+    <div class="navbar-nav">
+        <a class="nav-item nav-link" href="{% url 'programs:list' %}">Programs</a>
+        <a class="nav-item nav-link" href="{% url 'organisations:list' %}">Organisations</a>
+        <a class="nav-item nav-link" href="{% url 'documentation' %}">What is this?</a>
     </div>
 </nav>
 
