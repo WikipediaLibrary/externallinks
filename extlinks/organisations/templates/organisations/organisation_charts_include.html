@@ -103,7 +103,7 @@
                     {% for page in collection.top_pages %}
                         <tr>
                             <td>
-                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title }}</a>
+                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title|truncatechars:12 }}</a>
                             </td>
                             <td>
                                 {{ page.links_added }}
@@ -153,7 +153,7 @@
                     {% for user in collection.top_users %}
                         <tr>
                             <td>
-                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username }}</a>
+                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:12 }}</a>
                             </td>
                             <td>
                                 {{ user.links_added }}
@@ -186,7 +186,7 @@
                         <tr style="background-color: rgba(255,46,44,0.12);">
                     {% endif %}
                         <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
-                        <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username }}</a></td>
+                        <td><a href="https://meta.wikimedia.org/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
                         <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|truncatechars:20 }}</a></td>
                         <td>{{ linkevent.domain }}</td>
                         <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
