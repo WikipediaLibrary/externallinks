@@ -172,10 +172,10 @@ def get_linkevent_context(context, queryset):
                                            ['domain'],
                                            num_results=5)
 
-    context['top_users'] = annotate_top(queryset,
-                                        '-links_added',
-                                        ['username'],
-                                        num_results=5)
+    all_users = annotate_top(queryset,
+                             '-links_added',
+                             ['username'])
+    context['top_users'] = all_users[:5]
 
     context['latest_links'] = queryset.order_by(
             '-timestamp')[:10]
@@ -193,8 +193,7 @@ def get_linkevent_context(context, queryset):
     context['total_removed'] = sum(removed_data_series)
     context['total_diff'] = context['total_added'] - context['total_removed']
 
-    context['total_editors'] = queryset.values_list(
-        'username').distinct().count()
+    context['total_editors'] = len(all_users)
     context['total_projects'] = queryset.values_list(
         'domain').distinct().count()
 
