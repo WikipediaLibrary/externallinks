@@ -64,11 +64,10 @@ class Command(BaseCommand):
         Change = 0: Removed
         Change = 1: Added
         """
-        tracked_links = URLPattern.objects.all().values_list('url', flat=True)
 
         for link in link_list:
             if link['external']:
-                if any(links in link['link'] for links in tracked_links):
+                if self.link_is_tracked(link['link']):
                     # URLs in the stream are encoded (e.g. %3D instead of =)
                     unquoted_url = unquote(link['link'])
 
@@ -79,11 +78,31 @@ class Command(BaseCommand):
                     # We want to avoid link additions from e.g. InternetArchive
                     # where the URL takes the structure
                     # https://web.archive.org/https://test.com/
-                    protocol_count = unquoted_url.count("://")
+                    protocol_count = unquoted_url.count("//")
 
                     if not event_objects.exists() and protocol_count < 2:
                         self.add_linkevent_to_db(unquoted_url, change,
                                                  event_dict)
+
+    def link_is_tracked(self, link):
+        tracked_links = URLPattern.objects.all().values_list('url', flat=True)
+
+        # This is a quick check so we can filter the majority of events
+        # which won't be matching our filters
+        if any(links in link for links in tracked_links):
+            # Then we do a more detailed check, to make sure this is the
+            # root URL.
+            for tracked_link in tracked_links:
+                # If we track apa.org, we don't want to match iaapa.org
+                # so we make sure the URL is actually pointing at apa.org
+                url_starts = ["//" + tracked_link, "." + tracked_link]
+                if any(start in link for start in url_starts):
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
 
     def add_linkevent_to_db(self, link, change, event_data):
         datetime_object = datetime.strptime(event_data['meta']['dt'],
