@@ -1,3 +1,4 @@
+import csv
 import MySQLdb
 import os
 
@@ -5,6 +6,7 @@ from django.core.management import BaseCommand
 
 from extlinks.links.helpers import split_url_for_query
 from extlinks.links.models import LinkSearchTotal, URLPattern
+from extlinks.settings.base import BASE_DIR
 
 
 class Command(BaseCommand):
@@ -13,13 +15,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         protocols = ['http', 'https']
 
-        # TODO: Expand to all Wikipedia languages
-        languages = ['en', 'de']
+        with open(os.path.join(BASE_DIR, 'wiki-list.csv'), 'r') as wiki_list:
+            csv_reader = csv.reader(wiki_list)
+            wiki_list_data = []
+            for row in csv_reader:
+                wiki_list_data.append(row[0])
 
         all_urlpatterns = URLPattern.objects.all()
 
         total_links_dictionary = {}
-        for i, language in enumerate(languages):
+        for i, language in enumerate(wiki_list_data):
             db = MySQLdb.connect(
                 host="{lang}wiki.analytics.db.svc.eqiad.wmflabs".format(
                     lang=language),
