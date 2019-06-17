@@ -4,9 +4,8 @@ from django.core.management import call_command
 
 
 class MyCronJob(CronJobBase):
-    RUN_AT_TIMES = ['00:00']
-
-    schedule = Schedule(run_at_times=RUN_AT_TIMES)
+    # 10080 is weekly.
+    schedule = Schedule(run_every_mins=10080)
     code = 'links.total_links_cron'
 
     def do(self):
