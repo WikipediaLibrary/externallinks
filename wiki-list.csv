@@ -35,7 +35,7 @@ hy
 da
 he
 sk
-zh-min-nan
+zh_min_nan
 kk
 min
 ce
@@ -71,11 +71,11 @@ bs
 ky
 sq
 tl
-zh-yue
+zh_yue
 new
 te
 bn
-be-tarask
+be_tarask
 br
 pms
 ml
@@ -113,7 +113,7 @@ qu
 arz
 wuu
 mn
-bat-smg
+bat_smg
 si
 or
 wa
@@ -125,7 +125,7 @@ nap
 bug
 hsb
 mai
-map-bms
+map_bms
 mzn
 fo
 xmf
@@ -142,8 +142,8 @@ mrj
 ps
 mhr
 hif
-zh-classical
-roa-tara
+zh_classical
+roa_tara
 bcl
 ace
 hak
@@ -158,7 +158,7 @@ mi
 rue
 nah
 bh
-nds-nl
+nds_nl
 vls
 crh
 gan
@@ -170,7 +170,7 @@ myv
 co
 as
 tk
-fiu-vro
+fiu_vro
 so
 kv
 lrc
@@ -209,7 +209,7 @@ ang
 ext
 olo
 dty
-cbk-zam
+cbk_zam
 dv
 ksh
 gag
@@ -242,7 +242,7 @@ ki
 na
 jbo
 wo
-roa-rup
+roa_rup
 lbe
 bi
 ty
