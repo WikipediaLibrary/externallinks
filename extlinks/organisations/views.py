@@ -1,3 +1,5 @@
+import re
+
 from django.views.generic import ListView, DetailView
 
 from extlinks.common.forms import FilterForm
@@ -48,7 +50,9 @@ class OrganisationDetailView(DetailView):
                     form_data
                 )
 
-            collection_key = collection.name.replace(" ", "_")
+            # Replace all special characters that might confuse JS with an
+            # underscore.
+            collection_key = re.sub('[^0-9a-zA-Z]+', '_', collection.name)
 
             context['collections'][collection_key] = {}
             context['collections'][collection_key]['object'] = collection
