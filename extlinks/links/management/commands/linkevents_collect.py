@@ -103,8 +103,12 @@ class Command(BaseCommand):
 
 
     def add_linkevent_to_db(self, link, change, event_data):
+        if "Z" in event_data['meta']['dt']:
+            string_format = '%Y-%m-%dT%H:%M:%SZ'
+        else:
+            string_format = '%Y-%m-%dT%H:%M:%S+00:00'
         datetime_object = datetime.strptime(event_data['meta']['dt'],
-                                            '%Y-%m-%dT%H:%M:%S+00:00')
+                                            string_format)
         try:
             username = event_data['performer']['user_text']
         except KeyError:
