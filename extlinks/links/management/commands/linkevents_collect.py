@@ -98,8 +98,6 @@ class Command(BaseCommand):
                 url_starts = ["//" + tracked_link, "." + tracked_link]
                 if any(start in link for start in url_starts):
                     return True
-                else:
-                    return False
         else:
             return False
 
