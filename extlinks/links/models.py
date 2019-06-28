@@ -2,7 +2,7 @@ from datetime import date
 
 from django.db import models
 
-from extlinks.organisations.models import Collection
+from extlinks.organisations.models import Collection, User
 
 
 class URLPattern(models.Model):
@@ -57,7 +57,8 @@ class LinkEvent(models.Model):
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32)
-    username = models.CharField(max_length=255)
+    username = models.ForeignKey(User, null=True,
+                                 on_delete=models.SET_NULL)
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
     rev_id = models.PositiveIntegerField(null=True)

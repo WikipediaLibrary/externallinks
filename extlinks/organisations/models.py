@@ -1,6 +1,16 @@
 from django.db import models
 
 
+class User(models.Model):
+    class Meta:
+        app_label = "organisations"
+
+    username = models.CharField(max_length=235)
+
+    def __str__(self):
+        return self.username
+
+
 class Organisation(models.Model):
     class Meta:
         app_label = "organisations"
@@ -8,13 +18,10 @@ class Organisation(models.Model):
 
     name = models.CharField(max_length=40)
 
-    # organisations.Program syntax required to avoid circular import.
+    # programs.Program syntax required to avoid circular import.
     program = models.ManyToManyField('programs.Program')
 
-    # Some organisation use cases will want to limit link change tracking
-    # to a particular list of users.
-    limit_by_user = models.BooleanField(default=False)
-    username_list = models.TextField(blank=True, null=True)
+    username_list = models.ManyToManyField(User)
     # If a URL is placed here, we'll use it to regularly update username_list
     username_list_url = models.URLField(blank=True, null=True)
 
@@ -26,6 +33,13 @@ class Organisation(models.Model):
         return Collection.objects.filter(
             organisation=self
         ).count()
+
+    @property
+    def limit_by_user(self):
+        if self.username_list.count() > 0:
+            return True
+        else:
+            return False
 
 
 class Collection(models.Model):

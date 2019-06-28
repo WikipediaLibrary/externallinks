@@ -7,7 +7,7 @@ from extlinks.links.factories import (LinkEventFactory,
                                       URLPatternFactory)
 from extlinks.links.models import LinkEvent
 from extlinks.programs.factories import ProgramFactory
-from .factories import OrganisationFactory, CollectionFactory
+from .factories import UserFactory, OrganisationFactory, CollectionFactory
 from .views import (OrganisationListView,
                     OrganisationDetailView)
 
@@ -60,10 +60,12 @@ class OrganisationDetailTest(TestCase):
 
         urlpattern1 = URLPatternFactory(collection=self.collection1)
 
+        user = UserFactory(username='Jim')
+
         self.linkevent1 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username='Jim',
+            username=user,
             timestamp=datetime(2019, 1, 15))
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
@@ -71,7 +73,7 @@ class OrganisationDetailTest(TestCase):
         self.linkevent2 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username='Jim',
+            username=user,
             timestamp=datetime(2019, 1, 10))
         self.linkevent2.url.add(urlpattern1)
         self.linkevent2.save()
@@ -79,7 +81,7 @@ class OrganisationDetailTest(TestCase):
         self.linkevent3 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.REMOVED,
-            username='Bob',
+            username=UserFactory(),
             timestamp=datetime(2017, 5, 5))
         self.linkevent3.url.add(urlpattern1)
         self.linkevent3.save()
@@ -87,7 +89,7 @@ class OrganisationDetailTest(TestCase):
         self.linkevent4 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username='Mary',
+            username=UserFactory(),
             timestamp=datetime(2019, 3, 1),
             on_user_list=True)
         self.linkevent4.url.add(urlpattern1)
