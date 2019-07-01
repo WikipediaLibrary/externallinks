@@ -1,3 +1,4 @@
+import os
 import requests
 
 from django.core.management import BaseCommand
@@ -10,13 +11,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         user_list_orgs = Organisation.objects.filter(
-            username_list__isnull=False
+            username_list_url__isnull=False
         )
 
         for organisation in user_list_orgs:
             username_list_url = organisation.username_list_url
 
-            response = requests.get(username_list_url)
+            # TODO: Hacky way to get TWL working, needs to be flexible.
+            auth_key = os.environ['TWL_API_TOKEN']
+            response = requests.get(username_list_url,
+                                    headers={
+                                        'Authorization': "Token {}".format(
+                                            auth_key)
+                                    })
             if response.status_code == 200:
                 json_response = response.json()
             else:
@@ -26,9 +33,9 @@ class Command(BaseCommand):
             organisation.username_list.clear()
 
             for result in json_response:
-                username = result['username']
+                username = result['wp_username']
 
-                user_object = User.objects.get_or_create(
+                user_object, _ = User.objects.get_or_create(
                     username=username
                 )
 

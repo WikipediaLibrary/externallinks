@@ -21,7 +21,7 @@ class Organisation(models.Model):
     # programs.Program syntax required to avoid circular import.
     program = models.ManyToManyField('programs.Program')
 
-    username_list = models.ManyToManyField(User)
+    username_list = models.ManyToManyField(User, blank=True)
     # If a URL is placed here, we'll use it to regularly update username_list
     username_list_url = models.URLField(blank=True, null=True)
 

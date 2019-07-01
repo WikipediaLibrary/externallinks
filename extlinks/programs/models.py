@@ -23,6 +23,14 @@ class Program(models.Model):
 
     @property
     def any_orgs_user_list(self):
-        return Organisation.objects.filter(
-            program=self,
-            limit_by_user=True).exists()
+        """
+        Returns True if any of this program's organisations limit by user
+        """
+        program_orgs = Organisation.objects.filter(
+            program=self)
+
+        for org in program_orgs:
+            if org.limit_by_user:
+                return True
+
+        return False
