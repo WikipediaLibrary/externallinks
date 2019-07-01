@@ -1,6 +1,15 @@
 import factory
 
-from .models import Organisation, Collection
+from .models import User, Organisation, Collection
+
+
+class UserFactory(factory.django.DjangoModelFactory):
+
+    class Meta:
+        model = User
+        strategy = factory.CREATE_STRATEGY
+
+    username = factory.Faker('name')
 
 
 class OrganisationFactory(factory.django.DjangoModelFactory):

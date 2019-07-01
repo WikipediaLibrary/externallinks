@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Organisation, Collection
+from .models import Organisation, Collection, User
+
+
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('username',)
+
+
+admin.site.register(User, UserAdmin)
 
 
 class OrganisationAdmin(admin.ModelAdmin):

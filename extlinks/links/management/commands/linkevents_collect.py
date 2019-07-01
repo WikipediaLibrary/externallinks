@@ -11,6 +11,7 @@ from urllib.parse import unquote
 from django.core.management.base import BaseCommand
 
 from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.organisations.models import User
 
 logger = logging.getLogger('django')
 
@@ -120,12 +121,11 @@ class Command(BaseCommand):
             ))
             return
 
-        # Log actions such as page moves and image uploads have no
-        # revision ID.
-        try:
-            revision_id = event_data['rev_id']
-        except KeyError:
-            revision_id = None
+        # Find the db object for this user, or create it if we haven't logged
+        # an edit from them before now.
+        username_object, created = User.objects.get_or_create(
+            username=username
+        )
 
         # All URL patterns matching this link
         tracked_urls = URLPattern.objects.all()
@@ -139,10 +139,17 @@ class Command(BaseCommand):
         # case, but I can't wait to find out why I'm wrong.
         on_user_list = False
         this_link_org = url_patterns[0].collection.organisation
-        if this_link_org.limit_by_user:
-            username_list = this_link_org.username_list
-            if username in username_list:
+        username_list = this_link_org.username_list
+        if username_list:
+            if username_object in username_list.all():
                 on_user_list = True
+
+        # Log actions such as page moves and image uploads have no
+        # revision ID.
+        try:
+            revision_id = event_data['rev_id']
+        except KeyError:
+            revision_id = None
 
         try:
             user_id = event_data['performer']['user_id']
@@ -154,7 +161,7 @@ class Command(BaseCommand):
             link=link,
             timestamp=pytz.utc.localize(datetime_object),
             domain=event_data['meta']['domain'],
-            username=username,
+            username=username_object,
             rev_id=revision_id,
             user_id=user_id,
             page_title=event_data['page_title'],

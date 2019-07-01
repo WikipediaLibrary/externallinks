@@ -1,5 +1,6 @@
 *.log
 .idea
+.env
 
 # Python stuff
 __pycache__/

@@ -6,7 +6,8 @@ from django.urls import reverse
 from extlinks.links.factories import (LinkEventFactory,
                                       URLPatternFactory)
 from extlinks.links.models import LinkEvent
-from extlinks.organisations.factories import (OrganisationFactory,
+from extlinks.organisations.factories import (UserFactory,
+                                              OrganisationFactory,
                                               CollectionFactory)
 from .factories import ProgramFactory
 from .views import (ProgramListView,
@@ -61,10 +62,12 @@ class ProgramDetailTest(TestCase):
         urlpattern2 = URLPatternFactory(collection=self.collection2)
         urlpattern3 = URLPatternFactory(collection=self.collection3)
 
+        user = UserFactory(username='Jim')
+
         self.linkevent1 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username='Jim',
+            username=user,
             timestamp=datetime(2019, 1, 15))
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
@@ -72,7 +75,7 @@ class ProgramDetailTest(TestCase):
         self.linkevent2 = LinkEventFactory(
             link=urlpattern2.url + "/test",
             change=LinkEvent.ADDED,
-            username='Jim',
+            username=user,
             timestamp=datetime(2019, 1, 10))
         self.linkevent2.url.add(urlpattern2)
         self.linkevent2.save()
@@ -80,7 +83,7 @@ class ProgramDetailTest(TestCase):
         self.linkevent3 = LinkEventFactory(
             link=urlpattern2.url + "/test",
             change=LinkEvent.REMOVED,
-            username='Bob',
+            username=UserFactory(),
             timestamp=datetime(2017, 5, 5))
         self.linkevent3.url.add(urlpattern2)
         self.linkevent3.save()
@@ -88,7 +91,7 @@ class ProgramDetailTest(TestCase):
         self.linkevent4 = LinkEventFactory(
             link=urlpattern3.url + "/test",
             change=LinkEvent.ADDED,
-            username='Mary',
+            username=UserFactory(),
             timestamp=datetime(2019, 3, 1),
             on_user_list=True)
         self.linkevent4.url.add(urlpattern3)
