@@ -153,7 +153,7 @@
                     {% for user in collection.top_users %}
                         <tr>
                             <td>
-                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
+                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username__username }}">{{ user.username__username|truncatechars:15 }}</a>
                             </td>
                             <td>
                                 {{ user.links_added }}

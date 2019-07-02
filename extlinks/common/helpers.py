@@ -174,7 +174,7 @@ def get_linkevent_context(context, queryset):
 
     all_users = annotate_top(queryset,
                              '-links_added',
-                             ['username'])
+                             ['username__username'])
     context['top_users'] = all_users[:5]
 
     context['latest_links'] = queryset.order_by(
