@@ -16,7 +16,7 @@ def get_change_data_by_time(queryset):
     """
 
     if queryset:
-        earliest_date = queryset[0].timestamp.date()
+        earliest_date = queryset.earliest().timestamp.date()
         current_date = date.today()
 
         data_range = current_date - earliest_date

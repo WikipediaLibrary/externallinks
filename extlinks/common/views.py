@@ -119,14 +119,14 @@ class CSVUserTotals(_CSVDownloadView):
                                      self.request.GET)
 
         top_users = annotate_top(linkevents,
-                                    '-links_added',
-                                    ['username'])
+                                 '-links_added',
+                                 ['username__username'])
         writer = csv.writer(response)
 
         writer.writerow(['Username', 'Links added', 'Links removed'])
 
         for user in top_users:
-            writer.writerow([user['username'], user['links_added'],
+            writer.writerow([user['username__username'], user['links_added'],
                              user['links_removed']])
 
 
