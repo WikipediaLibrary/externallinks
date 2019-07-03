@@ -8,8 +8,8 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">{{ organisation }}</h5>
-                        {% if organisation.get_collection_count > 1 %}
-                            <h6 class="card-subtitle mb-2 text-muted">Collections: {{ organisation.get_collection_count }}</h6>
+                        {% if organisation.collection_count > 1 %}
+                            <h6 class="card-subtitle mb-2 text-muted">Collections: {{ organisation.collection_count }}</h6>
                         {% endif %}
                         <a href="{% url 'organisations:detail' organisation.pk %}" class="btn btn-outline-dark">Overview</a>
                     </div>

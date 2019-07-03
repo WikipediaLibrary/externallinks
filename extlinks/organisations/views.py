@@ -1,5 +1,6 @@
 import re
 
+from django.db.models import Count
 from django.views.generic import ListView, DetailView
 
 from extlinks.common.forms import FilterForm
@@ -14,6 +15,12 @@ from .models import Organisation, Collection
 
 class OrganisationListView(ListView):
     model = Organisation
+
+    def get_queryset(self, **kwargs):
+        queryset = Organisation.objects.all().annotate(
+            collection_count=Count('collection')
+        )
+        return queryset
 
 
 class OrganisationDetailView(DetailView):
