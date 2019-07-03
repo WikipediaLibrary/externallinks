@@ -2,6 +2,7 @@ from datetime import datetime
 import factory
 import random
 
+from extlinks.organisations.factories import UserFactory
 from .models import LinkEvent, LinkSearchTotal, URLPattern
 
 
@@ -23,7 +24,7 @@ class LinkEventFactory(factory.django.DjangoModelFactory):
 
     timestamp = datetime.now()
     domain = "en.wikipedia.org"
-    username = factory.Faker('user_name')
+    username = factory.SubFactory(UserFactory)
     rev_id = random.randint(10000000, 100000000)
     user_id = random.randint(10000000, 100000000)
     page_title = factory.Faker('word')

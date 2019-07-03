@@ -3,6 +3,10 @@ from datetime import datetime
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 
+from extlinks.common.views import (CSVOrgTotals,
+                                   CSVProjectTotals,
+                                   CSVUserTotals,
+                                   CSVAllLinkEvents)
 from extlinks.links.factories import (LinkEventFactory,
                                       URLPatternFactory)
 from extlinks.links.models import LinkEvent
@@ -49,8 +53,10 @@ class ProgramDetailTest(TestCase):
 
     def setUp(self):
         self.program1 = ProgramFactory()
-        self.organisation1 = OrganisationFactory(program=(self.program1,))
-        self.organisation2 = OrganisationFactory(program=(self.program1,))
+        self.organisation1 = OrganisationFactory(name="Org 1",
+                                                 program=(self.program1,))
+        self.organisation2 = OrganisationFactory(name="Org 2",
+                                                 program=(self.program1,))
         self.url1 = reverse('programs:detail',
                             kwargs={'pk': self.program1.pk})
 
@@ -68,33 +74,37 @@ class ProgramDetailTest(TestCase):
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=user,
-            timestamp=datetime(2019, 1, 15))
+            timestamp=datetime(2019, 1, 15),
+            page_title="Event 1")
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
         self.linkevent2 = LinkEventFactory(
-            link=urlpattern2.url + "/test",
+            link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=user,
-            timestamp=datetime(2019, 1, 10))
-        self.linkevent2.url.add(urlpattern2)
+            timestamp=datetime(2019, 1, 10),
+            page_title="Event 1")
+        self.linkevent2.url.add(urlpattern1)
         self.linkevent2.save()
 
         self.linkevent3 = LinkEventFactory(
-            link=urlpattern2.url + "/test",
+            link=urlpattern1.url + "/test",
             change=LinkEvent.REMOVED,
-            username=UserFactory(),
-            timestamp=datetime(2017, 5, 5))
-        self.linkevent3.url.add(urlpattern2)
+            username=UserFactory(username='Bob'),
+            timestamp=datetime(2017, 5, 5),
+            page_title="Event 2")
+        self.linkevent3.url.add(urlpattern1)
         self.linkevent3.save()
 
         self.linkevent4 = LinkEventFactory(
-            link=urlpattern3.url + "/test",
+            link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username=UserFactory(),
+            username=UserFactory(username='Mary'),
             timestamp=datetime(2019, 3, 1),
-            on_user_list=True)
-        self.linkevent4.url.add(urlpattern3)
+            on_user_list=True,
+            page_title="Event 2")
+        self.linkevent4.url.add(urlpattern1)
         self.linkevent4.save()
 
     def test_program_detail_view(self):
@@ -182,3 +192,79 @@ class ProgramDetailTest(TestCase):
 
         self.assertEqual(response.context_data['total_added'], 1)
         self.assertEqual(response.context_data['total_removed'], 0)
+
+    def test_top_organisations_csv(self):
+        """
+        Test that the top pages CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse('programs:csv_org_totals',
+                          kwargs={'pk': self.organisation1.pk})
+
+        request = factory.get(csv_url)
+        response = CSVOrgTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode('utf-8')
+
+        expected_output = "Organisation,Links added,Links removed\r\n" \
+                          "Org 1,3,1\r\n" \
+                          "Org 2,0,0\r\n"
+
+        self.assertEqual(csv_content, expected_output)
+
+    def test_top_projects_csv(self):
+        """
+        Test that the top projects CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse('programs:csv_project_totals',
+                          kwargs={'pk': self.program1.pk})
+
+        request = factory.get(csv_url)
+        response = CSVProjectTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode('utf-8')
+
+        expected_output = "Project,Links added,Links removed\r\n" \
+                          "en.wikipedia.org,3,1\r\n"
+
+        self.assertEqual(csv_content, expected_output)
+
+    def test_top_users_csv(self):
+        """
+        Test that the top users CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse('programs:csv_user_totals',
+                          kwargs={'pk': self.program1.pk})
+
+        request = factory.get(csv_url)
+        response = CSVUserTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode('utf-8')
+
+        expected_output = "Username,Links added,Links removed\r\n" \
+                          "Jim,2,0\r\n" \
+                          "Mary,1,0\r\n" \
+                          "Bob,0,1\r\n" \
+
+        self.assertEqual(csv_content, expected_output)
+
+    def test_latest_links_csv(self):
+        """
+        Test that the top users CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse('programs:csv_all_links',
+                          kwargs={'pk': self.program1.pk})
+
+        request = factory.get(csv_url)
+        response = CSVAllLinkEvents.as_view()(request, pk=self.program1.pk)
+
+        self.assertContains(response, self.linkevent1.link)
+        self.assertContains(response, self.linkevent2.link)
+        self.assertContains(response, self.linkevent3.link)
+        self.assertContains(response, self.linkevent4.link)
+
+        self.assertContains(response, self.linkevent1.username.username)
