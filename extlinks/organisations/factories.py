@@ -36,3 +36,4 @@ class CollectionFactory(factory.django.DjangoModelFactory):
         strategy = factory.CREATE_STRATEGY
 
     name = factory.Faker('word')
+    organisation = factory.SubFactory(OrganisationFactory)

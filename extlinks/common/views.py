@@ -40,7 +40,7 @@ class CSVOrgTotals(_CSVDownloadView):
             program__pk=program_pk)
         this_program_linkevents = LinkEvent.objects.filter(
             url__collection__organisation__program__pk=program_pk
-        )
+        ).distinct()
         this_program_linkevents = filter_queryset(this_program_linkevents,
                                                   self.request.GET)
         top_orgs = top_organisations(
@@ -59,7 +59,7 @@ class CSVPageTotals(_CSVDownloadView):
     def _write_data(self, response):
         org_pk = self.kwargs['pk']
         linkevents = LinkEvent.objects.filter(
-            url__collection__organisation__pk=org_pk)
+            url__collection__organisation__pk=org_pk).distinct()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)
@@ -84,10 +84,10 @@ class CSVProjectTotals(_CSVDownloadView):
         # If we came from an organisation page:
         if '/organisation' in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk)
+                url__collection__organisation__pk=pk).distinct()
         else:
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk)
+                url__collection__organisation__program__pk=pk).distinct()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)
@@ -110,10 +110,10 @@ class CSVUserTotals(_CSVDownloadView):
         # If we came from an organisation page:
         if '/organisation' in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk)
+                url__collection__organisation__pk=pk).distinct()
         else:
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk)
+                url__collection__organisation__program__pk=pk).distinct()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)
@@ -136,10 +136,10 @@ class CSVAllLinkEvents(_CSVDownloadView):
         # If we came from an organisation page:
         if '/organisation' in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk)
+                url__collection__organisation__pk=pk).distinct()
         else:
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk)
+                url__collection__organisation__program__pk=pk).distinct()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)

@@ -91,10 +91,12 @@ def get_linksearchtotal_data_by_time(queryset):
 def annotate_top(queryset, order_by, fields, num_results=None):
     queryset = queryset.values(
         *fields).annotate(
-        links_added=Count('change',
-                          filter=Q(change=LinkEvent.ADDED)),
-        links_removed=Count('change',
-                            filter=Q(change=LinkEvent.REMOVED))).order_by(
+        links_added=Count('pk',
+                          filter=Q(change=LinkEvent.ADDED),
+                          distinct=True),
+        links_removed=Count('pk',
+                            filter=Q(change=LinkEvent.REMOVED),
+                            distinct=True)).order_by(
         order_by
     )
     if num_results:
@@ -106,15 +108,17 @@ def annotate_top(queryset, order_by, fields, num_results=None):
 def top_organisations(org_list, linkevents, num_results=None):
     annotated_orgs = org_list.annotate(
         links_added=Count(
-            'collection__url__linkevent',
+            'collection__url__linkevent__pk',
             filter=Q(
                 collection__url__linkevent__in=linkevents,
-                collection__url__linkevent__change=LinkEvent.ADDED)),
+                collection__url__linkevent__change=LinkEvent.ADDED),
+            distinct=True),
         links_removed=Count(
-            'collection__url__linkevent',
+            'collection__url__linkevent__pk',
             filter=Q(
                 collection__url__linkevent__in=linkevents,
-                collection__url__linkevent__change=LinkEvent.REMOVED)),
+                collection__url__linkevent__change=LinkEvent.REMOVED),
+            distinct=True),
     ).order_by('-links_added')
     if num_results:
         return annotated_orgs[:5]
