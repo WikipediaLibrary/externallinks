@@ -31,8 +31,6 @@ class Command(BaseCommand):
         # the event of any downtime, we always maintain 100% data coverage (up
         # to the ~30 days that the EventStream historical data is kept anyway).
         if options['historical']:
-            url = base_stream_url
-        else:
             all_events = LinkEvent.objects.all()
             if all_events.count() > 0:
                 latest_datetime = LinkEvent.objects.all().latest().timestamp
@@ -43,6 +41,8 @@ class Command(BaseCommand):
                     date=latest_date_formatted)
             else:
                 url = base_stream_url
+        else:
+            url = base_stream_url
 
         for event in EventSource(url):
             if event.event == 'message':
