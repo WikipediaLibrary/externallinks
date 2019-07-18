@@ -61,7 +61,7 @@ def get_change_data_by_time(queryset):
                 num_links_added.append(
                     num_months_equal(added_dates, current_date))
                 num_links_removed.append(
-                    num_months_equal(added_dates, current_date))
+                    num_months_equal(removed_dates, current_date))
                 dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
                 # Figure out what the last month is regardless of today's date
