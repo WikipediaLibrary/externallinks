@@ -9,7 +9,15 @@ from logging import getLogger
 logger = getLogger('django')
 
 
-def num_dates_equal(dates, check_date):
+def get_date_count(dates, check_date):
+    """
+    Find the number of events on a given date, given a dictionary of counts.
+
+    dates -- a dictionary of date:count pairs
+    check_date -- the datetime.date object to look for
+
+    Returns the count corresponding to date if found, and 0 otherwise.
+    """
     for date_data in dates:
         if date_data['timestamp__date'] == check_date:
             return date_data['event_count']
@@ -18,6 +26,15 @@ def num_dates_equal(dates, check_date):
 
 
 def num_months_equal(dates, check_date):
+    """
+    Find the number of events in a given month, given a dictionary of counts.
+
+    dates -- a dictionary of date:count pairs
+    check_date -- the datetime.date object to look for
+
+    Returns the summed count corresponding to the date's month and year. Will
+    return zero in the case that the list is empty.
+    """
     return sum([dt['event_count'] for dt in dates if
                 dt['timestamp__date'].month == check_date.month
                 and dt['timestamp__date'].year == check_date.year])
@@ -25,8 +42,13 @@ def num_months_equal(dates, check_date):
 
 def get_change_data_by_time(queryset):
     """
+    Calculates per-unit-time data from a queryset of LinkEvents for graphs.
+
     Given a queryset of LinkEvent objects, returns the number of events
-    per unit time. Returns lists of dates, links added, links removed.
+    per unit time. For less than 90 days data, returns data per day. For more,
+    returns data per month.
+
+    Returns three lists: dates, links added, and links removed.
     """
 
     if queryset:
@@ -38,8 +60,13 @@ def get_change_data_by_time(queryset):
         num_links_added, num_links_removed = [], []
         dates = []
 
+        # We could theoretically do the entire annotation process in one
+        # database query, but we want to line up dates between added and
+        # removed events and ensure we have intervening months accounted for
         added_dates = queryset.filter(change=LinkEvent.ADDED).values(
             'timestamp__date').annotate(
+            # We need to count on pk with distinct=True to remove duplicate
+            # events from multiple collections
             event_count=Count('pk', distinct=True))
         removed_dates = queryset.filter(change=LinkEvent.REMOVED).values(
             'timestamp__date').annotate(
@@ -47,12 +74,13 @@ def get_change_data_by_time(queryset):
 
         # Split data by day
         if data_range.days < 90:
+            # Count back from the current date
             while current_date >= earliest_date:
 
                 num_links_added.append(
-                    num_dates_equal(added_dates, current_date))
+                    get_date_count(added_dates, current_date))
                 num_links_removed.append(
-                    num_dates_equal(removed_dates, current_date))
+                    get_date_count(removed_dates, current_date))
 
                 dates.append(current_date.strftime('%Y-%m-%d'))
                 current_date -= timedelta(days=1)
@@ -67,6 +95,8 @@ def get_change_data_by_time(queryset):
                 # Figure out what the last month is regardless of today's date
                 current_date = current_date.replace(day=1) - timedelta(days=1)
 
+        # We want the resulting data to go oldest->newest, so these lists
+        # all need reversing
         return dates[::-1], num_links_added[::-1], num_links_removed[::-1]
     else:
         return [], [], []
@@ -74,8 +104,12 @@ def get_change_data_by_time(queryset):
 
 def get_linksearchtotal_data_by_time(queryset):
     """
+    Calculates per-unit-time data from a queryset of LinkSearchTotal objects
+
     Given a queryset of LinkSearchTotal objects, returns the totals
-    per month. Returns lists of dates and totals
+    per month.
+
+    Returns two lists: dates and totals
     """
 
     if queryset:
@@ -104,6 +138,16 @@ def get_linksearchtotal_data_by_time(queryset):
 
 
 def annotate_top(queryset, order_by, fields, num_results=None):
+    """
+    Annotates specific values of a queryset with their count.
+
+    queryset -- a LinkEvent queryset
+    order_by -- a string denoting which field to order by
+    fields -- a string denoting which fields to limit the values() select to
+    num_results -- optional integer which limits results to some number
+
+    Returns a queryset
+    """
     queryset = queryset.values(
         *fields).annotate(
         links_added=Count('pk',
@@ -121,6 +165,15 @@ def annotate_top(queryset, order_by, fields, num_results=None):
 
 
 def top_organisations(org_list, linkevents, num_results=None):
+    """
+    Annotates the count of link events for each organisation in a queryset.
+
+    org_list -- an Organisation queryset
+    linkevents -- a LinkEvent queryset
+    num_results -- optional integer which limits results to some number
+
+    Returns a queryset
+    """
     annotated_orgs = org_list.annotate(
         links_added=Count(
             'collection__url__linkevent__pk',
@@ -142,6 +195,14 @@ def top_organisations(org_list, linkevents, num_results=None):
 
 
 def filter_queryset(queryset, filter_dict):
+    """
+    Adds filter conditions to a queryset based on form results.
+
+    queryset -- a LinkEvent queryset
+    filter_dict -- a dictionary of data from the user filter form
+
+    Returns a queryset
+    """
     if 'start_date' in filter_dict:
         start_date = filter_dict['start_date']
         if start_date:
@@ -167,6 +228,14 @@ def filter_queryset(queryset, filter_dict):
 
 
 def filter_linksearchtotals(queryset, filter_dict):
+    """
+    Adds filter conditions to a LinkSearchTotal queryset based on form results.
+
+    queryset -- a LinkSearchTotal queryset
+    filter_dict -- a dictionary of data from the user filter form
+
+    Returns a queryset
+    """
     if 'start_date' in filter_dict:
         start_date = filter_dict['start_date']
         if start_date:
@@ -185,6 +254,18 @@ def filter_linksearchtotals(queryset, filter_dict):
 
 
 def get_linkevent_context(context, queryset):
+    """
+    Given a context dictionary and LinkEvent queryset, add additional context
+
+    Both Organisations and Programs need to add some of the same data when
+    building their detail page context dictionaries. This adds that shared
+    data to the context dictionary.
+
+    context -- a get_context_data() context dictionary
+    queryset -- a LinkEvent queryset
+
+    Returns a dictionary
+    """
 
     context['top_projects'] = annotate_top(queryset,
                                            '-links_added',
