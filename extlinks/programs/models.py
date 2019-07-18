@@ -27,10 +27,10 @@ class Program(models.Model):
         Returns True if any of this program's organisations limit by user
         """
         program_orgs = Organisation.objects.filter(
-            program=self)
+            program=self,
+            username_list__isnull=False)
 
-        for org in program_orgs:
-            if org.limit_by_user:
-                return True
-
-        return False
+        if program_orgs.count() > 0:
+            return True
+        else:
+            return False
