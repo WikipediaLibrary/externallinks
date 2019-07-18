@@ -33,6 +33,7 @@ class ProgramDetailView(DetailView):
             url__collection__organisation__program=self.object
         ).distinct()
 
+        # Filter queryset based on form, if used
         if form.is_valid():
             form_data = form.cleaned_data
             this_program_linkevents = filter_queryset(this_program_linkevents,

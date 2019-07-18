@@ -38,6 +38,8 @@ class OrganisationDetailView(DetailView):
             organisation=self.object
         )
 
+        # Here we have a slightly more complex context dictionary setup, where
+        # each collection has its own dictionary of data.
         context['collections'] = {}
         for collection in organisation_collections:
             this_collection_linkevents = LinkEvent.objects.filter(
@@ -77,7 +79,7 @@ class OrganisationDetailView(DetailView):
                 num_results=5,
             )
 
-            # totalLinks chart data
+            # LinkSearchTotal chart data
             dates, linksearch_data = get_linksearchtotal_data_by_time(
                 this_collection_linksearchtotals)
 
@@ -89,6 +91,9 @@ class OrganisationDetailView(DetailView):
                 total_start = linksearch_data[0]
                 total_current = linksearch_data[-1]
                 total_diff = total_current - total_start
+            # If we haven't collected any LinkSearchTotals yet, then set
+            # these variables to None so we don't show them in the statistics
+            # box
             else:
                 total_start = None
                 total_current = None
