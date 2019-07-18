@@ -9,6 +9,20 @@ from logging import getLogger
 logger = getLogger('django')
 
 
+def num_dates_equal(dates, check_date):
+    for date_data in dates:
+        if date_data['timestamp__date'] == check_date:
+            return date_data['event_count']
+
+    return 0
+
+
+def num_months_equal(dates, check_date):
+    return sum([dt['event_count'] for dt in dates if
+                dt['timestamp__date'].month == check_date.month
+                and dt['timestamp__date'].year == check_date.year])
+
+
 def get_change_data_by_time(queryset):
     """
     Given a queryset of LinkEvent objects, returns the number of events
@@ -24,29 +38,30 @@ def get_change_data_by_time(queryset):
         num_links_added, num_links_removed = [], []
         dates = []
 
+        added_dates = queryset.filter(change=LinkEvent.ADDED).values(
+            'timestamp__date').annotate(
+            event_count=Count('pk', distinct=True))
+        removed_dates = queryset.filter(change=LinkEvent.REMOVED).values(
+            'timestamp__date').annotate(
+            event_count=Count('pk', distinct=True))
+
         # Split data by day
         if data_range.days < 90:
             while current_date >= earliest_date:
 
-                num_links_added.append(queryset.filter(
-                    timestamp__date=current_date,
-                    change=LinkEvent.ADDED).count())
-                num_links_removed.append(queryset.filter(
-                    timestamp__date=current_date,
-                    change=LinkEvent.REMOVED).count())
+                num_links_added.append(
+                    num_dates_equal(added_dates, current_date))
+                num_links_removed.append(
+                    num_dates_equal(removed_dates, current_date))
 
                 dates.append(current_date.strftime('%Y-%m-%d'))
                 current_date -= timedelta(days=1)
         else:
             while current_date >= earliest_date:
-                num_links_added.append(queryset.filter(
-                    timestamp__date__month=current_date.month,
-                    timestamp__date__year=current_date.year,
-                    change=LinkEvent.ADDED).count())
-                num_links_removed.append(queryset.filter(
-                    timestamp__date__month=current_date.month,
-                    timestamp__date__year=current_date.year,
-                    change=LinkEvent.REMOVED).count())
+                num_links_added.append(
+                    num_months_equal(added_dates, current_date))
+                num_links_removed.append(
+                    num_months_equal(added_dates, current_date))
                 dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
 
                 # Figure out what the last month is regardless of today's date
