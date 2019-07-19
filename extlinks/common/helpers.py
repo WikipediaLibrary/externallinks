@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django.db.models import Count, Q, Avg
+from django.db.models.functions import TruncMonth
 
 from extlinks.links.models import LinkEvent
 
@@ -72,6 +73,14 @@ def get_change_data_by_time(queryset):
         return [], [], []
 
 
+def get_month_average(average_data, check_date):
+    for avg_data in average_data:
+        if avg_data['month'] == check_date:
+            return avg_data['average']
+
+    return 0
+
+
 def get_linksearchtotal_data_by_time(queryset):
     """
     Given a queryset of LinkSearchTotal objects, returns the totals
@@ -85,18 +94,20 @@ def get_linksearchtotal_data_by_time(queryset):
         linksearch_data = []
         dates = []
 
-        while current_date >= earliest_date:
-            # Find the average link count for this month
-            average_month_data = queryset.filter(
-                date__month=current_date.month,
-                date__year=current_date.year,
-            ).aggregate(Avg('total'))
+        average_month_data = queryset.annotate(
+            month=TruncMonth('date')).values('month').annotate(
+            average=Avg('total')
+        )
 
-            linksearch_data.append(round(average_month_data['total__avg']))
-            dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
+        while current_date >= earliest_date:
+            month_first = current_date.replace(day=1)
+            this_month_avg = get_month_average(average_month_data, month_first)
+
+            linksearch_data.append(round(this_month_avg))
+            dates.append(month_first.strftime('%Y-%m-%d'))
 
             # Figure out what the last month is regardless of today's date
-            current_date = current_date.replace(day=1) - timedelta(days=1)
+            current_date = month_first - timedelta(days=1)
 
         return dates[::-1], linksearch_data[::-1]
     else:
