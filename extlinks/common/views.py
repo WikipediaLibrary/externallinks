@@ -141,7 +141,7 @@ class CSVAllLinkEvents(_CSVDownloadView):
             linkevents = LinkEvent.objects.filter(
                 url__collection__organisation__program__pk=pk).distinct()
 
-        linkevents = filter_queryset(linkevents,
+        linkevents = filter_queryset(linkevents.select_related('username'),
                                      self.request.GET)
 
         writer = csv.writer(response)
