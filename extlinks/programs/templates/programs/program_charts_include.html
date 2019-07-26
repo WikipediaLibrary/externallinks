@@ -1,4 +1,5 @@
 {% load static %}
+{% load common_filters %}
 
 <hr style="width: 100%;">
 <div class="container-fluid">
@@ -144,7 +145,7 @@
                 {% endif %}
                     <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
                     <td><a href="https://{{ linkevent.domain }}/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
-                    <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|truncatechars:20 }}</a></td>
+                    <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
                     <td>{{ linkevent.domain }}</td>
                     <td>
                         {% for organisation in linkevent.get_organisations %}
