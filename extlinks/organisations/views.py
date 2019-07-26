@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 
 from django.db.models import Count
@@ -91,6 +92,8 @@ class OrganisationDetailView(DetailView):
                 total_start = linksearch_data[0]
                 total_current = linksearch_data[-1]
                 total_diff = total_current - total_start
+                start_date_object = datetime.strptime(dates[0], '%Y-%m-%d')
+                start_date = start_date_object.strftime('%B %Y')
             # If we haven't collected any LinkSearchTotals yet, then set
             # these variables to None so we don't show them in the statistics
             # box
@@ -98,9 +101,11 @@ class OrganisationDetailView(DetailView):
                 total_start = None
                 total_current = None
                 total_diff = None
+                start_date = None
             context['collections'][collection_key]['linksearch_total_start'] = total_start
             context['collections'][collection_key]['linksearch_total_current'] = total_current
             context['collections'][collection_key]['linksearch_total_diff'] = total_diff
+            context['collections'][collection_key]['linksearch_start_date'] = start_date
 
             context['query_string'] = self.request.META['QUERY_STRING']
 

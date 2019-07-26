@@ -57,7 +57,7 @@
                         <td>Total links</td>
                     </tr>
                     <tr>
-                        <td>Initial total:</td>
+                        <td>{{ collection.linksearch_start_date }}:</td>
                         <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
                     </tr>
                     <tr>
@@ -67,7 +67,7 @@
                     <tr style="line-height:55px;">
                         <td></td>
                         <td style="text-align: right; font-weight: bold;
-                            {% if collection.total_diff > 0 %}
+                            {% if collection.linksearch_total_diff > 0 %}
                                     color: green;">+
                             {% else %}
                                     color: red;">
