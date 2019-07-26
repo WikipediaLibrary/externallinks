@@ -1,4 +1,5 @@
 {% load static %}
+{% load common_filters %}
 
 <div class="container-fluid">
     {% for key, collection in collections.items %}
@@ -103,7 +104,7 @@
                     {% for page in collection.top_pages %}
                         <tr>
                             <td>
-                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title|truncatechars:20 }}</a>
+                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title|replace_underscores|truncatechars:20 }}</a>
                             </td>
                             <td>
                                 {{ page.links_added }}
@@ -187,7 +188,7 @@
                     {% endif %}
                         <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
                         <td><a href="https://{{ linkevent.domain }}/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
-                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|truncatechars:20 }}</a></td>
+                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
                         <td>{{ linkevent.domain }}</td>
                         <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
                     </tr>
