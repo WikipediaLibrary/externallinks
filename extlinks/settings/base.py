@@ -138,5 +138,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # Cron config
 CRON_CLASSES = [
-    'organisations.user_lists_cron'
+    'extlinks.organisations.cron.UserListsCron'
 ]

@@ -7,7 +7,7 @@ ALLOWED_HOSTS += ['wikilink.wmflabs.org']
 # We can only run this in production, because we're connecting to the database
 # replicas internally.
 CRON_CLASSES += [
-    'links.total_links_cron'
+    'extlinks.links.cron.TotalLinksCron'
 ]
 
 # Redirect HTTP to HTTPS
