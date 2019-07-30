@@ -148,9 +148,7 @@
                     <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
                     <td>{{ linkevent.domain }}</td>
                     <td>
-                        {% for organisation in linkevent.get_organisations %}
-                            <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
-                        {% endfor %}
+                        <a href="{% url 'organisations:detail' pk=linkevent.get_organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
                     </td>
                     <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
                 </tr>

@@ -31,7 +31,7 @@ class ProgramDetailView(DetailView):
 
         this_program_linkevents = LinkEvent.objects.filter(
             url__collection__organisation__program=self.object
-        ).distinct()
+        ).distinct().select_related('username')
 
         # Filter queryset based on form, if used
         if form.is_valid():
