@@ -56,7 +56,7 @@ class LinkEvent(models.Model):
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
-    domain = models.CharField(max_length=32)
+    domain = models.CharField(max_length=32, db_index=True)
     username = models.ForeignKey(User, null=True,
                                  on_delete=models.SET_NULL)
     # rev_id has null=True because some tracked revisions don't have a
@@ -78,15 +78,13 @@ class LinkEvent(models.Model):
         (ADDED, 'Added'),
     )
 
-    change = models.IntegerField(choices=CHANGE_CHOICES)
+    change = models.IntegerField(choices=CHANGE_CHOICES, db_index=True)
 
     # Flags whether this event was from a user on the user list for the
     # organisation tracking its URL.
     on_user_list = models.BooleanField(default=False)
 
     @property
-    def get_organisations(self):
+    def get_organisation(self):
         url_patterns = self.url.all()
-        organisations = [org.collection.organisation for org in url_patterns]
-        # Ensure that we're not listing the same orgs more than once
-        return list(set(organisations))
+        return url_patterns[0].collection.organisation

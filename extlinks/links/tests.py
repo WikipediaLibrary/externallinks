@@ -43,9 +43,9 @@ class LinksHelpersTest(TestCase):
 
         self.assertEqual(output, ("com.testurl.%", "%./test%"))
 
-    def test_get_organisations(self):
+    def test_get_organisation(self):
         """
-        Test the get_organisations function on the LinkEvent model.
+        Test the get_organisation function on the LinkEvent model.
         """
         organisation1 = OrganisationFactory()
         organisation2 = OrganisationFactory()
@@ -55,7 +55,7 @@ class LinksHelpersTest(TestCase):
         collection2 = CollectionFactory(organisation=organisation2)
         collection3 = CollectionFactory(organisation=organisation2)
 
-        urlpattern1 = URLPatternFactory(collection=collection1)
+        urlpattern1 = URLPatternFactory(collection=collection2)
         urlpattern2 = URLPatternFactory(collection=collection2)
         urlpattern3 = URLPatternFactory(collection=collection3)
 
@@ -63,5 +63,4 @@ class LinksHelpersTest(TestCase):
         new_link.url.add(urlpattern1)
         new_link.url.add(urlpattern3)
 
-        self.assertEqual(new_link.get_organisations,
-                         [organisation1, organisation2])
+        self.assertEqual(new_link.get_organisation, organisation2)
