@@ -3,6 +3,8 @@ import re
 
 from django.db.models import Count
 from django.views.generic import ListView, DetailView
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (filter_queryset,
@@ -24,6 +26,7 @@ class OrganisationListView(ListView):
         return queryset
 
 
+@method_decorator(cache_page(60 * 5), name='dispatch')
 class OrganisationDetailView(DetailView):
     model = Organisation
     form_class = FilterForm
