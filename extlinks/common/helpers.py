@@ -52,7 +52,7 @@ def get_change_data_by_time(queryset):
     Returns three lists: dates, links added, and links removed.
     """
 
-    if queryset:
+    if queryset.exists():
         earliest_date = queryset.earliest().timestamp.date()
         current_date = date.today()
 
