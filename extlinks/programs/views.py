@@ -1,4 +1,6 @@
 from django.views.generic import ListView, DetailView
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 from extlinks.common.forms import FilterForm
 from extlinks.links.models import LinkEvent
@@ -17,6 +19,7 @@ class ProgramListView(ListView):
     model = Program
 
 
+@method_decorator(cache_page(60 * 60), name='dispatch')
 class ProgramDetailView(DetailView):
     model = Program
     form_class = FilterForm

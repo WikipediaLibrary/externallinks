@@ -26,7 +26,7 @@ class OrganisationListView(ListView):
         return queryset
 
 
-@method_decorator(cache_page(60 * 5), name='dispatch')
+@method_decorator(cache_page(60 * 60), name='dispatch')
 class OrganisationDetailView(DetailView):
     model = Organisation
     form_class = FilterForm
