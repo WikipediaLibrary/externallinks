@@ -31,8 +31,7 @@ class ProgramDetailView(DetailView):
         form = self.form_class(self.request.GET)
         context['form'] = form
 
-        this_program_linkevents = self.get_object().get_linkevents().select_related(
-            'username')
+        this_program_linkevents = self.get_object().get_linkevents()
 
         # Filter queryset based on form, if used
         if form.is_valid():
