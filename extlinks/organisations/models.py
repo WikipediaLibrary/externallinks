@@ -1,5 +1,7 @@
 from django.db import models
 
+from extlinks.links.models import LinkEvent
+
 
 class User(models.Model):
     class Meta:
@@ -54,3 +56,8 @@ class Collection(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_linkevents(self):
+        return LinkEvent.objects.filter(
+            url__collection=self
+        ).distinct()

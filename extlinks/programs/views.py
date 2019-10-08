@@ -3,7 +3,6 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 
 from extlinks.common.forms import FilterForm
-from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Organisation
 from extlinks.common.helpers import (get_linkevent_context,
                                      top_organisations,
@@ -32,9 +31,8 @@ class ProgramDetailView(DetailView):
         form = self.form_class(self.request.GET)
         context['form'] = form
 
-        this_program_linkevents = LinkEvent.objects.filter(
-            url__collection__organisation__program=self.object
-        ).distinct().select_related('username')
+        this_program_linkevents = self.get_object().get_linkevents().select_related(
+            'username')
 
         # Filter queryset based on form, if used
         if form.is_valid():
