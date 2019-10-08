@@ -2,8 +2,6 @@ from datetime import date
 
 from django.db import models
 
-from extlinks.organisations.models import Collection, User
-
 
 class URLPattern(models.Model):
     class Meta:
@@ -14,7 +12,7 @@ class URLPattern(models.Model):
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
 
-    collection = models.ForeignKey(Collection, null=True,
+    collection = models.ForeignKey('organisations.Collection', null=True,
                                    on_delete=models.SET_NULL,
                                    related_name='url')
 
@@ -57,7 +55,7 @@ class LinkEvent(models.Model):
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32, db_index=True)
-    username = models.ForeignKey(User, null=True,
+    username = models.ForeignKey('organisations.User', null=True,
                                  on_delete=models.SET_NULL)
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.

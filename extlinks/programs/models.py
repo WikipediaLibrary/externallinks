@@ -1,5 +1,6 @@
 from django.db import models
 
+from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Organisation
 
 
@@ -14,6 +15,11 @@ class Program(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_linkevents(self):
+        return LinkEvent.objects.filter(
+            url__collection__organisation__program=self
+        ).distinct()
 
     @property
     def get_org_count(self):

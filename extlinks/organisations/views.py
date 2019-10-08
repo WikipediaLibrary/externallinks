@@ -3,6 +3,8 @@ import re
 
 from django.db.models import Count
 from django.views.generic import ListView, DetailView
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (filter_queryset,
@@ -10,7 +12,7 @@ from extlinks.common.helpers import (filter_queryset,
                                      annotate_top,
                                      get_linksearchtotal_data_by_time,
                                      filter_linksearchtotals)
-from extlinks.links.models import LinkEvent, LinkSearchTotal, URLPattern
+from extlinks.links.models import LinkSearchTotal, URLPattern
 from .models import Organisation, Collection
 
 
@@ -24,6 +26,7 @@ class OrganisationListView(ListView):
         return queryset
 
 
+@method_decorator(cache_page(60 * 60), name='dispatch')
 class OrganisationDetailView(DetailView):
     model = Organisation
     form_class = FilterForm
@@ -43,9 +46,7 @@ class OrganisationDetailView(DetailView):
         # each collection has its own dictionary of data.
         context['collections'] = {}
         for collection in organisation_collections:
-            this_collection_linkevents = LinkEvent.objects.filter(
-                url__collection=collection
-            )
+            this_collection_linkevents = collection.get_linkevents()
             this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
                 url__collection=collection
             )

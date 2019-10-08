@@ -8,6 +8,7 @@ from extlinks.common.helpers import (annotate_top,
                                      filter_queryset)
 from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Organisation
+from extlinks.programs.models import Program
 
 
 # CSV views borrowed from
@@ -38,9 +39,8 @@ class CSVOrgTotals(_CSVDownloadView):
         program_pk = self.kwargs['pk']
         this_program_orgs = Organisation.objects.filter(
             program__pk=program_pk)
-        this_program_linkevents = LinkEvent.objects.filter(
-            url__collection__organisation__program__pk=program_pk
-        ).distinct()
+        program = Program.objects.get(pk=program_pk)
+        this_program_linkevents = program.get_linkevents()
         this_program_linkevents = filter_queryset(this_program_linkevents,
                                                   self.request.GET)
         top_orgs = top_organisations(
@@ -86,8 +86,8 @@ class CSVProjectTotals(_CSVDownloadView):
             linkevents = LinkEvent.objects.filter(
                 url__collection__organisation__pk=pk).distinct()
         else:
-            linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk).distinct()
+            program = Program.objects.get(pk=pk)
+            linkevents = program.get_linkevents()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)
@@ -112,8 +112,8 @@ class CSVUserTotals(_CSVDownloadView):
             linkevents = LinkEvent.objects.filter(
                 url__collection__organisation__pk=pk).distinct()
         else:
-            linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk).distinct()
+            program = Program.objects.get(pk=pk)
+            linkevents = program.get_linkevents()
 
         linkevents = filter_queryset(linkevents,
                                      self.request.GET)
@@ -138,8 +138,8 @@ class CSVAllLinkEvents(_CSVDownloadView):
             linkevents = LinkEvent.objects.filter(
                 url__collection__organisation__pk=pk).distinct()
         else:
-            linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__program__pk=pk).distinct()
+            program = Program.objects.get(pk=pk)
+            linkevents = program.get_linkevents()
 
         linkevents = filter_queryset(linkevents.select_related('username'),
                                      self.request.GET)

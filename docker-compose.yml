@@ -49,6 +49,16 @@ services:
      - '.env'
    volumes:
      - ./:/app
+ cache:
+   image: memcached
+   networks:
+     - main
+   ports:
+    - "11211:11211"
+   entrypoint:
+     - memcached
+   depends_on:
+     - app
 
 networks:
  main:
