@@ -295,7 +295,10 @@ def get_linkevent_context(context, queryset):
         ['username__username'])
     context['top_users'] = all_users[:5]
 
-    context['latest_links'] = queryset.order_by(
+    # Prefetch a bunch of related data to save on number of queries
+    context['latest_links'] = queryset.prefetch_related(
+        'username', 'url',
+        'url__collection', 'url__collection__organisation').order_by(
             '-timestamp')[:10]
 
     # EventStream chart data
