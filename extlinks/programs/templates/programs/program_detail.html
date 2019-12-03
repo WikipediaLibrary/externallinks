@@ -8,7 +8,6 @@
                 {% for organisation in organisations %}
                     <li>
                         <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
-                        <a href="{% url "organisations:detail" pk=organisation.pk %}">{{ organisation }}</a>
                     </li>
                 {% endfor %}
             </ul>
