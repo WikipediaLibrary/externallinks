@@ -4,6 +4,7 @@ from faker import Faker
 
 from django.core.management import BaseCommand
 
+from extlinks.organisations.models import User
 from ...models import URLPattern, LinkEvent
 
 
@@ -19,7 +20,7 @@ class Command(BaseCommand):
 
         fake = Faker()
         languages = ['en', 'de', 'fr', 'he', 'hi', 'ta']
-        usernames = [fake.user_name() for _ in range(200)]
+        users = User.objects.all()
         # Hacky way of adding a weighted random choice of change type.
         # Addition is likely to be more prevalent.
         change_choices = [LinkEvent.ADDED, LinkEvent.ADDED,
@@ -30,19 +31,15 @@ class Command(BaseCommand):
         for _ in range(num_events):
             urlpattern = random.choice(urlpatterns)
             organisation = urlpattern.collection.organisation
-            random_user = random.choice(usernames)
+            random_user = random.choice(users)
 
             # If this org limits by user, choose either a random user who
             # isn't on the org's user list, or from the org's user list.
             on_user_list = False
             if organisation.limit_by_user:
-                username_list = organisation.username_list.split(",")
-                user = random.choice([random_user,
-                                     random.choice(username_list)])
-                if user in username_list:
+                username_list = organisation.username_list.all()
+                if random_user in username_list:
                     on_user_list = True
-            else:
-                user = random_user
 
             new_event = LinkEvent(
                 link=urlpattern.url + "/" + fake.word(),
@@ -52,7 +49,7 @@ class Command(BaseCommand):
                     tzinfo=timezone.utc
                 ),
                 domain=random.choice(languages) + ".wikipedia.org",
-                username=user,
+                username=random_user,
                 rev_id=random.randint(10000000, 100000000),
                 user_id=random.randint(10000000, 100000000),
                 page_title=fake.word(),
