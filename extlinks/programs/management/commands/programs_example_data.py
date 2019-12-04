@@ -4,7 +4,7 @@ from faker import Faker
 from django.core.management import BaseCommand
 
 from extlinks.links.models import URLPattern
-from extlinks.organisations.models import Organisation, Collection
+from extlinks.organisations.models import Organisation, Collection, User
 from extlinks.programs.models import Program
 
 
@@ -33,13 +33,14 @@ class Command(BaseCommand):
                 new_org = Organisation(
                     name=fake.company()
                 )
+                new_org.save()
                 if limit_by_user:
                     # Between 10 and 50 users on the list.
                     username_list = [fake.user_name()
                                      for _ in range(random.randint(10, 50))]
-                    new_org.limit_by_user = True
-                    new_org.username_list = ",".join(username_list)
-                new_org.save()
+                    for username in username_list:
+                        user, _ = User.objects.get_or_create(username=username)
+                        new_org.username_list.add(user)
                 new_org.program.add(new_program)
 
                 for k in range(random.randint(1, 3)):
