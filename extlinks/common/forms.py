@@ -17,3 +17,7 @@ class FilterForm(forms.Form):
                                    attrs={'class': 'form-control'}))
 
     limit_to_user_list = forms.BooleanField(required=False)
+
+    namespace_id = forms.IntegerField(required=False, label="Namespace ID:",
+                               widget=forms.NumberInput(
+                                   attrs={'class': 'form-control'}))
