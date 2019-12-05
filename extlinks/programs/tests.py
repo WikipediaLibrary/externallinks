@@ -179,7 +179,7 @@ class ProgramDetailTest(TestCase):
 
     def test_program_detail_user_list_form(self):
         """
-        Test that the date limiting form works on the program detail page.
+        Test that the user list limiting form works on the program detail page.
         """
         factory = RequestFactory()
 
@@ -196,7 +196,7 @@ class ProgramDetailTest(TestCase):
 
     def test_program_detail_namespace_form(self):
         """
-        Test that the date limiting form works on the program detail page.
+        Test that the namespace id limiting form works on the program detail page.
         """
         factory = RequestFactory()
 
