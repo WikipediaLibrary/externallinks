@@ -20,4 +20,5 @@ class FilterForm(forms.Form):
 
     namespace_id = forms.IntegerField(required=False, label="Namespace ID:",
                                widget=forms.NumberInput(
-                                   attrs={'class': 'form-control'}))
+                                   attrs={'class': 'form-control',
+                                   'style': 'width: 6rem;'}))
