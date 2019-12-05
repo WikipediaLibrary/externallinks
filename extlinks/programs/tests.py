@@ -103,7 +103,8 @@ class ProgramDetailTest(TestCase):
             username=UserFactory(username='Mary'),
             timestamp=datetime(2019, 3, 1),
             on_user_list=True,
-            page_title="Event 2")
+            page_title="Event 2",
+            page_namespace=1)
         self.linkevent4.url.add(urlpattern1)
         self.linkevent4.save()
 
@@ -178,12 +179,29 @@ class ProgramDetailTest(TestCase):
 
     def test_program_detail_user_list_form(self):
         """
-        Test that the date limiting form works on the program detail page.
+        Test that the user list limiting form works on the program detail page.
         """
         factory = RequestFactory()
 
         data = {
             'limit_to_user_list': True
+        }
+
+        request = factory.get(self.url1, data)
+        response = ProgramDetailView.as_view()(request,
+                                               pk=self.program1.pk)
+
+        self.assertEqual(response.context_data['total_added'], 1)
+        self.assertEqual(response.context_data['total_removed'], 0)
+
+    def test_program_detail_namespace_form(self):
+        """
+        Test that the namespace id limiting form works on the program detail page.
+        """
+        factory = RequestFactory()
+
+        data = {
+            'namespace_id': 1
         }
 
         request = factory.get(self.url1, data)

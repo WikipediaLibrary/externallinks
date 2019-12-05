@@ -35,6 +35,13 @@
                                     <p class="help">{{ form.end_date.help_text|safe }}</p>
                                 {% endif %}
                             </div>
+                            <div class=fieldWrapper style="padding: 15px;">
+                                {{ form.namespace_id.errors }}
+                                {{ form.namespace_id.label_tag }}{{ form.namespace_id }}
+                                {% if form.namespace_id.help_text %}
+                                    <p class="help">{{ form.namespace_id.help_text|safe }}</p>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="form-row">
                             {% if program.any_orgs_user_list %}
