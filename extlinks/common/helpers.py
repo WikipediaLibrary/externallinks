@@ -243,7 +243,7 @@ def filter_queryset(queryset, filter_dict):
 
     if 'namespace_id' in filter_dict:
         namespace_id = filter_dict['namespace_id']
-        if namespace_id:
+        if namespace_id is not None:
             queryset = queryset.filter(
                 page_namespace=namespace_id
             )
