@@ -241,11 +241,20 @@ def filter_queryset(queryset, filter_dict):
                 on_user_list=True
             )
 
+
     if 'namespace_id' in filter_dict:
         namespace_id = filter_dict['namespace_id']
         if namespace_id is not None:
             queryset = queryset.filter(
                 page_namespace=namespace_id
+            )
+
+
+    if 'bot_edits' in filter_dict:
+        bot_edits = filter_dict['bot_edits']
+        if bot_edits:
+            queryset = queryset.filter(
+                bot_edits=True
             )
 
     return queryset

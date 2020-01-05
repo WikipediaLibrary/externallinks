@@ -282,3 +282,20 @@ class OrganisationDetailTest(TestCase):
         self.assertContains(response, self.linkevent4.link)
 
         self.assertContains(response, self.linkevent1.username.username)
+
+    def test_bot_edits_form(self):
+        """
+        Test that the bot list limiting form works on the organisation detail page.
+        """
+        factory = RequestFactory()
+
+        data = {
+            'bot_edits': True
+        }
+
+        request = factory.get(self.url1, data)
+        response = OrganisationDetailView.as_view()(request,
+                                                    pk=self.organisation1.pk)
+
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_added'], 1)
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_removed'], 0)

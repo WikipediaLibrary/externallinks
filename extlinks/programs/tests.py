@@ -286,3 +286,20 @@ class ProgramDetailTest(TestCase):
         self.assertContains(response, self.linkevent4.link)
 
         self.assertContains(response, self.linkevent1.username.username)
+
+    def test_program_detail_bot_edits(self):
+        """
+        Test that the user list limiting form works on the program detail page.
+        """
+        factory = RequestFactory()
+
+        data = {
+            'bot_edits': True
+        }
+
+        request = factory.get(self.url1, data)
+        response = ProgramDetailView.as_view()(request,
+                                               pk=self.program1.pk)
+
+        self.assertEqual(response.context_data['total_added'], 1)
+        self.assertEqual(response.context_data['total_removed'], 0)

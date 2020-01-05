@@ -43,6 +43,13 @@ class Organisation(models.Model):
         else:
             return False
 
+    @property
+    def limit_by_bot(self):
+        if self.user_is_bot > 0:
+            return True
+        else:
+            return False
+
 
 class Collection(models.Model):
     class Meta:
