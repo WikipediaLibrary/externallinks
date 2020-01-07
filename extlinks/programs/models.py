@@ -40,14 +40,3 @@ class Program(models.Model):
             return True
         else:
             return False
-
-    @property
-    def any_orgs_bot_edits(self):
-        program_orgs = Organisation.objects.filter(
-            program=self,
-            user_is_bot__isnull=False)
-
-        if program_orgs.count() > 0:
-            return True
-        else:
-            return False

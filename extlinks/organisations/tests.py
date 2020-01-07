@@ -290,7 +290,7 @@ class OrganisationDetailTest(TestCase):
         factory = RequestFactory()
 
         data = {
-            'bot_edits': True
+            'exclude_bots': True
         }
 
         request = factory.get(self.url1, data)

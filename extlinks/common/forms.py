@@ -23,4 +23,4 @@ class FilterForm(forms.Form):
                                    attrs={'class': 'form-control',
                                    'style': 'width: 6rem;'}))
 
-    bot_edits = forms.BooleanField(required=False)
+    exclude_bots = forms.BooleanField(required=False)

@@ -250,11 +250,11 @@ def filter_queryset(queryset, filter_dict):
             )
 
 
-    if 'bot_edits' in filter_dict:
-        bot_edits = filter_dict['bot_edits']
-        if bot_edits:
-            queryset = queryset.filter(
-                bot_edits=True
+    if 'exclude_bots' in filter_dict:
+        exclude_bots = filter_dict['exclude_bots']
+        if exclude_bots:
+            queryset = queryset.exclude(
+                user_is_bot=True
             )
 
     return queryset
