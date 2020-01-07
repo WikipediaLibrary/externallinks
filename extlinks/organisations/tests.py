@@ -71,7 +71,8 @@ class OrganisationDetailTest(TestCase):
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15),
-            page_title="Event 1")
+            page_title="Event 1",
+            user_is_bot=True)
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
@@ -297,5 +298,5 @@ class OrganisationDetailTest(TestCase):
         response = OrganisationDetailView.as_view()(request,
                                                     pk=self.organisation1.pk)
 
-        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_added'], 1)
-        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_removed'], 0)
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_added'], 2)
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_removed'], 1)

@@ -75,7 +75,8 @@ class ProgramDetailTest(TestCase):
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15),
-            page_title="Event 1")
+            page_title="Event 1",
+            user_is_bot=True)
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
@@ -301,5 +302,5 @@ class ProgramDetailTest(TestCase):
         response = ProgramDetailView.as_view()(request,
                                                pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 1)
-        self.assertEqual(response.context_data['total_removed'], 0)
+        self.assertEqual(response.context_data['total_added'], 2)
+        self.assertEqual(response.context_data['total_removed'], 1)
