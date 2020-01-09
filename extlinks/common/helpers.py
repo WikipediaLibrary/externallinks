@@ -241,11 +241,20 @@ def filter_queryset(queryset, filter_dict):
                 on_user_list=True
             )
 
+
     if 'namespace_id' in filter_dict:
         namespace_id = filter_dict['namespace_id']
         if namespace_id is not None:
             queryset = queryset.filter(
                 page_namespace=namespace_id
+            )
+
+
+    if 'exclude_bots' in filter_dict:
+        exclude_bots = filter_dict['exclude_bots']
+        if exclude_bots:
+            queryset = queryset.exclude(
+                user_is_bot=True
             )
 
     return queryset

@@ -55,6 +55,13 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
+                            <div class="fieldWrapper" style="padding: 15px;">
+                                {{ form.exclude_bots.errors }}
+                                {{ form.exclude_bots.label_tag }} {{ form.exclude_bots }}
+                                {% if form.exclude_bots.help_text %}
+                                    <p class="help">{{ form.exclude_bots.help_text|safe }}</p>
+                                {% endif %}
+                            </div>
                             <div class="col">
                                 <button type="submit" class="btn btn-primary">Submit</button>
                             </div>

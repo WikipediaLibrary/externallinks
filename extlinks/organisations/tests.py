@@ -71,7 +71,8 @@ class OrganisationDetailTest(TestCase):
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15),
-            page_title="Event 1")
+            page_title="Event 1",
+            user_is_bot=True)
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
@@ -282,3 +283,20 @@ class OrganisationDetailTest(TestCase):
         self.assertContains(response, self.linkevent4.link)
 
         self.assertContains(response, self.linkevent1.username.username)
+
+    def test_bot_edits_form(self):
+        """
+        Test that the bot list limiting form works on the organisation detail page.
+        """
+        factory = RequestFactory()
+
+        data = {
+            'exclude_bots': True
+        }
+
+        request = factory.get(self.url1, data)
+        response = OrganisationDetailView.as_view()(request,
+                                                    pk=self.organisation1.pk)
+
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_added'], 2)
+        self.assertEqual(response.context_data['collections'][self.collection1_key]['total_removed'], 1)

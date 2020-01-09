@@ -22,3 +22,5 @@ class FilterForm(forms.Form):
                                widget=forms.NumberInput(
                                    attrs={'class': 'form-control',
                                    'style': 'width: 6rem;'}))
+
+    exclude_bots = forms.BooleanField(required=False)

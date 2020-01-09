@@ -75,7 +75,8 @@ class ProgramDetailTest(TestCase):
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15),
-            page_title="Event 1")
+            page_title="Event 1",
+            user_is_bot=True)
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
@@ -286,3 +287,20 @@ class ProgramDetailTest(TestCase):
         self.assertContains(response, self.linkevent4.link)
 
         self.assertContains(response, self.linkevent1.username.username)
+
+    def test_program_detail_bot_edits(self):
+        """
+        Test that the user list limiting form works on the program detail page.
+        """
+        factory = RequestFactory()
+
+        data = {
+            'exclude_bots': True
+        }
+
+        request = factory.get(self.url1, data)
+        response = ProgramDetailView.as_view()(request,
+                                               pk=self.program1.pk)
+
+        self.assertEqual(response.context_data['total_added'], 2)
+        self.assertEqual(response.context_data['total_removed'], 1)
