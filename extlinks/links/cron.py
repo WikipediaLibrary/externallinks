@@ -9,4 +9,4 @@ class TotalLinksCron(CronJobBase):
     code = 'links.total_links_cron'
 
     def do(self):
-        call_command('collect_linksearch_data')
+        call_command('linksearchtotal_collect')
