@@ -162,21 +162,23 @@
 <script type="text/javascript">
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: {{ eventstream_dates | safe }},
             datasets: [
                 {
                     label: "Added",
-                    fill: false,
-                    borderColor: 'rgba(100,220,128,0.81)',
+                    backgroundColor: 'rgba(100,220,128,0.81)',
+                    borderWidth: 0.5,
+                    borderColor: 'rgb(0,76,23)',
                     data: {{ eventstream_added_data }},
                     tension: 0.2
                 },
                 {
                     label: "Removed",
-                    fill: false,
-                    borderColor: 'rgba(220,44,42,0.81)',
+                    backgroundColor: 'rgba(220,44,42,0.81)',
+                    borderWidth: 0.5,
+                    borderColor: 'rgb(76,1,0)',
                     data: {{ eventstream_removed_data }},
                     tension: 0.2
                 }
