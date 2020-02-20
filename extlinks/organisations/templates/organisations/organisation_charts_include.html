@@ -205,21 +205,25 @@
     {% for collection_name, collection in collections.items %}
         var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
         var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: {{ collection.eventstream_dates | safe }},
                 datasets: [
                     {
                         label: "Added",
                         fill: false,
-                        borderColor: 'rgba(100,220,128,0.81)',
+                        backgroundColor: 'rgba(100,220,128,0.81)',
+                        borderWidth: 0.5,
+                        borderColor: 'rgb(0,76,23)',
                         data: {{ collection.eventstream_added_data }},
                         tension: 0.2
                     },
                     {
                         label: "Removed",
                         fill: false,
-                        borderColor: 'rgba(220,44,42,0.81)',
+                        backgroundColor: 'rgba(220,44,42,0.81)',
+                        borderWidth: 0.5,
+                        borderColor: 'rgb(76,1,0)',
                         data: {{ collection.eventstream_removed_data }},
                         tension: 0.2
                     }
