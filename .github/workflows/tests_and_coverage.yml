@@ -11,8 +11,3 @@ jobs:
     steps:
     - name: Python Django Coverage GitHub Action
       uses: dc740/django-coveragepy-github-action@0.9
-      with:
-        # Application
-        django-app: 'externallinks'
-        # Minimum allowed code coverage
-        minimum-coverage: 50
