@@ -9,5 +9,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Python Django Coverage GitHub Action
-      uses: dc740/django-coveragepy-github-action@0.9
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
