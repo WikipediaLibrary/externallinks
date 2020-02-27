@@ -80,8 +80,10 @@ class Command(BaseCommand):
                     # where the URL takes the structure
                     # https://web.archive.org/https://test.com/
                     protocol_count = unquoted_url.count("//")
+                    url_length = len(unquoted_url)
 
-                    if not event_objects.exists() and protocol_count < 2:
+                    # We skip the URL if the length is greater than 2083
+                    if not event_objects.exists() and protocol_count < 2 and url_length < 2084:
                         self.add_linkevent_to_db(unquoted_url, change,
                                                  event_dict)
 
