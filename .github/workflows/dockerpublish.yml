@@ -34,6 +34,7 @@ jobs:
           else
             docker build . --file Dockerfile
           fi
+          docker-compose exec app python manage.py test
 
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
