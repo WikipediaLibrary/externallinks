@@ -1,4 +1,0 @@
-# https://docs.docker.com/docker-hub/builds/automated-testing/
-sut:
-  build: .
-  command: python manage.py test
