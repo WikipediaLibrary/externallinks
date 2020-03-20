@@ -30,7 +30,7 @@ jobs:
         run: |
           cp template.env .env
           docker-compose up -d --build
-          docker-compose exec app python manage.py test
+          docker-compose exec -T app python manage.py test
           
 
 # Push image to GitHub Packages.
