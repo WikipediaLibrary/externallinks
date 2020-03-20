@@ -34,10 +34,8 @@ jobs:
           else
             docker build . --file Dockerfile
           fi
-          cp template.env .env
-          docker-compose exec externallinks python manage.py test
 
-  # Push image to GitHub Packages.
+# Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
   push:
     # Ensure test job passes before pushing image.
