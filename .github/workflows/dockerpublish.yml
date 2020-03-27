@@ -53,7 +53,7 @@ jobs:
 
       - name: Push image
         run: |
-          IMAGE_ID=wikipedialibrary/externallinks/$IMAGE_NAME
+          IMAGE_ID=wikipedialibrary/externallinks
 
           # Strip git ref prefix from version
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
