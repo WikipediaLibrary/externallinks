@@ -1,0 +1,77 @@
+version: "3.2"
+services:
+ db:
+   image: mysql:5.7
+   env_file:
+     - '.env'
+   ports:
+     - "3306:3306"
+   networks:
+     - main
+   command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+   healthcheck:
+     test: ["CMD", "mysqladmin", "ping", "-h", "localhost","-plinks"]
+     timeout: 20s
+     retries: 10
+ migrate:
+   image: wikipedialibrary/externallinks:app_branch_staging
+   entrypoint: ["python", "/app/manage.py", "migrate"]
+   restart: on-failure
+   networks:
+     - main
+   env_file:
+     - '.env'
+   depends_on:
+     - 'db'
+   volumes:
+     - ./:/app
+ externallinks_app:
+   image: wikipedialibrary/externallinks:app_branch_staging
+   build: .
+   networks:
+     - main
+   env_file:
+     - '.env'
+   depends_on:
+     - 'migrate'
+   ports:
+     - "8000:8000"
+   volumes:
+     - ./:/app
+ nginx:
+   image: nginx
+   volumes:
+     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+     - ./static:/app/static
+   ports:
+     - "80:80"
+   networks:
+     - main
+   depends_on:
+     - 'externallinks_app'
+ externallinks_eventstream:
+   image: wikipedialibrary/externallinks:eventstream_branch_staging
+   build:
+    context: .
+    dockerfile: 'Dockerfile-eventstream'
+   networks:
+     - main
+   depends_on:
+     - 'db'
+   env_file:
+     - '.env'
+   volumes:
+     - ./:/app
+ cache:
+   image: memcached
+   networks:
+     - main
+   ports:
+    - "11211:11211"
+   entrypoint:
+     - memcached
+   depends_on:
+     - 'externallinks_app'
+
+networks:
+ main:
