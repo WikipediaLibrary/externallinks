@@ -11,4 +11,4 @@ RUN mkdir logs
 
 RUN pip install -r django.txt
 
-CMD ["python", "manage.py", "linkevents_collect"]
+CMD ["python", "manage.py", "linkevents_collect", "--historical"]
