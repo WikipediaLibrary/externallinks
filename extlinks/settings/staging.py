@@ -2,7 +2,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS += ["wikilink.wmflabs.org"]
+ALLOWED_HOSTS += ["wikilink-staging.wmflabs.org"]
 
 # We can only run this in production, because we're connecting to the database
 # replicas internally.
