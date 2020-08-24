@@ -1,14 +1,16 @@
-version: "2.1"
+---
+version: "3.8"
 services:
  app:
-   build: .
+   build:
+     context: .
+     target: externallinks
    networks:
      - main
    env_file:
      - '.env'
    depends_on:
-     db:
-       condition: service_healthy
+     - db
    ports:
      - "8000:8000"
    volumes:
@@ -39,8 +41,8 @@ services:
      - app
  eventstream:
    build:
-    context: .
-    dockerfile: 'Dockerfile-eventstream'
+     context: .
+     target: eventstream
    networks:
      - main
    depends_on:
