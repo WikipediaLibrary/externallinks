@@ -31,8 +31,8 @@ jobs:
         run: |
           docker-compose ps -a
       - name: Run tests
-       run: |
-        docker-compose exec -T app python manage.py test
+        run: |
+          docker-compose exec -T app python manage.py test
 
 # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
