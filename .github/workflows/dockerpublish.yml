@@ -41,6 +41,7 @@ jobs:
           REPLICA_DB_USER: user
           REPLICA_DB_PASSWORD: password
           TWL_API_TOKEN: token
+          LOG_FILE: "extlinks.log"
         run: |
           python manage.py migrate
       - name: Run Tests
@@ -51,6 +52,7 @@ jobs:
           REPLICA_DB_USER: user
           REPLICA_DB_PASSWORD: password
           TWL_API_TOKEN: token
+          LOG_FILE: "extlinks.log"
         run: |
           python manage.py test
 
