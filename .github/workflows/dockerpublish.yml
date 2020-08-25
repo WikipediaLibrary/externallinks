@@ -15,47 +15,24 @@ jobs:
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: mysql:5.7
-        env:
-          MYSQL_DATABASE: extlinks_db
-          MYSQL_ROOT_PASSWORD: links
-        ports:
-          - "3306:3306"
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.5
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.5
-      - name: Install Dependencies
+      - name: Build and Start Image
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements/django.txt
-      - name: Run Migrations
-        env:
-          DJANGO_SETTINGS_MODULE: extlinks.settings.local
-          MYSQL_DATABASE: extlinks_db
-          MYSQL_ROOT_PASSWORD: links
-          REPLICA_DB_USER: user
-          REPLICA_DB_PASSWORD: password
-          TWL_API_TOKEN: token
-          LOG_FILE: "extlinks.log"
+          cp template.env .env
+          docker-compose up -d --build
+      - name: Check Running Containers
         run: |
-          python manage.py migrate
-      - name: Run Tests
-        env:
-          DJANGO_SETTINGS_MODULE: extlinks.settings.local
-          MYSQL_DATABASE: extlinks_db
-          MYSQL_ROOT_PASSWORD: links
-          REPLICA_DB_USER: user
-          REPLICA_DB_PASSWORD: password
-          TWL_API_TOKEN: token
-          LOG_FILE: "extlinks.log"
+          docker-compose ps -a
+      - name: Restart EventStream container
         run: |
-          python manage.py test
-
+          docker restart externallinks_eventstream_1
+      - name: Check EventStream Container Restarted
+        run: |
+          docker-compose ps -a
+      - name: Run tests
+       run: |
+        docker-compose exec -T app python manage.py test
 
 # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
