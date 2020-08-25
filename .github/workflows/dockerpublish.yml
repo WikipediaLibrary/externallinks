@@ -17,13 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: Run tests
+      - name: Set up Python 3.5
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.5
+      - name: Install Dependencies
         run: |
-          cp template.env .env
-          docker-compose up -d --build
-          docker-compose exec -T app python manage.py migrate
-          docker-compose exec -T app python manage.py test
+          python -m pip install --upgrade pip
+          pip install -r django.txt
+      - name: Run Tests
+        run: |
+          python manage.py test
 
 
 # Push image to GitHub Packages.
