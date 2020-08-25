@@ -15,6 +15,14 @@ jobs:
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     runs-on: ubuntu-latest
+    services:
+      db:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: extlinks_db
+          MYSQL_ROOT_PASSWORD: links
+        ports:
+          - "3306:3306"
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.5
@@ -27,6 +35,7 @@ jobs:
           pip install -r requirements/django.txt
       - name: Run Tests
         run: |
+          cp template.env .env
           python manage.py test
 
 
