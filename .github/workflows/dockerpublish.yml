@@ -21,9 +21,6 @@ jobs:
         run: |
           cp template.env .env
           docker-compose up -d --build
-      - name: Check Running Containers
-        run: |
-          docker-compose ps -a
       - name: Run tests
         run: |
           docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
