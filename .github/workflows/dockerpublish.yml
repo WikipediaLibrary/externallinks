@@ -26,7 +26,7 @@ jobs:
           docker-compose ps -a
       - name: Run tests
         run: |
-          docker-compose exec -T app python manage.py test
+          docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
 
 # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
