@@ -7,7 +7,7 @@ until echo 'exit' | python manage.py dbshell 2>/dev/null || [ $db_init_wait -eq 
 do
     >&2 echo "Waiting for DB."
     sleep 1
-    db_init_wait=$(( ++db_init_wait ))
+    db_init_wait=$(( $db_init_wait + 1 ))
 done
 
 if [ $db_init_wait -lt $db_init_timeout ]
