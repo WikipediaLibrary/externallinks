@@ -27,6 +27,9 @@ jobs:
       - name: Restart EventStream container
         run: |
           docker restart externallinks_eventstream_1
+      - name: Wait for DB to start
+        run: |
+          ./bin/wait_for_db_gh_actions.sh
       - name: Check EventStream Container Restarted
         run: |
           docker-compose ps -a

@@ -28,6 +28,7 @@ services:
    healthcheck:
      test: ["CMD", "mysqladmin", "ping", "-h", "localhost","-plinks"]
      timeout: 20s
+     interval: 10s
      retries: 10
  nginx:
    image: nginx
