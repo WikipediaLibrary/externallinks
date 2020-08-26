@@ -24,16 +24,6 @@ jobs:
       - name: Check Running Containers
         run: |
           docker-compose ps -a
-      - name: Restart EventStream container
-        run: |
-          docker restart externallinks_eventstream_1
-      - name: Wait for DB to start
-        run: |
-          chmod 755 bin/wait_for_db_gh_actions.sh
-          ./bin/wait_for_db_gh_actions.sh
-      - name: Check EventStream Container Restarted
-        run: |
-          docker-compose ps -a
       - name: Run tests
         run: |
           docker-compose exec -T app python manage.py test
