@@ -18,7 +18,7 @@ COPY ./django_wait_for_db.sh /
 
 ENTRYPOINT ["/django_wait_for_db.sh"]
 
-CMD ["python", "django_wait_for_migrations.py", "linkevents_collect"]
+CMD ["python", "django_wait_for_migrations.py", "linkevents_collect", "--historical"]
 
 FROM eventstream as externallinks
 ENV LOG_FILE="extlinks.log"
