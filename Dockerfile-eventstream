@@ -1,0 +1,14 @@
+# Dockerfile
+FROM python:3.8.5
+
+ENV LOG_FILE="eventstream.log"
+
+WORKDIR /app
+COPY . extlinks
+COPY requirements/django.txt /app/
+
+RUN mkdir logs
+
+RUN pip install -r django.txt
+
+CMD ["python", "manage.py", "linkevents_collect"]

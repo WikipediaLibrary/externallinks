@@ -1,5 +1,5 @@
 # Dockerfile
-FROM python:3.5-buster as eventstream
+FROM python:3.8.5
 
 ENV LOG_FILE="eventstream.log"
 
