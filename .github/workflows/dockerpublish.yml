@@ -20,7 +20,7 @@ jobs:
       - name: Build and Start Image
         run: |
           cp template.env .env
-          docker-compose up -d --build
+          docker-compose --env-file .env up -d --build
       - name: Run tests
         run: |
           docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
