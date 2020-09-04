@@ -24,6 +24,22 @@ jobs:
       - name: Run tests
         run: |
           docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
+      - name: dump externallinks image
+        run: |
+          docker save -o externallinks.tar.gz wikipedialibrary/externallinks:latest 
+      - name: upload externallinks image
+        uses: actions/upload-artifact@v2
+        with:
+          name: externallinks
+          path: externallinks.tar.gz
+      - name: dump eventstream image
+        run: |
+          docker save -o eventstream.tar.gz wikipedialibrary/eventstream:latest 
+      - name: upload eventstream image
+        uses: actions/upload-artifact@v2
+        with:
+          name: eventstream
+          path: eventstream.tar.gz
 
 # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
@@ -36,6 +52,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Download externallinks image
+        uses: actions/download-artifact@v2
+        with:
+          name: externallinks
+
+      - name: Load externallinks image
+        run: docker load -i externallinks.tar.gz
+
+      - name: Download eventstream image
+        uses: actions/download-artifact@v2
+        with:
+          name: eventstream
+
+      - name: Load eventstream image
+        run: docker load -i eventstream.tar.gz
 
       - name: Log into Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
