@@ -10,25 +10,20 @@ on:
   # Run tests for any PRs.
   pull_request:
 
-env:
-  # TODO: Change variable to your image's name.
-  IMAGE_NAME: externallinks
-
 jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-
-      - name: Run tests
+      - name: Build and Start Image
         run: |
           cp template.env .env
           docker-compose up -d --build
-          docker-compose exec -T app python manage.py test
-          
+      - name: Run tests
+        run: |
+          docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
 
 # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
@@ -42,13 +37,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build image
-        run: docker build . --file Dockerfile --tag image
-
       - name: Log into Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-      - name: Push image
+      - name: Push externallinks image
         run: |
           IMAGE_ID=wikipedialibrary/externallinks
 
@@ -58,7 +50,22 @@ jobs:
           # Strip "v" prefix from tag name
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
 
-          docker tag image $IMAGE_ID:branch_$VERSION
-          docker tag image $IMAGE_ID:commit_${GITHUB_SHA::8}
+          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
+          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
+          docker push $IMAGE_ID:branch_$VERSION
+          docker push $IMAGE_ID:commit_${GITHUB_SHA::8}
+
+      - name: Push eventstream image
+        run: |
+          IMAGE_ID=wikipedialibrary/eventstream
+
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
+          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
           docker push $IMAGE_ID:branch_$VERSION
           docker push $IMAGE_ID:commit_${GITHUB_SHA::8}

@@ -1,14 +1,15 @@
-version: "2.1"
+---
+version: "3.8"
 services:
  app:
-   build: .
-   networks:
-     - main
+   image: wikipedialibrary/externallinks:${IMAGE_VERSION}
+   build:
+     context: .
+     target: externallinks
    env_file:
      - '.env'
    depends_on:
-     db:
-       condition: service_healthy
+     - db
    ports:
      - "8000:8000"
    volumes:
@@ -19,12 +20,11 @@ services:
      - '.env'
    ports:
      - "3306:3306"
-   networks:
-     - main
    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
    healthcheck:
      test: ["CMD", "mysqladmin", "ping", "-h", "localhost","-plinks"]
      timeout: 20s
+     interval: 10s
      retries: 10
  nginx:
    image: nginx
@@ -33,16 +33,13 @@ services:
      - ./static:/app/static
    ports:
      - "80:80"
-   networks:
-     - main
    depends_on:
      - app
  eventstream:
+   image: wikipedialibrary/eventstream:${IMAGE_VERSION}
    build:
-    context: .
-    dockerfile: 'Dockerfile-eventstream'
-   networks:
-     - main
+     context: .
+     target: eventstream
    depends_on:
      - db
    env_file:
@@ -51,14 +48,9 @@ services:
      - ./:/app
  cache:
    image: memcached
-   networks:
-     - main
    ports:
     - "11211:11211"
    entrypoint:
      - memcached
    depends_on:
      - app
-
-networks:
- main:
