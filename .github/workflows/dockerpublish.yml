@@ -24,17 +24,17 @@ jobs:
       - name: Run tests
         run: |
           docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
-      - name: dump externallinks image
+      - name: Save externallinks image
         run: |
-          docker save -o externallinks.tar.gz wikipedialibrary/externallinks:latest 
+          docker save wikipedialibrary/externallinks:latest | gzip > externallinks.tar.gz
       - name: upload externallinks image
         uses: actions/upload-artifact@v2
         with:
           name: externallinks
           path: externallinks.tar.gz
-      - name: dump eventstream image
+      - name: Save eventstream image
         run: |
-          docker save -o eventstream.tar.gz wikipedialibrary/eventstream:latest 
+          docker save wikipedialibrary/eventstream:latest | gzip > eventstream.tar.gz
       - name: upload eventstream image
         uses: actions/upload-artifact@v2
         with:
