@@ -22,7 +22,7 @@ The tool uses the [Django framework](https://www.djangoproject.com/) and is depl
 
 After cloning the repository to your directory of choice:
 1. Copy `template.env` to `.env`. No further changes are required for local development.
-2. Run `docker-compose --env-file /path/to/.env up -d --build` to build containers.
+2. Run `docker-compose up -d --build` to build containers.
 3. The `eventstream` container will fail to build on the first run, so it will need to be restarted with `docker restart externallinks_eventstream_1`
 
 You should now be able to access the tool via `localhost`.

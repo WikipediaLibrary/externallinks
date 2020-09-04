@@ -8,7 +8,7 @@ import os
 # starting from /app in Docker.
 BASE_DIR = "/app"
 
-SECRET_KEY = "et=o&42)q3r8ztu&b^sjs2+%vv3^mg%3amzcia8^)fq*w6#oj3"
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0"]
 
@@ -83,9 +83,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 
@@ -116,7 +122,13 @@ LOGGING = {
             ),
         },
     },
-    "loggers": {"django": {"handlers": ["file"], "level": "INFO", "propagate": True,},},
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
 }
 
 # Cache
