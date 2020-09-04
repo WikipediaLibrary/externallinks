@@ -117,36 +117,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Logging
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": os.path.join(
-                BASE_DIR, "extlinks", "logs", os.environ["LOG_FILE"]
-            ),
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["file"],
-            "level": "INFO",
-            "propagate": True,
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["file"],
-            "level": "INFO",
-            "propagate": True,
-        },
-    },
-}
-
 # Cache
 
 CACHES = {
