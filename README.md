@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/WikipediaLibrary/externallinks.svg?branch=master)](https://travis-ci.org/WikipediaLibrary/externallinks)
+[![Docker Workflow Status](https://github.com/WikipediaLibrary/externallinks/workflows/Docker/badge.svg)](https://github.com/WikipediaLibrary/externallinks/actions?query=workflow%3ADocker)
 
 # Wikilink
 Wikilink is a tool for tracking link additions made to Wikimedia projects as a result of Wikimedia partnerships. It monitors link additions and removals to specific URL patterns across all Wikimedia projects, providing high level statistics and graphs for analysis and tracking.
