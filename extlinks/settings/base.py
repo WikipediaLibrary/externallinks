@@ -3,6 +3,7 @@ Django settings for extlinks project.
 """
 
 import os
+import logging.config
 
 # Usually we'd define this relative to the settings file, but we're always
 # starting from /app in Docker.
