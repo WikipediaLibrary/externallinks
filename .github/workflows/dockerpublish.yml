@@ -100,7 +100,7 @@ jobs:
       - name: Push externallinks image
         run: |
           # The image name represents both the local image name and the remote image repository.
-          image_name=wikipedialibrary/externallink
+          image_name=wikipedialibrary/externallinks
           branch_tag=${{ steps.branch_tag.value }}
           commit_tag=${{ steps.commit_tag.value }}
 
