@@ -120,3 +120,10 @@ jobs:
           docker tag ${image_name}:latest ${image_name}:${commit_tag}
           docker push ${image_name}:${branch_tag}
           docker push ${image_name}:${commit_tag}
+
+      - name: Delete images from github
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+              externallinks
+              eventstream
