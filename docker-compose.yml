@@ -34,7 +34,7 @@ services:
    ports:
      - "80:80"
    depends_on:
-     - app
+     - externallinks
  eventstream:
    image: wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
    build:
@@ -53,4 +53,4 @@ services:
    entrypoint:
      - memcached
    depends_on:
-     - app
+     - externallinks
