@@ -73,7 +73,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
       - name: Set branch tag
-        id: branch_tag
+        id: branch
         run: |
           # Strip git ref prefix from version
           branch_tag=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
@@ -87,7 +87,7 @@ jobs:
           echo ::set-output name=tag::$(echo $branch_tag)
 
       - name: Set commit tag
-        id: commit_tag
+        id: commit
         run: |
           # The short git commit object name.
           commit_tag=${GITHUB_SHA::8}
@@ -101,8 +101,8 @@ jobs:
         run: |
           # The image name represents both the local image name and the remote image repository.
           image_name=wikipedialibrary/externallinks
-          branch_tag=${{ steps.branch_tag.value }}
-          commit_tag=${{ steps.commit_tag.value }}
+          branch_tag=${{ steps.branch.outputs.tag }}
+          commit_tag=${{ steps.commit.outputs.tag }}
 
           docker tag ${image_name}:latest ${image_name}:${branch_tag}
           docker tag ${image_name}:latest ${image_name}:${commit_tag}
@@ -113,8 +113,8 @@ jobs:
         run: |
           # The image name represents both the local image name and the remote image repository.
           image_name=wikipedialibrary/eventstream
-          branch_tag=${{ steps.branch_tag.tag }}
-          commit_tag=${{ steps.commit_tag.tag }}
+          branch_tag=${{ steps.branch.outputs.tag }}
+          commit_tag=${{ steps.commit.outputs.tag }}
 
           docker tag ${image_name}:latest ${image_name}:${branch_tag}
           docker tag ${image_name}:latest ${image_name}:${commit_tag}
