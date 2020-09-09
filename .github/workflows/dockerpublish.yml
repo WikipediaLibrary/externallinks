@@ -72,32 +72,51 @@ jobs:
       - name: Log into Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-      - name: Push externallinks image
+      - name: Set branch tag
+        id: branch_tag
         run: |
-          IMAGE_ID=wikipedialibrary/externallinks
-
           # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          branch_tag=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
 
           # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && branch_tag=$(echo $branch_tag | sed -e 's/^v//')
 
-          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
-          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
-          docker push $IMAGE_ID:branch_$VERSION
-          docker push $IMAGE_ID:commit_${GITHUB_SHA::8}
+          # preprend with "branch_" so we know what the tag means by looking at it.
+          branch_tag="branch_${branch_tag}"
+
+          echo ::set-output name=value::$(branch_tag)
+
+      - name: Set commit tag
+        id: commit_tag
+        run: |
+          # The short git commit object name.
+          commit_tag=${GITHUB_SHA::8}
+
+          # prepend with "commit_" so we know what the tag means by looking at it.
+          commit_tag="commit_${commit_tag}"
+
+          echo ::set-output name=value::$(commit_tag)
+
+      - name: Push externallinks image
+        run: |
+          # The image name represents both the local image name and the remote image repository.
+          image_name=wikipedialibrary/externallink
+          branch_tag=${{ steps.branch_tag.value }}
+          commit_tag=${{ steps.commit_tag.value }}
+
+          docker tag ${image_name}:latest ${image_name}:${branch_tag}
+          docker tag ${image_name}:latest ${image_name}:${commit_tag}
+          docker push ${image_name}:${branch_tag}
+          docker push ${image_name}:${commit_tag}
 
       - name: Push eventstream image
         run: |
-          IMAGE_ID=wikipedialibrary/eventstream
+          # The image name represents both the local image name and the remote image repository.
+          image_name=wikipedialibrary/eventstream
+          branch_tag=${{ steps.branch_tag.value }}
+          commit_tag=${{ steps.commit_tag.value }}
 
-          # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
-          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
-          docker push $IMAGE_ID:branch_$VERSION
-          docker push $IMAGE_ID:commit_${GITHUB_SHA::8}
+          docker tag ${image_name}:latest ${image_name}:${branch_tag}
+          docker tag ${image_name}:latest ${image_name}:${commit_tag}
+          docker push ${image_name}:${branch_tag}
+          docker push ${image_name}:${commit_tag}
