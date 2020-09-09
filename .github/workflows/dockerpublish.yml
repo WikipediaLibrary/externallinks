@@ -23,7 +23,7 @@ jobs:
           docker-compose up -d --build
       - name: Run tests
         run: |
-          docker-compose exec -T app /django_wait_for_db.sh python django_wait_for_migrations.py test
+          docker-compose exec -T externallinks /django_wait_for_db.sh python django_wait_for_migrations.py test
       - name: Save externallinks image
         run: |
           docker save wikipedialibrary/externallinks:latest | gzip > externallinks.tar.gz
