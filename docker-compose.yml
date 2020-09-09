@@ -2,7 +2,7 @@
 version: "3.8"
 services:
  app:
-   image: wikipedialibrary/externallinks:app_branch_${IMAGE_VERSION}
+   image: wikipedialibrary/externallinks:${IMAGE_VERSION}
    build:
      context: .
      target: externallinks
@@ -36,7 +36,7 @@ services:
    depends_on:
      - app
  eventstream:
-   image: wikipedialibrary/eventstream:eventstream_branch_${IMAGE_VERSION}
+   image: wikipedialibrary/eventstream:${IMAGE_VERSION}
    build:
      context: .
      target: eventstream

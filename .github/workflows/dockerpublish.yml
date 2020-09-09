@@ -82,10 +82,10 @@ jobs:
           # Strip "v" prefix from tag name
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
 
-          docker tag $IMAGE_ID:latest $IMAGE_ID:app_branch_$VERSION
-          docker tag $IMAGE_ID:latest $IMAGE_ID:app_commit_${GITHUB_SHA::8}
-          docker push $IMAGE_ID:app_branch_$VERSION
-          docker push $IMAGE_ID:app_commit_${GITHUB_SHA::8}
+          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
+          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
+          docker push $IMAGE_ID:branch_$VERSION
+          docker push $IMAGE_ID:commit_${GITHUB_SHA::8}
 
       - name: Push eventstream image
         run: |
@@ -97,7 +97,7 @@ jobs:
           # Strip "v" prefix from tag name
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
 
-          docker tag $IMAGE_ID:latest $IMAGE_ID:eventstream_branch_$VERSION
-          docker tag $IMAGE_ID:latest $IMAGE_ID:eventstream_commit_${GITHUB_SHA::8}
-          docker push $IMAGE_ID:eventstream_branch_$VERSION
-          docker push $IMAGE_ID:eventstream_commit_${GITHUB_SHA::8}
+          docker tag $IMAGE_ID:latest $IMAGE_ID:branch_$VERSION
+          docker tag $IMAGE_ID:latest $IMAGE_ID:commit_${GITHUB_SHA::8}
+          docker push $IMAGE_ID:branch_$VERSION
+          docker push $IMAGE_ID:commit_${GITHUB_SHA::8}
