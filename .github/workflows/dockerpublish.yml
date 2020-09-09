@@ -84,7 +84,7 @@ jobs:
           # preprend with "branch_" so we know what the tag means by looking at it.
           branch_tag="branch_${branch_tag}"
 
-          echo ::set-output name=value::$(branch_tag)
+          echo ::set-output name=value::$(echo $branch_tag)
 
       - name: Set commit tag
         id: commit_tag
@@ -95,7 +95,7 @@ jobs:
           # prepend with "commit_" so we know what the tag means by looking at it.
           commit_tag="commit_${commit_tag}"
 
-          echo ::set-output name=value::$(commit_tag)
+          echo ::set-output name=value::$(echo $commit_tag)
 
       - name: Push externallinks image
         run: |
