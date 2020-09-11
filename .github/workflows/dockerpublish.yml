@@ -30,7 +30,7 @@ jobs:
       - name: upload externallinks image
         uses: actions/upload-artifact@v2
         with:
-          name: externallinks ${{ env.GITHUB_RUN_ID }}
+          name: externallinks-${{ github.run_id }}
           path: externallinks.tar.gz
       - name: Save eventstream image
         run: |
@@ -38,7 +38,7 @@ jobs:
       - name: upload eventstream image
         uses: actions/upload-artifact@v2
         with:
-          name: eventstream ${{ env.GITHUB_RUN_ID }}
+          name: eventstream-${{ github.run_id }}
           path: eventstream.tar.gz
 
 # Push image to GitHub Packages.
@@ -56,7 +56,7 @@ jobs:
       - name: Download externallinks image
         uses: actions/download-artifact@v2
         with:
-          name: externallinks ${{ env.GITHUB_RUN_ID }}
+          name: externallinks-${{ github.run_id }}
 
       - name: Load externallinks image
         run: docker load -i externallinks.tar.gz
@@ -64,7 +64,7 @@ jobs:
       - name: Download eventstream image
         uses: actions/download-artifact@v2
         with:
-          name: eventstream ${{ env.GITHUB_RUN_ID }}
+          name: eventstream-${{ github.run_id }}
 
       - name: Load eventstream image
         run: docker load -i eventstream.tar.gz
@@ -125,5 +125,5 @@ jobs:
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-              externallinks ${{ env.GITHUB_RUN_ID }}
-              eventstream ${{ env.GITHUB_RUN_ID }}
+              externallinks-${{ github.run_id }}
+              eventstream-${{ github.run_id }}
