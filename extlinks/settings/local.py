@@ -2,4 +2,5 @@ from .base import *
 
 DEBUG = True
 
-DEFAULT_FROM_EMAIL = "<twlight.local@localhost.localdomain>"
+SERVER_EMAIL = "Wikilink Local <wikilink.local@localhost.localdomain>"
+DEFAULT_FROM_EMAIL = SERVER_EMAIL

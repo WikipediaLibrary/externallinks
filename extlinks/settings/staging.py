@@ -2,7 +2,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS += ["wikilink-staging.wmflabs.org"]
+ALLOWED_HOSTS = ["wikilink-staging.wmflabs.org"]
 
 # We can only run this in production, because we're connecting to the database
 # replicas internally.
@@ -13,5 +13,5 @@ CRON_CLASSES += ["extlinks.links.cron.TotalLinksCron"]
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-SERVER_EMAIL = "Wikilink <noreply@wikipedialibrary.wmflabs.org>"
+SERVER_EMAIL = "Wikilink <noreply@wikilink.wmflabs.org>"
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
