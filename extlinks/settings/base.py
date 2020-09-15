@@ -136,6 +136,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 # Cron config
 CRON_CLASSES = ["extlinks.organisations.cron.UserListsCron"]
 
+# EMAIL CONFIGURATION
+# ------------------------------------------------------------------------------
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = 25
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
+EMAIL_USE_TLS = False
+
 # LOGGING CONFIGURATION
 # ------------------------------------------------------------------------------
 # We're replacing the default logging config to get better control of the
