@@ -1,8 +1,8 @@
 ---
 version: "3.8"
 services:
- app:
-   image: wikipedialibrary/externallinks:${IMAGE_VERSION}
+ externallinks:
+   image: wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
    build:
      context: .
      target: externallinks
@@ -34,9 +34,9 @@ services:
    ports:
      - "80:80"
    depends_on:
-     - app
+     - externallinks
  eventstream:
-   image: wikipedialibrary/eventstream:${IMAGE_VERSION}
+   image: wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
    build:
      context: .
      target: eventstream
@@ -53,4 +53,4 @@ services:
    entrypoint:
      - memcached
    depends_on:
-     - app
+     - externallinks
