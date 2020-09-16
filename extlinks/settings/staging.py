@@ -13,5 +13,5 @@ CRON_CLASSES += ["extlinks.links.cron.TotalLinksCron"]
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-SERVER_EMAIL = "Wikilink <noreply@wikilink.wmflabs.org>"
+SERVER_EMAIL = "Wikilink <noreply@wikilink-staging.wmflabs.org>"
 DEFAULT_FROM_EMAIL = SERVER_EMAIL
