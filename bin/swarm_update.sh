@@ -52,7 +52,7 @@ fi
 pull wikipedialibrary/externallinks ${externallinks_tag}
 pull wikipedialibrary/eventstream ${eventstream_tag}
 
-# Update repository in case there is an update to the swarm deployment itself.
+# Update repository for updates to code or to the swarm deployment itself.
 git -C ${dir} pull
 
 # Deploy the updates.

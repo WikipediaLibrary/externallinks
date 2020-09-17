@@ -12,6 +12,7 @@ services:
      - db
    ports:
      - "8000:8000"
+   command: ["/app/bin/gunicorn.sh"]
    volumes:
      - ./:/app
  db:
@@ -44,6 +45,7 @@ services:
      - db
    env_file:
      - '.env'
+   command: ["python", "django_wait_for_migrations.py", "linkevents_collect", "--historical"]
    volumes:
      - ./:/app
  cache:
