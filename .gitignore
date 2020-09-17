@@ -10,4 +10,4 @@ __pycache__/
 
 static/admin
 
-backups/*
+db.json
