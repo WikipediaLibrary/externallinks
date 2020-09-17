@@ -14,7 +14,7 @@ RUN pip install -r django.txt
 RUN apt update && apt install -y default-mysql-client && rm -rf /var/lib/apt/lists/*
 COPY ./manage.py .
 COPY ./django_wait_for_migrations.py .
-COPY ./django_wait_for_db.sh /
+COPY bin/django_wait_for_db.sh /
 
 ENTRYPOINT ["/django_wait_for_db.sh"]
 
@@ -23,6 +23,6 @@ CMD ["python", "django_wait_for_migrations.py", "linkevents_collect", "--histori
 FROM eventstream as externallinks
 ENV LOG_FILE="extlinks.log"
 RUN pip install gunicorn
-COPY ./gunicorn.sh /
+COPY bin/gunicorn.sh /
 
 CMD ["/gunicorn.sh"]
