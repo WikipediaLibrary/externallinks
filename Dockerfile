@@ -1,8 +1,6 @@
 # Dockerfile
 FROM python:3.5-buster as eventstream
 
-ENV LOG_FILE="eventstream.log"
-
 WORKDIR /app
 COPY . extlinks
 COPY requirements/django.txt /app/
@@ -21,7 +19,6 @@ ENTRYPOINT ["/django_wait_for_db.sh"]
 CMD ["python", "django_wait_for_migrations.py", "linkevents_collect", "--historical"]
 
 FROM eventstream as externallinks
-ENV LOG_FILE="extlinks.log"
 RUN pip install gunicorn
 COPY bin/gunicorn.sh /
 
