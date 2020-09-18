@@ -56,4 +56,4 @@ pull wikipedialibrary/eventstream ${eventstream_tag}
 git -C ${dir} pull
 
 # Deploy the updates.
-docker stack deploy -c ${dir}/docker-compose.yml ${env}
+docker stack deploy -c <(cd ${dir}; docker-compose config) ${env}
