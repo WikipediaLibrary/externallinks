@@ -18,7 +18,7 @@ flock -n ${lockfile}
         echo "Backing up database."
         python /app/manage.py dumpdata > /app/db.json
 
-        tar -czf "/app/backup/${date}.tar.gz" -C "/app/backup" "./db.json"
+        tar -czf "/app/backup/${date}.tar.gz" -C "/app" "./db.json"
 
         ## Root only
         chmod 0600 "/app/backup/${date}.tar.gz"
