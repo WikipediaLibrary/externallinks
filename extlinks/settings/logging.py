@@ -5,6 +5,7 @@ import logging.config
 # ------------------------------------------------------------------------------
 # We're replacing the default logging config to get better control of the
 # mail_admins behavior.
+# Logging is in another file since Django 3.1 because of https://code.djangoproject.com/ticket/32016
 
 ADMINS = [("Wikilink Developers", "librarycard-dev@lists.wikimedia.org")]
 DJANGO_EMAIL_ADMINS_BACKEND = os.environ.get(
