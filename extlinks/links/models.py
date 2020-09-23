@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.db import models
+from django.utils.functional import cached_property
 
 
 class URLPattern(models.Model):
@@ -18,6 +19,12 @@ class URLPattern(models.Model):
 
     def __str__(self):
         return self.url
+
+    @cached_property
+    def get_proxied_url(self):
+        # This isn't everything that happens, but it's good enough
+        # for us to make a decision about whether we have a match.
+        return self.url.replace(".", "-")
 
 
 class LinkSearchTotal(models.Model):

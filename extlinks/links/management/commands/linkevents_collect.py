@@ -10,6 +10,7 @@ from urllib.parse import unquote
 
 from django.core.management.base import BaseCommand
 
+from extlinks.links.helpers import link_is_tracked
 from extlinks.links.models import LinkEvent, URLPattern
 from extlinks.organisations.models import User
 
@@ -68,7 +69,7 @@ class Command(BaseCommand):
 
         for link in link_list:
             if link['external']:
-                if self.link_is_tracked(link['link']):
+                if link_is_tracked(link['link']):
                     # URLs in the stream are encoded (e.g. %3D instead of =)
                     unquoted_url = unquote(link['link'])
 
@@ -76,34 +77,10 @@ class Command(BaseCommand):
                     event_objects = LinkEvent.objects.filter(link=unquoted_url,
                                                              event_id=event_id)
 
-                    # We want to avoid link additions from e.g. InternetArchive
-                    # where the URL takes the structure
-                    # https://web.archive.org/https://test.com/
-                    protocol_count = unquoted_url.count("//")
-                    url_length = len(unquoted_url)
-
                     # We skip the URL if the length is greater than 2083
-                    if not event_objects.exists() and protocol_count < 2 and url_length < 2084:
+                    if not event_objects.exists() and len(unquoted_url) < 2084:
                         self.add_linkevent_to_db(unquoted_url, change,
                                                  event_dict)
-
-    def link_is_tracked(self, link):
-        tracked_links = URLPattern.objects.all().values_list('url', flat=True)
-
-        # This is a quick check so we can filter the majority of events
-        # which won't be matching our filters
-        if any(links in link for links in tracked_links):
-            # Then we do a more detailed check, to make sure this is the
-            # root URL.
-            for tracked_link in tracked_links:
-                # If we track apa.org, we don't want to match iaapa.org
-                # so we make sure the URL is actually pointing at apa.org
-                url_starts = ["//" + tracked_link, "." + tracked_link]
-                if any(start in link for start in url_starts):
-                    return True
-        else:
-            return False
-
 
     def add_linkevent_to_db(self, link, change, event_data):
         if "Z" in event_data['meta']['dt']:
