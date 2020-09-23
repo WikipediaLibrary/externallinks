@@ -4,8 +4,8 @@ from django.test import TestCase
 from extlinks.organisations.factories import (OrganisationFactory,
                                               CollectionFactory)
 from .factories import LinkEventFactory, URLPatternFactory
-from .helpers import split_url_for_query
-from .models import LinkEvent
+from .helpers import link_is_tracked, split_url_for_query
+from .models import URLPattern
 
 
 class LinksHelpersTest(TestCase):
@@ -64,3 +64,93 @@ class LinksHelpersTest(TestCase):
         new_link.url.add(urlpattern3)
 
         self.assertEqual(new_link.get_organisation, organisation2)
+
+    def test_link_is_tracked_true(self):
+        """
+        Test that link_is_tracked returns True when we have a matching
+        URLPattern
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertTrue(link_is_tracked("https://test.com/testurl"))
+
+    def test_link_is_tracked_true_with_subdomain(self):
+        """
+        Test that link_is_tracked returns True when we have a matching
+        URLPattern even when the link has a subdomain
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertTrue(link_is_tracked("https://foo.test.com/testurl"))
+
+    def test_link_is_tracked_true_with_www(self):
+        """
+        Test that link_is_tracked returns True when we have a matching
+        URLPattern even when the link has www
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertTrue(link_is_tracked("https://www.test.com/testurl"))
+
+    def test_link_is_tracked_false(self):
+        """
+        Test that link_is_tracked returns False when we have no matching
+        URLPattern
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertFalse(link_is_tracked("https://www.foo.com/"))
+
+    def test_link_is_tracked_false_not_domain(self):
+        """
+        Test that link_is_tracked returns False when we have a partial
+        match but the match isn't for the actual domain
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertFalse(link_is_tracked("https://thisisatest.com/"))
+
+    def test_link_is_tracked_false_archive(self):
+        """
+        Test that link_is_tracked returns False when we have a partial
+        match based on multiple protocols
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertFalse(link_is_tracked("https://web.archive.org/https://test.com/"))
+
+    def test_link_is_tracked_true_proxy(self):
+        """
+        Test that link_is_tracked returns True when we have a proxied URL
+        that matches a URLPattern
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertTrue(link_is_tracked("https://www-test-com.wikipedialibrary.idm.oclc.org/"))
+
+    def test_link_is_tracked_false_other_proxy(self):
+        """
+        Test that link_is_tracked returns False when we have a proxied URL
+        that matches our URLPattern but isn't the TWL proxy
+        """
+        _ = URLPatternFactory(url="test.com")
+
+        self.assertFalse(link_is_tracked("https://www-test-com.university.idm.oclc.org/"))
+
+
+class URLPatternModelTest(TestCase):
+    def test_get_proxied_url_1(self):
+        """
+        Test that URLPattern.get_proxied_url transforms a URL correctly
+        """
+        test_urlpattern = URLPattern(url="gale.com")
+        self.assertEqual(test_urlpattern.get_proxied_url, "gale-com")
+
+    def test_get_proxied_url_2(self):
+        """
+        Test that URLPattern.get_proxied_url transforms a URL correctly
+        when it has a subdomain
+        """
+        test_urlpattern = URLPattern(url="platform.almanhal.com")
+        self.assertEqual(test_urlpattern.get_proxied_url,
+                         "platform-almanhal-com")
