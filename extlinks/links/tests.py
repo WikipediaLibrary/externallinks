@@ -65,13 +65,17 @@ class LinksHelpersTest(TestCase):
 
         self.assertEqual(new_link.get_organisation, organisation2)
 
+
+class LinksTrackedTest(TestCase):
+
+    def setUp(self):
+        _ = URLPatternFactory(url="test.com")
+
     def test_link_is_tracked_true(self):
         """
         Test that link_is_tracked returns True when we have a matching
         URLPattern
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertTrue(link_is_tracked("https://test.com/testurl"))
 
     def test_link_is_tracked_true_with_subdomain(self):
@@ -79,8 +83,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns True when we have a matching
         URLPattern even when the link has a subdomain
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertTrue(link_is_tracked("https://foo.test.com/testurl"))
 
     def test_link_is_tracked_true_with_www(self):
@@ -88,8 +90,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns True when we have a matching
         URLPattern even when the link has www
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertTrue(link_is_tracked("https://www.test.com/testurl"))
 
     def test_link_is_tracked_false(self):
@@ -97,8 +97,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns False when we have no matching
         URLPattern
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertFalse(link_is_tracked("https://www.foo.com/"))
 
     def test_link_is_tracked_false_not_domain(self):
@@ -106,8 +104,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns False when we have a partial
         match but the match isn't for the actual domain
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertFalse(link_is_tracked("https://thisisatest.com/"))
 
     def test_link_is_tracked_false_archive(self):
@@ -115,8 +111,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns False when we have a partial
         match based on multiple protocols
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertFalse(link_is_tracked("https://web.archive.org/https://test.com/"))
 
     def test_link_is_tracked_true_proxy(self):
@@ -124,8 +118,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns True when we have a proxied URL
         that matches a URLPattern
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertTrue(link_is_tracked("https://www-test-com.wikipedialibrary.idm.oclc.org/"))
 
     def test_link_is_tracked_false_other_proxy(self):
@@ -133,8 +125,6 @@ class LinksHelpersTest(TestCase):
         Test that link_is_tracked returns False when we have a proxied URL
         that matches our URLPattern but isn't the TWL proxy
         """
-        _ = URLPatternFactory(url="test.com")
-
         self.assertFalse(link_is_tracked("https://www-test-com.university.idm.oclc.org/"))
 
 
