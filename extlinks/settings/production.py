@@ -1,4 +1,5 @@
 from .base import *
+from .logging import *
 
 DEBUG = False
 
