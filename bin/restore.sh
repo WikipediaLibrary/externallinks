@@ -9,14 +9,11 @@ restore_file=${1}
 if /app/bin/django_wait_for_db.sh
 then
 
-    ## Extract tarball
-    tar -xvzf  "${restore_file}" -C "/app" --no-overwrite-dir
+    echo "Dropping existing DB."
+    mysql -h db -u root -p"${MYSQL_ROOT_PASSWORD}" -D "${MYSQL_DATABASE}" -e "DROP DATABASE ${MYSQL_DATABASE}; CREATE DATABASE ${MYSQL_DATABASE};" | :
 
-    ## Import DB
-    python /app/manage.py loaddata /app/db.json
-
-    ## Don't leave an extra DB dump laying out.
-    rm -f /app/db.json
+    echo "Importing backup DB."
+    gunzip -c "${restore_file}" | mysql -h db -u root -p"${MYSQL_ROOT_PASSWORD}" -D "${MYSQL_DATABASE}"
 
     ## Run any necessary DB operations.
     python /app/manage.py migrate

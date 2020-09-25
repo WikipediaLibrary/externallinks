@@ -16,15 +16,11 @@ flock -n ${lockfile}
     if /app/bin/django_wait_for_db.sh
     then
         echo "Backing up database."
-        python /app/manage.py dumpdata > /app/db.json
-
-        tar -czf "/app/backup/${date}.tar.gz" -C "/app" "./db.json"
+        mysqldump -h db -u root -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}" > /app/backup/${date}.sql
+        gzip /app/backup/${date}.sql
 
         ## Root only
-        chmod 0600 "/app/backup/${date}.tar.gz"
-
-        ## Don't leave an extra DB dump laying out.
-        rm -f /app/db.json
+        chmod 0600 "/app/backup/${date}.sql.gz"
 
         echo "Finished backup."
     else
