@@ -23,6 +23,11 @@ flock -n ${lockfile}
         chmod 0600 "/app/backup/${date}.sql.gz"
 
         echo "Finished backup."
+
+        # Retain backups for 90 days.
+        find /app/backup -name "*.sql.gz" -mtime +90 -delete || :
+
+        echo "Removed backups created 90 days ago or more."
     else
         exit 1
     fi
