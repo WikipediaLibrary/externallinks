@@ -50,7 +50,7 @@ def wait_for_migrations(args):
     # All migrations have been applied.
     if db_migrated(DEFAULT_DB_ALIAS):
         logger.info("All migrations have been applied.")
-        execute_from_command_line(sys.argv)
+        execute_from_command_line(args)
     else:
         raise Exception("Unknown error.")
 
