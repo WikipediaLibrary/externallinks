@@ -49,7 +49,7 @@ class Command(BaseCommand):
         for event in EventSource(
             url,
          """The retry argument sets the delay between retries in milliseconds.
-             We're setting this to 5 minutes.
+            We're setting this to 5 minutes.
             There's no way to set the max_retries value with this library,
             but since it depends upon requests, which in turn uses urllib3
             by default, we get a default max_retries value of 3."""
