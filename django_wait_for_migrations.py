@@ -5,7 +5,6 @@ import sys
 import logging
 from time import sleep
 
-
 try:
     from django.db.migrations.executor import MigrationExecutor
     from django.db.utils import ConnectionHandler, DEFAULT_DB_ALIAS
@@ -26,7 +25,7 @@ def db_migrated(database):
     return not executor.migration_plan(targets)
 
 
-def main():
+def wait_for_migrations(args):
     try:
         from django import setup
         from django.core.management import execute_from_command_line
@@ -36,7 +35,6 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
-
     setup()
     logger = logging.getLogger(__name__)
     wait = 0
@@ -46,13 +44,16 @@ def main():
         sleep(1)
         wait += 1
 
-        # All migrations have been applied.
-        if db_migrated(DEFAULT_DB_ALIAS):
-            logger.info("All migrations have been applied.")
-            execute_from_command_line(sys.argv)
-        elif wait > 30:
+        if wait > 30:
             raise Exception("Migration timeout")
+
+    # All migrations have been applied.
+    if db_migrated(DEFAULT_DB_ALIAS):
+        logger.info("All migrations have been applied.")
+        execute_from_command_line(sys.argv)
+    else:
+        raise Exception("Unknown error.")
 
 
 if __name__ == "__main__":
-    main()
+    wait_for_migrations(sys.argv)
