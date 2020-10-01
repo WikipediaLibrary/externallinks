@@ -54,7 +54,7 @@ class Command(BaseCommand):
             but since it depends upon requests, which in turn uses urllib3
             by default, we get a default max_retries value of 3."""
             retry=300000,
-            """The timeout argument gets passed to requests.get.
+         """The timeout argument gets passed to requests.get.
             An integer value sets connect (socket connect) and
             read (time to first byte / since last byte) timeout values.
             A tuple value sets each respective value independently.
