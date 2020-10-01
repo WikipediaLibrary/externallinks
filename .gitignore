@@ -9,5 +9,6 @@ __pycache__/
 *.pyc
 
 static/admin
+static/debug_toolbar
 
 db.json
