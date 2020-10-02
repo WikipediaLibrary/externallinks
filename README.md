@@ -22,7 +22,7 @@ The tool uses the [Django framework](https://www.djangoproject.com/) and is depl
 
 After cloning the repository to your directory of choice:
 1. Copy `template.env` to `.env`. No further changes are required for local development.
-2. Run `docker-compose up -d --build` to build containers.
+2. Run `docker-compose up -d --build` to build containers. If you want to enable the [Django Debug Toolbar](https://django-debug-toolbar.readthedocs.io/en/latest/index.html), you should run `docker-compose build --build-arg REQUIREMENTS_FILE=local.txt && docker-compose up`
 3. The `eventstream` container will fail to build on the first run, so it will need to be restarted with `docker restart externallinks_eventstream_1`
 
 You should now be able to access the tool via `localhost`.
