@@ -16,12 +16,14 @@ class User(models.Model):
 class Organisation(models.Model):
     class Meta:
         app_label = "organisations"
-        ordering = ['name']
+        ordering = ["name"]
 
     name = models.CharField(max_length=40)
 
     # programs.Program syntax required to avoid circular import.
-    program = models.ManyToManyField('programs.Program', blank=True)
+    program = models.ManyToManyField(
+        "programs.Program", blank=True, related_name="program"
+    )
 
     username_list = models.ManyToManyField(User, blank=True)
     # If a URL is placed here, we'll use it to regularly update username_list
@@ -32,9 +34,7 @@ class Organisation(models.Model):
 
     @property
     def get_collection_count(self):
-        return Collection.objects.filter(
-            organisation=self
-        ).count()
+        return Collection.objects.filter(organisation=self).count()
 
     @property
     def limit_by_user(self):
@@ -47,17 +47,14 @@ class Organisation(models.Model):
 class Collection(models.Model):
     class Meta:
         app_label = "organisations"
-        ordering = ['name']
+        ordering = ["name"]
 
     name = models.CharField(max_length=40)
 
-    organisation = models.ForeignKey(Organisation, null=True,
-                                     on_delete=models.SET_NULL)
+    organisation = models.ForeignKey(Organisation, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.name
 
     def get_linkevents(self):
-        return LinkEvent.objects.filter(
-            url__collection=self
-        ).distinct()
+        return LinkEvent.objects.filter(url__collection=self).distinct()

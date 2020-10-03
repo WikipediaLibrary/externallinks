@@ -26,12 +26,13 @@ class Command(BaseCommand):
             )
             new_program.save()
 
-            for j in range(random.randint(1, 20)):
+            for j in range(random.randint(1, 40)):
                 # Will this org limit by user?
                 limit_by_user = random.choice([True, False])
 
                 new_org = Organisation(name=fake.company())
                 new_org.save()
+                new_program.organisations.add(new_org)
                 if limit_by_user:
                     # Between 10 and 50 users on the list.
                     username_list = [

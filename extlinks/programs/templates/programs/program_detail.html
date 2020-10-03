@@ -5,7 +5,7 @@
         <nav id="sidebar">
             <ul class="list-unstyled components">
                 <p style="font-size: 18px">Organisations</p>
-                {% for organisation in organisations %}
+                {% for organisation in organisations.all %}
                     <li>
                         <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
                     </li>
@@ -16,7 +16,7 @@
             <div class="row">
                 <div class="col-6">
                     <h1>{{ object }}</h1>
-                    <p>Organisations: {{ program.get_org_count }}</p>
+                    <p>Organisations: {{ program.number_of_organisations }}</p>
                 </div>
                 <div class="col-6">
                     <form method="GET" id="graph-date-form">
