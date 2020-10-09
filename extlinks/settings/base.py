@@ -70,7 +70,10 @@ DATABASES = {
         "PASSWORD": os.environ["MYSQL_ROOT_PASSWORD"],
         "HOST": "db",
         "PORT": "3306",
-        "OPTIONS": {"charset": "utf8mb4"},
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));",
+        },
     }
 }
 
