@@ -10,13 +10,12 @@ from django.utils.decorators import method_decorator
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (
     filter_queryset,
-    get_linkevent_context,
-    annotate_top,
     get_linksearchtotal_data_by_time,
     filter_linksearchtotals,
 )
+from extlinks.common.new_helpers import _get_linkevent_stats
 from extlinks.links.models import LinkSearchTotal, URLPattern, LinkEvent
-from .models import Organisation, Collection
+from .models import Organisation, Collection, User
 
 
 class OrganisationListView(ListView):
@@ -44,7 +43,9 @@ class OrganisationDetailView(DetailView):
                         queryset=URLPattern.objects.prefetch_related(
                             Prefetch(
                                 "linkevent",
-                                queryset=LinkEvent.objects.all()
+                                queryset=LinkEvent.objects.prefetch_related(
+                                    Prefetch("username", queryset=User.objects.all())
+                                )
                                 .annotate(
                                     links_added=Count(
                                         "pk",
@@ -57,7 +58,7 @@ class OrganisationDetailView(DetailView):
                                         distinct=True,
                                     ),
                                 )
-                                .order_by("-links_added"),
+                                .order_by("-links_added", "-timestamp"),
                             ),
                             Prefetch(
                                 "linksearchtotal_set",
@@ -87,19 +88,14 @@ class OrganisationDetailView(DetailView):
         # each collection has its own dictionary of data.
         context["collections"] = {}
         for collection in organisation_collections:
-            this_collection_linkevents = collection.url.all()[0].linkevent.all()
-            this_collection_linksearchtotals = collection.url.all()[
-                0
-            ].linksearchtotal_set.all()
-
-            if form.is_valid():
-                form_data = form.cleaned_data
-                this_collection_linkevents = filter_queryset(
-                    this_collection_linkevents, form_data
-                )
-                this_collection_linksearchtotals = filter_linksearchtotals(
-                    this_collection_linksearchtotals, form_data
-                )
+            # if form.is_valid():
+            #     form_data = form.cleaned_data
+            #     this_collection_linkevents = filter_queryset(
+            #         this_collection_linkevents, form_data
+            #     )
+            #     this_collection_linksearchtotals = filter_linksearchtotals(
+            #         this_collection_linksearchtotals, form_data
+            #     )
 
             # Replace all special characters that might confuse JS with an
             # underscore.
@@ -108,45 +104,51 @@ class OrganisationDetailView(DetailView):
             context["collections"][collection_key] = {}
             context["collections"][collection_key]["object"] = collection
             context["collections"][collection_key]["urls"] = collection.url.all()
-            context["collections"][collection_key] = get_linkevent_context(
-                context["collections"][collection_key], this_collection_linkevents
-            )
 
-            context["collections"][collection_key]["top_pages"] = collection.url.all()[
-                0
-            ].linkevent.all()[:5]
+            # Iterating through URLPatterns to get information from linkevents
+            # and linksearches
+            for url_pattern in context["collections"][collection_key]["urls"]:
+                context["collections"][collection_key] = _get_linkevent_stats(
+                    url_pattern.linkevent.all(), context["collections"][collection_key]
+                )
 
-            # LinkSearchTotal chart data
-            dates, linksearch_data = get_linksearchtotal_data_by_time(
-                this_collection_linksearchtotals
-            )
+                # LinkSearchTotal chart data
+                dates, linksearch_data = get_linksearchtotal_data_by_time(
+                    url_pattern.linksearchtotal_set.all()
+                )
 
-            context["collections"][collection_key]["linksearch_dates"] = dates
-            context["collections"][collection_key]["linksearch_data"] = linksearch_data
+                context["collections"][collection_key]["linksearch_dates"] = dates
+                context["collections"][collection_key][
+                    "linksearch_data"
+                ] = linksearch_data
 
-            # Statistics
-            if linksearch_data:
-                total_start = linksearch_data[0]
-                total_current = linksearch_data[-1]
-                total_diff = total_current - total_start
-                start_date_object = datetime.strptime(dates[0], "%Y-%m-%d")
-                start_date = start_date_object.strftime("%B %Y")
-            # If we haven't collected any LinkSearchTotals yet, then set
-            # these variables to None so we don't show them in the statistics
-            # box
-            else:
-                total_start = None
-                total_current = None
-                total_diff = None
-                start_date = None
-            context["collections"][collection_key][
-                "linksearch_total_start"
-            ] = total_start
-            context["collections"][collection_key][
-                "linksearch_total_current"
-            ] = total_current
-            context["collections"][collection_key]["linksearch_total_diff"] = total_diff
-            context["collections"][collection_key]["linksearch_start_date"] = start_date
+                # Statistics
+                if linksearch_data:
+                    total_start = linksearch_data[0]
+                    total_current = linksearch_data[-1]
+                    total_diff = total_current - total_start
+                    start_date_object = datetime.strptime(dates[0], "%Y-%m-%d")
+                    start_date = start_date_object.strftime("%B %Y")
+                # If we haven't collected any LinkSearchTotals yet, then set
+                # these variables to None so we don't show them in the statistics
+                # box
+                else:
+                    total_start = None
+                    total_current = None
+                    total_diff = None
+                    start_date = None
+                context["collections"][collection_key][
+                    "linksearch_total_start"
+                ] = total_start
+                context["collections"][collection_key][
+                    "linksearch_total_current"
+                ] = total_current
+                context["collections"][collection_key][
+                    "linksearch_total_diff"
+                ] = total_diff
+                context["collections"][collection_key][
+                    "linksearch_start_date"
+                ] = start_date
 
             context["query_string"] = self.request.META["QUERY_STRING"]
 
