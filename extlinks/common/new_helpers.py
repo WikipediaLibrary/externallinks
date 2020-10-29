@@ -196,8 +196,10 @@ def _get_linkevent_stats(linkevents, context):
     context["latest_links"] = sorted_links
     context["total_editors"] = len(sorted_user_keys)
     context["total_projects"] = len(sorted_project_keys)
-
-    # context = get_linkevent_context(context, linkevents)
+    # Stat block
+    context["total_added"] = sum(context["eventstream_added_data"])
+    context["total_removed"] = sum(context["eventstream_removed_data"])
+    context["total_diff"] = context["total_added"] - context["total_removed"]
 
     return context
 
