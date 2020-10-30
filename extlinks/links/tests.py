@@ -1,15 +1,13 @@
 from django.core.management import call_command
 from django.test import TestCase
 
-from extlinks.organisations.factories import (OrganisationFactory,
-                                              CollectionFactory)
+from extlinks.organisations.factories import OrganisationFactory, CollectionFactory
 from .factories import LinkEventFactory, URLPatternFactory
 from .helpers import link_is_tracked, split_url_for_query
 from .models import URLPattern
 
 
 class LinksHelpersTest(TestCase):
-
     def test_split_url_for_query_1(self):
         """
         Given a URL pattern, ensure that our helper function converts it
@@ -67,7 +65,6 @@ class LinksHelpersTest(TestCase):
 
 
 class LinksTrackedTest(TestCase):
-
     def setUp(self):
         _ = URLPatternFactory(url="test.com")
 
@@ -118,14 +115,18 @@ class LinksTrackedTest(TestCase):
         Test that link_is_tracked returns True when we have a proxied URL
         that matches a URLPattern
         """
-        self.assertTrue(link_is_tracked("https://www-test-com.wikipedialibrary.idm.oclc.org/"))
+        self.assertTrue(
+            link_is_tracked("https://www-test-com.wikipedialibrary.idm.oclc.org/")
+        )
 
     def test_link_is_tracked_false_other_proxy(self):
         """
         Test that link_is_tracked returns False when we have a proxied URL
         that matches our URLPattern but isn't the TWL proxy
         """
-        self.assertFalse(link_is_tracked("https://www-test-com.university.idm.oclc.org/"))
+        self.assertFalse(
+            link_is_tracked("https://www-test-com.university.idm.oclc.org/")
+        )
 
 
 class URLPatternModelTest(TestCase):
@@ -142,5 +143,4 @@ class URLPatternModelTest(TestCase):
         when it has a subdomain
         """
         test_urlpattern = URLPattern(url="platform.almanhal.com")
-        self.assertEqual(test_urlpattern.get_proxied_url,
-                         "platform-almanhal-com")
+        self.assertEqual(test_urlpattern.get_proxied_url, "platform-almanhal-com")

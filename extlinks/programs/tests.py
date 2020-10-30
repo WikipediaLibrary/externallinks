@@ -3,23 +3,24 @@ from datetime import datetime
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 
-from extlinks.common.views import (CSVOrgTotals,
-                                   CSVProjectTotals,
-                                   CSVUserTotals,
-                                   CSVAllLinkEvents)
-from extlinks.links.factories import (LinkEventFactory,
-                                      URLPatternFactory)
+from extlinks.common.views import (
+    CSVOrgTotals,
+    CSVProjectTotals,
+    CSVUserTotals,
+    CSVAllLinkEvents,
+)
+from extlinks.links.factories import LinkEventFactory, URLPatternFactory
 from extlinks.links.models import LinkEvent
-from extlinks.organisations.factories import (UserFactory,
-                                              OrganisationFactory,
-                                              CollectionFactory)
+from extlinks.organisations.factories import (
+    UserFactory,
+    OrganisationFactory,
+    CollectionFactory,
+)
 from .factories import ProgramFactory
-from .views import (ProgramListView,
-                    ProgramDetailView)
+from .views import ProgramListView, ProgramDetailView
 
 
 class ProgramListTest(TestCase):
-
     def setUp(self):
         self.program_one = ProgramFactory()
         self.program_two = ProgramFactory()
@@ -30,7 +31,7 @@ class ProgramListTest(TestCase):
         """
         factory = RequestFactory()
 
-        request = factory.get(reverse('homepage'))
+        request = factory.get(reverse("homepage"))
         response = ProgramListView.as_view()(request)
 
         self.assertEqual(response.status_code, 200)
@@ -42,7 +43,7 @@ class ProgramListTest(TestCase):
 
         factory = RequestFactory()
 
-        request = factory.get(reverse('homepage'))
+        request = factory.get(reverse("homepage"))
         response = ProgramListView.as_view()(request)
 
         self.assertContains(response, self.program_one.name)
@@ -50,15 +51,11 @@ class ProgramListTest(TestCase):
 
 
 class ProgramDetailTest(TestCase):
-
     def setUp(self):
         self.program1 = ProgramFactory()
-        self.organisation1 = OrganisationFactory(name="Org 1",
-                                                 program=(self.program1,))
-        self.organisation2 = OrganisationFactory(name="Org 2",
-                                                 program=(self.program1,))
-        self.url1 = reverse('programs:detail',
-                            kwargs={'pk': self.program1.pk})
+        self.organisation1 = OrganisationFactory(name="Org 1", program=(self.program1,))
+        self.organisation2 = OrganisationFactory(name="Org 2", program=(self.program1,))
+        self.url1 = reverse("programs:detail", kwargs={"pk": self.program1.pk})
 
         self.collection1 = CollectionFactory(organisation=self.organisation1)
         self.collection2 = CollectionFactory(organisation=self.organisation2)
@@ -68,7 +65,7 @@ class ProgramDetailTest(TestCase):
         urlpattern2 = URLPatternFactory(collection=self.collection2)
         urlpattern3 = URLPatternFactory(collection=self.collection3)
 
-        user = UserFactory(username='Jim')
+        user = UserFactory(username="Jim")
 
         self.linkevent1 = LinkEventFactory(
             link=urlpattern1.url + "/test",
@@ -76,7 +73,8 @@ class ProgramDetailTest(TestCase):
             username=user,
             timestamp=datetime(2019, 1, 15),
             page_title="Event 1",
-            user_is_bot=True)
+            user_is_bot=True,
+        )
         self.linkevent1.url.add(urlpattern1)
         self.linkevent1.save()
 
@@ -85,27 +83,30 @@ class ProgramDetailTest(TestCase):
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 10),
-            page_title="Event 1")
+            page_title="Event 1",
+        )
         self.linkevent2.url.add(urlpattern1)
         self.linkevent2.save()
 
         self.linkevent3 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.REMOVED,
-            username=UserFactory(username='Bob'),
+            username=UserFactory(username="Bob"),
             timestamp=datetime(2017, 5, 5),
-            page_title="Event 2")
+            page_title="Event 2",
+        )
         self.linkevent3.url.add(urlpattern1)
         self.linkevent3.save()
 
         self.linkevent4 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            username=UserFactory(username='Mary'),
+            username=UserFactory(username="Mary"),
             timestamp=datetime(2019, 3, 1),
             on_user_list=True,
             page_title="Event 2",
-            page_namespace=1)
+            page_namespace=1,
+        )
         self.linkevent4.url.add(urlpattern1)
         self.linkevent4.save()
 
@@ -116,8 +117,7 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
         self.assertEqual(response.status_code, 200)
 
@@ -129,10 +129,9 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 3)
+        self.assertEqual(response.context_data["total_added"], 3)
 
     def test_program_detail_links_removed(self):
         """
@@ -142,10 +141,9 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_removed'], 1)
+        self.assertEqual(response.context_data["total_removed"], 1)
 
     def test_program_detail_total_editors(self):
         """
@@ -155,10 +153,9 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_editors'], 3)
+        self.assertEqual(response.context_data["total_editors"], 3)
 
     def test_program_detail_date_form(self):
         """
@@ -166,17 +163,13 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        data = {
-            'start_date': '2019-01-01',
-            'end_date': '2019-02-01'
-        }
+        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
 
         request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 2)
-        self.assertEqual(response.context_data['total_removed'], 0)
+        self.assertEqual(response.context_data["total_added"], 2)
+        self.assertEqual(response.context_data["total_removed"], 0)
 
     def test_program_detail_user_list_form(self):
         """
@@ -184,16 +177,13 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        data = {
-            'limit_to_user_list': True
-        }
+        data = {"limit_to_user_list": True}
 
         request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 1)
-        self.assertEqual(response.context_data['total_removed'], 0)
+        self.assertEqual(response.context_data["total_added"], 1)
+        self.assertEqual(response.context_data["total_removed"], 0)
 
     def test_program_detail_namespace_form(self):
         """
@@ -201,16 +191,13 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        data = {
-            'namespace_id': 1
-        }
+        data = {"namespace_id": 1}
 
         request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 1)
-        self.assertEqual(response.context_data['total_removed'], 0)
+        self.assertEqual(response.context_data["total_added"], 1)
+        self.assertEqual(response.context_data["total_removed"], 0)
 
     def test_top_organisations_csv(self):
         """
@@ -218,16 +205,17 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        csv_url = reverse('programs:csv_org_totals',
-                          kwargs={'pk': self.organisation1.pk})
+        csv_url = reverse(
+            "programs:csv_org_totals", kwargs={"pk": self.organisation1.pk}
+        )
 
         request = factory.get(csv_url)
         response = CSVOrgTotals.as_view()(request, pk=self.program1.pk)
-        csv_content = response.content.decode('utf-8')
+        csv_content = response.content.decode("utf-8")
 
-        expected_output = "Organisation,Links added,Links removed\r\n" \
-                          "Org 1,3,1\r\n" \
-                          "Org 2,0,0\r\n"
+        expected_output = (
+            "Organisation,Links added,Links removed\r\n" "Org 1,3,1\r\n" "Org 2,0,0\r\n"
+        )
 
         self.assertEqual(csv_content, expected_output)
 
@@ -237,15 +225,17 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        csv_url = reverse('programs:csv_project_totals',
-                          kwargs={'pk': self.program1.pk})
+        csv_url = reverse(
+            "programs:csv_project_totals", kwargs={"pk": self.program1.pk}
+        )
 
         request = factory.get(csv_url)
         response = CSVProjectTotals.as_view()(request, pk=self.program1.pk)
-        csv_content = response.content.decode('utf-8')
+        csv_content = response.content.decode("utf-8")
 
-        expected_output = "Project,Links added,Links removed\r\n" \
-                          "en.wikipedia.org,3,1\r\n"
+        expected_output = (
+            "Project,Links added,Links removed\r\n" "en.wikipedia.org,3,1\r\n"
+        )
 
         self.assertEqual(csv_content, expected_output)
 
@@ -255,18 +245,18 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        csv_url = reverse('programs:csv_user_totals',
-                          kwargs={'pk': self.program1.pk})
+        csv_url = reverse("programs:csv_user_totals", kwargs={"pk": self.program1.pk})
 
         request = factory.get(csv_url)
         response = CSVUserTotals.as_view()(request, pk=self.program1.pk)
-        csv_content = response.content.decode('utf-8')
+        csv_content = response.content.decode("utf-8")
 
-        expected_output = "Username,Links added,Links removed\r\n" \
-                          "Jim,2,0\r\n" \
-                          "Mary,1,0\r\n" \
-                          "Bob,0,1\r\n" \
-
+        expected_output = (
+            "Username,Links added,Links removed\r\n"
+            "Jim,2,0\r\n"
+            "Mary,1,0\r\n"
+            "Bob,0,1\r\n"
+        )
         self.assertEqual(csv_content, expected_output)
 
     def test_latest_links_csv(self):
@@ -275,8 +265,7 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        csv_url = reverse('programs:csv_all_links',
-                          kwargs={'pk': self.program1.pk})
+        csv_url = reverse("programs:csv_all_links", kwargs={"pk": self.program1.pk})
 
         request = factory.get(csv_url)
         response = CSVAllLinkEvents.as_view()(request, pk=self.program1.pk)
@@ -294,13 +283,10 @@ class ProgramDetailTest(TestCase):
         """
         factory = RequestFactory()
 
-        data = {
-            'exclude_bots': True
-        }
+        data = {"exclude_bots": True}
 
         request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request,
-                                               pk=self.program1.pk)
+        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
 
-        self.assertEqual(response.context_data['total_added'], 2)
-        self.assertEqual(response.context_data['total_removed'], 1)
+        self.assertEqual(response.context_data["total_added"], 2)
+        self.assertEqual(response.context_data["total_removed"], 1)

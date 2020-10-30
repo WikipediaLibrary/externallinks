@@ -2,8 +2,8 @@ from django.views.generic import TemplateView
 
 
 class Homepage(TemplateView):
-    template_name = 'homepage.html'
+    template_name = "homepage.html"
 
 
 class Documentation(TemplateView):
-    template_name = 'documentation.html'
+    template_name = "documentation.html"

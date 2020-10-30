@@ -7,4 +7,4 @@ register = template.Library()
 @register.filter
 @stringfilter
 def replace_underscores(string):
-    return string.replace('_', ' ')
+    return string.replace("_", " ")

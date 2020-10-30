@@ -6,7 +6,7 @@ from django.core.management import call_command
 class TotalLinksCron(CronJobBase):
     # 10080 is weekly.
     schedule = Schedule(run_every_mins=10080)
-    code = 'links.total_links_cron'
+    code = "links.total_links_cron"
 
     def do(self):
-        call_command('linksearchtotal_collect')
+        call_command("linksearchtotal_collect")

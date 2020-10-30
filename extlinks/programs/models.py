@@ -7,7 +7,7 @@ from extlinks.organisations.models import Organisation
 class Program(models.Model):
     class Meta:
         app_label = "programs"
-        ordering = ['name']
+        ordering = ["name"]
 
     name = models.CharField(max_length=40)
 
@@ -23,9 +23,7 @@ class Program(models.Model):
 
     @property
     def get_org_count(self):
-        return Organisation.objects.filter(
-            program=self
-        ).count()
+        return Organisation.objects.filter(program=self).count()
 
     @property
     def any_orgs_user_list(self):
@@ -33,8 +31,8 @@ class Program(models.Model):
         Returns True if any of this program's organisations limit by user
         """
         program_orgs = Organisation.objects.filter(
-            program=self,
-            username_list__isnull=False)
+            program=self, username_list__isnull=False
+        )
 
         if program_orgs.count() > 0:
             return True

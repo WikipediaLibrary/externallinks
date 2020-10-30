@@ -6,28 +6,36 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organisations', '0004_auto_20190603_1325'),
+        ("organisations", "0004_auto_20190603_1325"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('username', models.CharField(max_length=235)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("username", models.CharField(max_length=235)),
             ],
         ),
         migrations.RemoveField(
-            model_name='organisation',
-            name='limit_by_user',
+            model_name="organisation",
+            name="limit_by_user",
         ),
         migrations.RemoveField(
-            model_name='organisation',
-            name='username_list',
+            model_name="organisation",
+            name="username_list",
         ),
         migrations.AddField(
-            model_name='organisation',
-            name='username_list',
-            field=models.ManyToManyField(to='organisations.User'),
+            model_name="organisation",
+            name="username_list",
+            field=models.ManyToManyField(to="organisations.User"),
         ),
     ]

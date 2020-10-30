@@ -7,19 +7,17 @@ from .models import LinkEvent, LinkSearchTotal, URLPattern
 
 
 class URLPatternFactory(factory.django.DjangoModelFactory):
-
     class Meta:
         model = URLPattern
         strategy = factory.CREATE_STRATEGY
 
     # factory.Faker returns a Faker object by default, rather than str
-    url = str(factory.Faker('url', schemes=['https']))[8:-1]
+    url = str(factory.Faker("url", schemes=["https"]))[8:-1]
 
     collection = factory.SubFactory(CollectionFactory)
 
 
 class LinkEventFactory(factory.django.DjangoModelFactory):
-
     class Meta:
         model = LinkEvent
         strategy = factory.CREATE_STRATEGY
@@ -31,18 +29,17 @@ class LinkEventFactory(factory.django.DjangoModelFactory):
     username = factory.SubFactory(UserFactory)
     rev_id = random.randint(10000000, 100000000)
     user_id = random.randint(10000000, 100000000)
-    page_title = factory.Faker('word')
+    page_title = factory.Faker("word")
     page_namespace = 0
-    event_id = factory.Faker('uuid4')
+    event_id = factory.Faker("uuid4")
     change = LinkEvent.ADDED
     on_user_list = False
 
 
 class LinkSearchTotalFactory(factory.django.DjangoModelFactory):
-
     class Meta:
         model = LinkSearchTotal
         strategy = factory.CREATE_STRATEGY
 
     date = datetime.today()
-    total = random.randint(1,1000)
+    total = random.randint(1, 1000)
