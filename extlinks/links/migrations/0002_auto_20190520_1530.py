@@ -7,13 +7,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('links', '0001_initial'),
+        ("links", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='linksearchtotal',
-            name='date',
+            model_name="linksearchtotal",
+            name="date",
             field=models.DateField(default=datetime.date.today),
         ),
     ]

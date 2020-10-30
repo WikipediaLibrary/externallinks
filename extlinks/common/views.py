@@ -3,9 +3,7 @@ import csv
 from django.http import HttpResponse
 from django.views.generic import View
 
-from extlinks.common.helpers import (annotate_top,
-                                     top_organisations,
-                                     filter_queryset)
+from extlinks.common.helpers import annotate_top, top_organisations, filter_queryset
 from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Organisation
 from extlinks.programs.models import Program
@@ -21,10 +19,11 @@ class _CSVDownloadView(View):
     URLs should point at subclasses of this view. Subclasses should implement a
     _write_data() method.
     """
+
     def get(self, request, *args, **kwargs):
         # Create the HttpResponse object with the appropriate CSV header.
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="data.csv"'
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="data.csv"'
 
         self._write_data(response)
 
@@ -36,20 +35,18 @@ class _CSVDownloadView(View):
 
 class CSVOrgTotals(_CSVDownloadView):
     def _write_data(self, response):
-        program_pk = self.kwargs['pk']
-        this_program_orgs = Organisation.objects.filter(
-            program__pk=program_pk)
+        program_pk = self.kwargs["pk"]
+        this_program_orgs = Organisation.objects.filter(program__pk=program_pk)
         program = Program.objects.get(pk=program_pk)
         this_program_linkevents = program.get_linkevents()
-        this_program_linkevents = filter_queryset(this_program_linkevents,
-                                                  self.request.GET)
-        top_orgs = top_organisations(
-            this_program_orgs,
-            this_program_linkevents)
+        this_program_linkevents = filter_queryset(
+            this_program_linkevents, self.request.GET
+        )
+        top_orgs = top_organisations(this_program_orgs, this_program_linkevents)
 
         writer = csv.writer(response)
 
-        writer.writerow(['Organisation', 'Links added', 'Links removed'])
+        writer.writerow(["Organisation", "Links added", "Links removed"])
 
         for org in top_orgs:
             writer.writerow([org.name, org.links_added, org.links_removed])
@@ -57,100 +54,124 @@ class CSVOrgTotals(_CSVDownloadView):
 
 class CSVPageTotals(_CSVDownloadView):
     def _write_data(self, response):
-        org_pk = self.kwargs['pk']
+        org_pk = self.kwargs["pk"]
         linkevents = LinkEvent.objects.filter(
-            url__collection__organisation__pk=org_pk).distinct()
+            url__collection__organisation__pk=org_pk
+        ).distinct()
 
-        linkevents = filter_queryset(linkevents,
-                                     self.request.GET)
+        linkevents = filter_queryset(linkevents, self.request.GET)
 
         top_pages = annotate_top(
             linkevents,
-            '-links_added',
-            ['page_title', 'domain'],
-            )
+            "-links_added",
+            ["page_title", "domain"],
+        )
         writer = csv.writer(response)
 
-        writer.writerow(['Page title', 'Project', 'Links added', 'Links removed'])
+        writer.writerow(["Page title", "Project", "Links added", "Links removed"])
 
         for page in top_pages:
-            writer.writerow([page['page_title'], page['domain'],
-                             page['links_added'], page['links_removed']])
+            writer.writerow(
+                [
+                    page["page_title"],
+                    page["domain"],
+                    page["links_added"],
+                    page["links_removed"],
+                ]
+            )
 
 
 class CSVProjectTotals(_CSVDownloadView):
     def _write_data(self, response):
-        pk = self.kwargs['pk']
+        pk = self.kwargs["pk"]
         # If we came from an organisation page:
-        if '/organisation' in self.request.build_absolute_uri():
+        if "/organisation" in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk).distinct()
+                url__collection__organisation__pk=pk
+            ).distinct()
         else:
             program = Program.objects.get(pk=pk)
             linkevents = program.get_linkevents()
 
-        linkevents = filter_queryset(linkevents,
-                                     self.request.GET)
+        linkevents = filter_queryset(linkevents, self.request.GET)
 
-        top_projects = annotate_top(linkevents,
-                                    '-links_added',
-                                    ['domain'])
+        top_projects = annotate_top(linkevents, "-links_added", ["domain"])
         writer = csv.writer(response)
 
-        writer.writerow(['Project', 'Links added', 'Links removed'])
+        writer.writerow(["Project", "Links added", "Links removed"])
 
         for project in top_projects:
-            writer.writerow([project['domain'], project['links_added'],
-                             project['links_removed']])
+            writer.writerow(
+                [project["domain"], project["links_added"], project["links_removed"]]
+            )
 
 
 class CSVUserTotals(_CSVDownloadView):
     def _write_data(self, response):
-        pk = self.kwargs['pk']
+        pk = self.kwargs["pk"]
         # If we came from an organisation page:
-        if '/organisation' in self.request.build_absolute_uri():
+        if "/organisation" in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk).distinct()
+                url__collection__organisation__pk=pk
+            ).distinct()
         else:
             program = Program.objects.get(pk=pk)
             linkevents = program.get_linkevents()
 
-        linkevents = filter_queryset(linkevents,
-                                     self.request.GET)
+        linkevents = filter_queryset(linkevents, self.request.GET)
 
-        top_users = annotate_top(linkevents,
-                                 '-links_added',
-                                 ['username__username'])
+        top_users = annotate_top(linkevents, "-links_added", ["username__username"])
         writer = csv.writer(response)
 
-        writer.writerow(['Username', 'Links added', 'Links removed'])
+        writer.writerow(["Username", "Links added", "Links removed"])
 
         for user in top_users:
-            writer.writerow([user['username__username'], user['links_added'],
-                             user['links_removed']])
+            writer.writerow(
+                [user["username__username"], user["links_added"], user["links_removed"]]
+            )
 
 
 class CSVAllLinkEvents(_CSVDownloadView):
     def _write_data(self, response):
-        pk = self.kwargs['pk']
+        pk = self.kwargs["pk"]
         # If we came from an organisation page:
-        if '/organisation' in self.request.build_absolute_uri():
+        if "/organisation" in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk).distinct()
+                url__collection__organisation__pk=pk
+            ).distinct()
         else:
             program = Program.objects.get(pk=pk)
             linkevents = program.get_linkevents()
 
-        linkevents = filter_queryset(linkevents.select_related('username'),
-                                     self.request.GET)
+        linkevents = filter_queryset(
+            linkevents.select_related("username"), self.request.GET
+        )
 
         writer = csv.writer(response)
 
-        writer.writerow(['Link', 'User', 'Bot user', 'Page title',
-                         'Project', 'Timestamp', 'Revision ID',
-                         'Change'])
+        writer.writerow(
+            [
+                "Link",
+                "User",
+                "Bot user",
+                "Page title",
+                "Project",
+                "Timestamp",
+                "Revision ID",
+                "Change",
+            ]
+        )
 
-        for link in linkevents.order_by('-timestamp'):
-            writer.writerow([link.link, link.username, link.user_is_bot,
-                             link.page_title, link.domain, link.timestamp,
-                             link.rev_id, link.change])
+        for link in linkevents.order_by("-timestamp"):
+            writer.writerow(
+                [
+                    link.link,
+                    link.username,
+                    link.user_is_bot,
+                    link.page_title,
+                    link.domain,
+                    link.timestamp,
+                    link.rev_id,
+                    link.change,
+                ]
+            )

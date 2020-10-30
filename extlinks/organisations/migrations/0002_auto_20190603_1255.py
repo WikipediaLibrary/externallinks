@@ -6,16 +6,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organisations', '0001_initial'),
+        ("organisations", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='collection',
-            options={'ordering': ['name']},
+            name="collection",
+            options={"ordering": ["name"]},
         ),
         migrations.AlterModelOptions(
-            name='organisation',
-            options={'ordering': ['name']},
+            name="organisation",
+            options={"ordering": ["name"]},
         ),
     ]

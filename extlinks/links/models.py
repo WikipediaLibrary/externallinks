@@ -13,9 +13,12 @@ class URLPattern(models.Model):
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
 
-    collection = models.ForeignKey('organisations.Collection', null=True,
-                                   on_delete=models.SET_NULL,
-                                   related_name='url')
+    collection = models.ForeignKey(
+        "organisations.Collection",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="url",
+    )
 
     def __str__(self):
         return self.url
@@ -34,12 +37,10 @@ class LinkSearchTotal(models.Model):
         verbose_name_plural = "LinkSearch totals"
         # We only want one record for each URL on any particular date
         constraints = [
-            models.UniqueConstraint(fields=['url', 'date'],
-                                    name='unique_date_total')
+            models.UniqueConstraint(fields=["url", "date"], name="unique_date_total")
         ]
 
-    url = models.ForeignKey(URLPattern, null=True,
-                            on_delete=models.SET_NULL)
+    url = models.ForeignKey(URLPattern, null=True, on_delete=models.SET_NULL)
 
     date = models.DateField(default=date.today)
     total = models.PositiveIntegerField()
@@ -51,19 +52,20 @@ class LinkEvent(models.Model):
 
     https://stream.wikimedia.org/?doc#!/Streams/get_v2_stream_page_links_change
     """
+
     class Meta:
         app_label = "links"
         get_latest_by = "timestamp"
 
-    url = models.ManyToManyField(URLPattern,
-                                 related_name='linkevent')
+    url = models.ManyToManyField(URLPattern, related_name="linkevent")
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32, db_index=True)
-    username = models.ForeignKey('organisations.User', null=True,
-                                 on_delete=models.SET_NULL)
+    username = models.ForeignKey(
+        "organisations.User", null=True, on_delete=models.SET_NULL
+    )
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
     rev_id = models.PositiveIntegerField(null=True)
@@ -79,8 +81,8 @@ class LinkEvent(models.Model):
     ADDED = 1
 
     CHANGE_CHOICES = (
-        (REMOVED, 'Removed'),
-        (ADDED, 'Added'),
+        (REMOVED, "Removed"),
+        (ADDED, "Added"),
     )
 
     change = models.IntegerField(choices=CHANGE_CHOICES, db_index=True)

@@ -12,19 +12,23 @@ class Command(BaseCommand):
     help = "Backfills a set of linkevents for each url pattern"
 
     def add_arguments(self, parser):
-        parser.add_argument('num_events', nargs='+', type=int)
+        parser.add_argument("num_events", nargs="+", type=int)
 
     def handle(self, *args, **options):
         # Number of link events to log in total
-        num_events = options['num_events'][0]
+        num_events = options["num_events"][0]
 
         fake = Faker()
-        languages = ['en', 'de', 'fr', 'he', 'hi', 'ta']
+        languages = ["en", "de", "fr", "he", "hi", "ta"]
         users = User.objects.all()
         # Hacky way of adding a weighted random choice of change type.
         # Addition is likely to be more prevalent.
-        change_choices = [LinkEvent.ADDED, LinkEvent.ADDED,
-                          LinkEvent.ADDED, LinkEvent.REMOVED]
+        change_choices = [
+            LinkEvent.ADDED,
+            LinkEvent.ADDED,
+            LinkEvent.ADDED,
+            LinkEvent.REMOVED,
+        ]
 
         urlpatterns = URLPattern.objects.all()
 
@@ -44,9 +48,9 @@ class Command(BaseCommand):
             new_event = LinkEvent(
                 link=urlpattern.url + "/" + fake.word(),
                 timestamp=fake.date_time_between(
-                    start_date=datetime.now()-timedelta(days=365),
+                    start_date=datetime.now() - timedelta(days=365),
                     end_date="now",
-                    tzinfo=timezone.utc
+                    tzinfo=timezone.utc,
                 ),
                 domain=random.choice(languages) + ".wikipedia.org",
                 username=random_user,

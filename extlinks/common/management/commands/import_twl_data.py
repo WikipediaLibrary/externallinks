@@ -13,21 +13,19 @@ class Command(BaseCommand):
            Library's old metrics collection system"""
 
     def add_arguments(self, parser):
-        parser.add_argument('file_path', nargs='+', type=str)
+        parser.add_argument("file_path", nargs="+", type=str)
 
     def handle(self, *args, **options):
-        file_path = options['file_path'][0]
+        file_path = options["file_path"][0]
 
         # Check TWL program exists, if it doesn't, create it.
         try:
-            twl_program = Program.objects.get(name='The Wikipedia Library')
+            twl_program = Program.objects.get(name="The Wikipedia Library")
         except Program.DoesNotExist:
-            twl_program = Program(
-                name='The Wikipedia Library'
-            )
+            twl_program = Program(name="The Wikipedia Library")
             twl_program.save()
 
-        with open(file_path, 'r') as input_file:
+        with open(file_path, "r") as input_file:
             csv_reader = csv.reader(input_file)
             next(csv_reader)
             for row in csv_reader:
@@ -39,15 +37,11 @@ class Command(BaseCommand):
 
                 # Create Organisation
                 try:
-                    organisation_object = Organisation.objects.get(
-                        name=organisation
-                    )
+                    organisation_object = Organisation.objects.get(name=organisation)
                 except Organisation.DoesNotExist:
-                    organisation_object = Organisation(
-                        name=organisation
-                    )
+                    organisation_object = Organisation(name=organisation)
                     organisation_object.save()
-                    if twl_link == 'x':
+                    if twl_link == "x":
                         organisation_object.program.add(twl_program)
 
                 # Create Collection
@@ -58,20 +52,16 @@ class Command(BaseCommand):
                     )
                 except Collection.DoesNotExist:
                     collection_object = Collection(
-                        name=collection,
-                        organisation=organisation_object
+                        name=collection, organisation=organisation_object
                     )
                     collection_object.save()
 
                 # Create URLPattern
                 # We shouldn't have any duplicates here but let's be safe.
                 try:
-                    urlpattern_object = URLPattern.objects.get(
-                        url=urlpattern
-                    )
+                    urlpattern_object = URLPattern.objects.get(url=urlpattern)
                 except URLPattern.DoesNotExist:
                     urlpattern_object = URLPattern(
-                        url=urlpattern,
-                        collection=collection_object
+                        url=urlpattern, collection=collection_object
                     )
                     urlpattern_object.save()

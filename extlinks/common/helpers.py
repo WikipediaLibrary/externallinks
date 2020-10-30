@@ -7,7 +7,7 @@ from extlinks.links.models import LinkEvent
 
 from logging import getLogger
 
-logger = getLogger('django')
+logger = getLogger("django")
 
 
 def get_date_count(dates, check_date):
@@ -20,8 +20,8 @@ def get_date_count(dates, check_date):
     Returns the count corresponding to date if found, and 0 otherwise.
     """
     for date_data in dates:
-        if date_data['timestamp__date'] == check_date:
-            return date_data['event_count']
+        if date_data["timestamp__date"] == check_date:
+            return date_data["event_count"]
 
     return 0
 
@@ -36,9 +36,14 @@ def num_months_equal(dates, check_date):
     Returns the summed count corresponding to the date's month and year. Will
     return zero in the case that the list is empty.
     """
-    return sum([dt['event_count'] for dt in dates if
-                dt['timestamp__date'].month == check_date.month
-                and dt['timestamp__date'].year == check_date.year])
+    return sum(
+        [
+            dt["event_count"]
+            for dt in dates
+            if dt["timestamp__date"].month == check_date.month
+            and dt["timestamp__date"].year == check_date.year
+        ]
+    )
 
 
 def get_change_data_by_time(queryset):
@@ -64,34 +69,36 @@ def get_change_data_by_time(queryset):
         # We could theoretically do the entire annotation process in one
         # database query, but we want to line up dates between added and
         # removed events and ensure we have intervening months accounted for
-        added_dates = queryset.filter(change=LinkEvent.ADDED).values(
-            'timestamp__date').annotate(
-            # We need to count on pk with distinct=True to remove duplicate
-            # events from multiple collections
-            event_count=Count('pk', distinct=True))
-        removed_dates = queryset.filter(change=LinkEvent.REMOVED).values(
-            'timestamp__date').annotate(
-            event_count=Count('pk', distinct=True))
+        added_dates = (
+            queryset.filter(change=LinkEvent.ADDED)
+            .values("timestamp__date")
+            .annotate(
+                # We need to count on pk with distinct=True to remove duplicate
+                # events from multiple collections
+                event_count=Count("pk", distinct=True)
+            )
+        )
+        removed_dates = (
+            queryset.filter(change=LinkEvent.REMOVED)
+            .values("timestamp__date")
+            .annotate(event_count=Count("pk", distinct=True))
+        )
 
         # Split data by day
         if data_range.days < 90:
             # Count back from the current date
             while current_date >= earliest_date:
 
-                num_links_added.append(
-                    get_date_count(added_dates, current_date))
-                num_links_removed.append(
-                    get_date_count(removed_dates, current_date))
+                num_links_added.append(get_date_count(added_dates, current_date))
+                num_links_removed.append(get_date_count(removed_dates, current_date))
 
-                dates.append(current_date.strftime('%Y-%m-%d'))
+                dates.append(current_date.strftime("%Y-%m-%d"))
                 current_date -= timedelta(days=1)
         else:
             while current_date >= earliest_date:
-                num_links_added.append(
-                    num_months_equal(added_dates, current_date))
-                num_links_removed.append(
-                    num_months_equal(removed_dates, current_date))
-                dates.append(current_date.replace(day=1).strftime('%Y-%m-%d'))
+                num_links_added.append(num_months_equal(added_dates, current_date))
+                num_links_removed.append(num_months_equal(removed_dates, current_date))
+                dates.append(current_date.replace(day=1).strftime("%Y-%m-%d"))
 
                 # Figure out what the last month is regardless of today's date
                 current_date = current_date.replace(day=1) - timedelta(days=1)
@@ -105,8 +112,8 @@ def get_change_data_by_time(queryset):
 
 def get_month_average(average_data, check_date):
     for avg_data in average_data:
-        if avg_data['month'] == check_date:
-            return avg_data['average']
+        if avg_data["month"] == check_date:
+            return avg_data["average"]
 
     return 0
 
@@ -122,15 +129,16 @@ def get_linksearchtotal_data_by_time(queryset):
     """
 
     if queryset:
-        earliest_date = queryset.earliest('date').date
+        earliest_date = queryset.earliest("date").date
         current_date = date.today()
 
         linksearch_data = []
         dates = []
 
-        average_month_data = queryset.annotate(
-            month=TruncMonth('date')).values('month').annotate(
-            average=Avg('total')
+        average_month_data = (
+            queryset.annotate(month=TruncMonth("date"))
+            .values("month")
+            .annotate(average=Avg("total"))
         )
 
         while current_date >= earliest_date:
@@ -138,7 +146,7 @@ def get_linksearchtotal_data_by_time(queryset):
             this_month_avg = get_month_average(average_month_data, month_first)
 
             linksearch_data.append(round(this_month_avg))
-            dates.append(month_first.strftime('%Y-%m-%d'))
+            dates.append(month_first.strftime("%Y-%m-%d"))
 
             # Figure out what the last month is regardless of today's date
             current_date = month_first - timedelta(days=1)
@@ -147,7 +155,7 @@ def get_linksearchtotal_data_by_time(queryset):
         # figure we have for the previous month.
         for i, data in enumerate(linksearch_data):
             if data == 0:
-                linksearch_data[i] = linksearch_data[i+1]
+                linksearch_data[i] = linksearch_data[i + 1]
 
         return dates[::-1], linksearch_data[::-1]
     else:
@@ -165,15 +173,15 @@ def annotate_top(queryset, order_by, fields, num_results=None):
 
     Returns a queryset
     """
-    queryset = queryset.values(
-        *fields).annotate(
-        links_added=Count('pk',
-                          filter=Q(change=LinkEvent.ADDED),
-                          distinct=True),
-        links_removed=Count('pk',
-                            filter=Q(change=LinkEvent.REMOVED),
-                            distinct=True)).order_by(
-        order_by
+    queryset = (
+        queryset.values(*fields)
+        .annotate(
+            links_added=Count("pk", filter=Q(change=LinkEvent.ADDED), distinct=True),
+            links_removed=Count(
+                "pk", filter=Q(change=LinkEvent.REMOVED), distinct=True
+            ),
+        )
+        .order_by(order_by)
     )
     if num_results:
         return queryset[:num_results]
@@ -193,18 +201,22 @@ def top_organisations(org_list, linkevents, num_results=None):
     """
     annotated_orgs = org_list.annotate(
         links_added=Count(
-            'collection__url__linkevent__pk',
+            "collection__url__linkevent__pk",
             filter=Q(
                 collection__url__linkevent__in=linkevents,
-                collection__url__linkevent__change=LinkEvent.ADDED),
-            distinct=True),
+                collection__url__linkevent__change=LinkEvent.ADDED,
+            ),
+            distinct=True,
+        ),
         links_removed=Count(
-            'collection__url__linkevent__pk',
+            "collection__url__linkevent__pk",
             filter=Q(
                 collection__url__linkevent__in=linkevents,
-                collection__url__linkevent__change=LinkEvent.REMOVED),
-            distinct=True),
-    ).order_by('-links_added')
+                collection__url__linkevent__change=LinkEvent.REMOVED,
+            ),
+            distinct=True,
+        ),
+    ).order_by("-links_added")
     if num_results:
         return annotated_orgs[:5]
     else:
@@ -220,42 +232,30 @@ def filter_queryset(queryset, filter_dict):
 
     Returns a queryset
     """
-    if 'start_date' in filter_dict:
-        start_date = filter_dict['start_date']
+    if "start_date" in filter_dict:
+        start_date = filter_dict["start_date"]
         if start_date:
-            queryset = queryset.filter(
-                timestamp__gte=start_date
-            )
+            queryset = queryset.filter(timestamp__gte=start_date)
 
-    if 'end_date' in filter_dict:
-        end_date = filter_dict['end_date']
+    if "end_date" in filter_dict:
+        end_date = filter_dict["end_date"]
         if end_date:
-            queryset = queryset.filter(
-                timestamp__lte=end_date
-            )
+            queryset = queryset.filter(timestamp__lte=end_date)
 
-    if 'limit_to_user_list' in filter_dict:
-        limit_to_user_list = filter_dict['limit_to_user_list']
+    if "limit_to_user_list" in filter_dict:
+        limit_to_user_list = filter_dict["limit_to_user_list"]
         if limit_to_user_list:
-            queryset = queryset.filter(
-                on_user_list=True
-            )
+            queryset = queryset.filter(on_user_list=True)
 
-
-    if 'namespace_id' in filter_dict:
-        namespace_id = filter_dict['namespace_id']
+    if "namespace_id" in filter_dict:
+        namespace_id = filter_dict["namespace_id"]
         if namespace_id is not None:
-            queryset = queryset.filter(
-                page_namespace=namespace_id
-            )
+            queryset = queryset.filter(page_namespace=namespace_id)
 
-
-    if 'exclude_bots' in filter_dict:
-        exclude_bots = filter_dict['exclude_bots']
+    if "exclude_bots" in filter_dict:
+        exclude_bots = filter_dict["exclude_bots"]
         if exclude_bots:
-            queryset = queryset.exclude(
-                user_is_bot=True
-            )
+            queryset = queryset.exclude(user_is_bot=True)
 
     return queryset
 
@@ -269,19 +269,15 @@ def filter_linksearchtotals(queryset, filter_dict):
 
     Returns a queryset
     """
-    if 'start_date' in filter_dict:
-        start_date = filter_dict['start_date']
+    if "start_date" in filter_dict:
+        start_date = filter_dict["start_date"]
         if start_date:
-            queryset = queryset.filter(
-                date__gte=start_date
-            )
+            queryset = queryset.filter(date__gte=start_date)
 
-    if 'end_date' in filter_dict:
-        end_date = filter_dict['end_date']
+    if "end_date" in filter_dict:
+        end_date = filter_dict["end_date"]
         if end_date:
-            queryset = queryset.filter(
-                date__lte=end_date
-            )
+            queryset = queryset.filter(date__lte=end_date)
 
     return queryset
 
@@ -300,39 +296,33 @@ def get_linkevent_context(context, queryset):
     Returns a dictionary
     """
 
-    context['top_projects'] = annotate_top(queryset,
-                                           '-links_added',
-                                           ['domain'],
-                                           num_results=5)
+    context["top_projects"] = annotate_top(
+        queryset, "-links_added", ["domain"], num_results=5
+    )
 
-    all_users = annotate_top(queryset.select_related(
-        'username'),
-        '-links_added',
-        ['username__username'])
-    context['top_users'] = all_users[:5]
+    all_users = annotate_top(
+        queryset.select_related("username"), "-links_added", ["username__username"]
+    )
+    context["top_users"] = all_users[:5]
 
     # Prefetch a bunch of related data to save on number of queries
-    context['latest_links'] = queryset.prefetch_related(
-        'username', 'url',
-        'url__collection', 'url__collection__organisation').order_by(
-            '-timestamp')[:10]
+    context["latest_links"] = queryset.prefetch_related(
+        "username", "url", "url__collection", "url__collection__organisation"
+    ).order_by("-timestamp")[:10]
 
     # EventStream chart data
-    dates, added_data_series, removed_data_series = get_change_data_by_time(
-        queryset)
+    dates, added_data_series, removed_data_series = get_change_data_by_time(queryset)
 
-    context['eventstream_dates'] = dates
-    context['eventstream_added_data'] = added_data_series
-    context['eventstream_removed_data'] = removed_data_series
+    context["eventstream_dates"] = dates
+    context["eventstream_added_data"] = added_data_series
+    context["eventstream_removed_data"] = removed_data_series
 
     # Stat block
-    context['total_added'] = sum(added_data_series)
-    context['total_removed'] = sum(removed_data_series)
-    context['total_diff'] = context['total_added'] - context['total_removed']
+    context["total_added"] = sum(added_data_series)
+    context["total_removed"] = sum(removed_data_series)
+    context["total_diff"] = context["total_added"] - context["total_removed"]
 
-    context['total_editors'] = queryset.values_list(
-        'username').distinct().count()
-    context['total_projects'] = queryset.values_list(
-        'domain').distinct().count()
+    context["total_editors"] = queryset.values_list("username").distinct().count()
+    context["total_projects"] = queryset.values_list("domain").distinct().count()
 
     return context

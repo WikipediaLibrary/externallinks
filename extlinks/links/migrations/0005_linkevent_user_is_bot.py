@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('links', '0004_auto_20190603_1110'),
+        ("links", "0004_auto_20190603_1110"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='linkevent',
-            name='user_is_bot',
+            model_name="linkevent",
+            name="user_is_bot",
             field=models.BooleanField(default=False),
         ),
     ]

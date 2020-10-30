@@ -1,6 +1,7 @@
 from subprocess import check_output
 from django_cron import CronJobBase, Schedule
 
+
 class BackupCron(CronJobBase):
     # 10080 is weekly.
     schedule = Schedule(run_every_mins=10080)
