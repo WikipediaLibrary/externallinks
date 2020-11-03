@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "extlinks.organisations",
     "extlinks.programs",
     "django_cron",
+    "extlinks.aggregates",
 ]
 
 MIDDLEWARE = [
