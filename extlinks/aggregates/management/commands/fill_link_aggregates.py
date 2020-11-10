@@ -19,6 +19,7 @@ class Command(BaseCommand):
         last_day_of_last_month = today.replace(day=1) - timedelta(days=1)
         yesterday = today - timedelta(days=1)
 
+        # Check if the LinkAggregate table is empty
         if LinkAggregate.objects.exists():
             latest_aggregated_link_date = LinkAggregate.objects.latest("full_date")
             latest_datetime = datetime(
@@ -40,6 +41,21 @@ class Command(BaseCommand):
         self._process_collections(link_event_filter)
 
     def _process_collections(self, link_event_filter):
+        """
+        This function loops through all collections to check on new link events
+        filtered by the dates passed in link_event_filter
+
+        Parameters
+        ----------
+        link_event_filter : Q
+            A Q query object to filter LinkEvents by. If the LinkAggregate table
+            is empty, it will query all LinkEvents. If it has data, it will query
+            by the latest date in the table and today
+
+        Returns
+        -------
+        None
+        """
         collections = Collection.objects.all().prefetch_related("url")
 
         for collection in collections:
@@ -65,6 +81,26 @@ class Command(BaseCommand):
                 self._fill_link_aggregates(link_events, collection)
 
     def _fill_link_aggregates(self, link_events, collection):
+        """
+        This function loops through all link events in a URLPattern of a collection
+        to check if a LinkAggregate with prior information exists.
+        If a LinkAggregate exists, it checks if there have been any changes to the
+        links added and links removed sums. If there are any changes, then the
+        LinkAggregate row is updated.
+
+        Parameters
+        ----------
+        link_events : list(LinkEvent)
+            A list of filtered and annotated LinkEvents that contains the sum of
+            all links added and removed on a certain date
+        collection: Collection
+            The collection the LinkEvents came from. Will be used to fill the
+            LinkAggregate table
+
+        Returns
+        -------
+        None
+        """
         for link_event in link_events:
             if LinkAggregate.objects.filter(
                 organisation=collection.organisation,
