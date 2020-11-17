@@ -131,7 +131,13 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Cron config
-CRON_CLASSES = ["extlinks.organisations.cron.UserListsCron"]
+CRON_CLASSES = [
+    "extlinks.organisations.cron.UserListsCron",
+    "extlinks.aggregates.cron.LinkAggregatesCron",
+    "extlinks.aggregates.cron.PageAggregatesCron",
+    "extlinks.aggregates.cron.ProjectAggregatesCron",
+    "extlinks.aggregates.cron.UserAggregatesCron",
+]
 
 # EMAIL CONFIGURATION
 # ------------------------------------------------------------------------------
