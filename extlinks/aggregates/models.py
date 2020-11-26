@@ -7,6 +7,10 @@ from extlinks.organisations.models import Collection, Organisation
 class LinkAggregate(models.Model):
     class Meta:
         app_label = "aggregates"
+        indexes = [
+            models.Index(fields=["full_date"]),
+            models.Index(fields=["collection"]),
+        ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
     collection = models.ForeignKey(
@@ -46,6 +50,10 @@ class LinkAggregate(models.Model):
 class UserAggregate(models.Model):
     class Meta:
         app_label = "aggregates"
+        indexes = [
+            models.Index(fields=["full_date"]),
+            models.Index(fields=["collection"]),
+        ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
     collection = models.ForeignKey(
