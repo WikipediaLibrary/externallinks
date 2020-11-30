@@ -19,3 +19,12 @@ class UserAggregatesCron(CronJobBase):
 
     def do(self):
         call_command("fill_user_aggregates")
+
+
+class PageProjectAggregatesCron(CronJobBase):
+    # Will run daily at midnight UTC
+    schedule = Schedule(run_at_times=["00:00"])
+    code = "aggregates.pageproject_aggregates_cron"
+
+    def do(self):
+        call_command("fill_pageproject_aggregates")
