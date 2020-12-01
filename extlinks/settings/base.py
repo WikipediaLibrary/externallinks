@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "extlinks.organisations",
     "extlinks.programs",
     "django_cron",
+    "extlinks.aggregates",
 ]
 
 MIDDLEWARE = [
@@ -130,7 +131,12 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Cron config
-CRON_CLASSES = ["extlinks.organisations.cron.UserListsCron"]
+CRON_CLASSES = [
+    "extlinks.organisations.cron.UserListsCron",
+    "extlinks.aggregates.cron.LinkAggregatesCron",
+    "extlinks.aggregates.cron.UserAggregatesCron",
+    "extlinks.aggregates.cron.PageProjectAggregatesCron",
+]
 
 # EMAIL CONFIGURATION
 # ------------------------------------------------------------------------------
