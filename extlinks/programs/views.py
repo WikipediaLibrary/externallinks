@@ -1,7 +1,9 @@
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
+from django.db.models import Sum, Count
 
+from extlinks.aggregates.models import LinkAggregate
 from extlinks.common.forms import FilterForm
 from extlinks.organisations.models import Organisation
 from extlinks.common.helpers import (
@@ -18,6 +20,12 @@ logger = getLogger("django")
 
 class ProgramListView(ListView):
     model = Program
+
+    def get_queryset(self, **kwargs):
+        queryset = Program.objects.all().annotate(
+            organisation_count=Count("organisation")
+        )
+        return queryset
 
 
 @method_decorator(cache_page(60 * 60), name="dispatch")
