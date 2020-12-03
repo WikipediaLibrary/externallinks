@@ -10,6 +10,7 @@ class LinkAggregate(models.Model):
         indexes = [
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
+            models.Index(fields=["organisation"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -53,6 +54,7 @@ class UserAggregate(models.Model):
         indexes = [
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
+            models.Index(fields=["organisation"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -98,6 +100,7 @@ class PageProjectAggregate(models.Model):
         indexes = [
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
+            models.Index(fields=["organisation"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
