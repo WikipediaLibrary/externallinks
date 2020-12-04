@@ -2,271 +2,271 @@
 {% load common_filters %}
 
 <div class="container-fluid">
-    {% for key, collection in collections.items %}
-        <hr>
-        <div class="row">
-            <h2 id="{{ key }}">{{ collection.object.name }}</h2>
+  {% for key, collection in collections.items %}
+    <hr>
+    <div class="row">
+      <h2 id="{{ key }}">{{ collection.object.name }}</h2>
+    </div>
+    <div class="row" style="margin-bottom:25px;">
+      {% for urlpattern in collection.urls %}
+        {{ urlpattern }}
+      {% endfor %}
+    </div>
+    <div class="row">
+      <div class="tab col-8">
+        <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>
+        <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_TotalLinks')" id="{{ key }}_totalLinks_button">Total links</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-8">
+        <div id="{{ key }}_LinkEvents" class="graph-box tabcontent">
+          <canvas id="{{ key }}_eventStreamChart" width="700" height="400"></canvas>
         </div>
-        <div class="row" style="margin-bottom:25px;">
-            {% for urlpattern in collection.urls %}
-                {{ urlpattern }}
-            {% endfor %}
+        <div id="{{ key }}_TotalLinks" class="graph-box tabcontent">
+            <canvas id="{{ key }}_totalLinksChart" width="700" height="400"></canvas>
         </div>
-        <div class="row">
-            <div class="tab col-8">
-                <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_LinkEvents')" id="{{ key }}_linkEvents_button">Link events</button>
-                <button class="tablinks" onclick="openGraph(event, '{{ key }}', '{{ key }}_TotalLinks')" id="{{ key }}_totalLinks_button">Total links</button>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-8">
-                <div id="{{ key }}_LinkEvents" class="graph-box tabcontent">
-                    <canvas id="{{ key }}_eventStreamChart" width="700" height="400"></canvas>
-                </div>
-                <div id="{{ key }}_TotalLinks" class="graph-box tabcontent">
-                    <canvas id="{{ key }}_totalLinksChart" width="700" height="400"></canvas>
-                </div>
-            </div>
-        <div class="col-3 stat-box">
-            <h4>Statistics</h4>
-            <table style="width:90%; margin-top: 30px;">
-                <tr class="stat-table-header">
-                    <td>Link events</td>
-                </tr>
-                <tr>
-                    <td>Total added:</td>
-                    <td style="text-align: right;">{{ collection.total_added }}</td>
-                </tr>
-                <tr>
-                    <td>Total removed:</td>
-                    <td style="text-align: right;">{{ collection.total_removed }}</td>
-                </tr>
-                <tr style="line-height:55px;">
-                    <td></td>
-                    <td style="text-align: right; font-weight: bold;
-                        {% if collection.total_diff > 0 %}
-                                color: green;">+
-                        {% else %}
-                                color: red;">
-                        {% endif %}
-                        {{ collection.total_diff }}
-                    </td>
-                </tr>
-                {% if collection.linksearch_total_start %}
-                    <tr class="stat-table-header">
-                        <td>Total links (Wikipedia only)</td>
-                    </tr>
-                    <tr>
-                        <td>{{ collection.linksearch_start_date }}:</td>
-                        <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
-                    </tr>
-                    <tr>
-                        <td>Current total:</td>
-                        <td style="text-align: right;">{{ collection.linksearch_total_current }}</td>
-                    </tr>
-                    <tr style="line-height:55px;">
-                        <td></td>
-                        <td style="text-align: right; font-weight: bold;
-                            {% if collection.linksearch_total_diff > 0 %}
-                                    color: green;">+
-                            {% else %}
-                                    color: red;">
-                            {% endif %}
-                            {{ collection.linksearch_total_diff }}
-                        </td>
-                    </tr>
-                {% endif %}
-                <tr class="stat-table-header">
-                    <td>Other</td>
-                </tr>
-                <tr>
-                    <td>Total editors:</td>
-                    <td style="text-align: right;">{{ collection.total_editors }}</td>
-                </tr>
-                <tr>
-                    <td>Total projects:</td>
-                    <td style="text-align: right;">{{ collection.total_projects }}</td>
-                </tr>
-            </table>
-        </div>
-        </div>
-        <div class="row" style="margin-top:40px;">
-            <h3>Totals</h3>
-        </div>
-        <div class="row">
-            <div class="col-4">
-                <table class="table">
-                    <tr>
-                        <th>Page</th>
-                        <th>Added</th>
-                        <th>Removed</th>
-                    </tr>
-                    {% for page in collection.top_pages %}
-                        <tr>
-                            <td>
-                                <a href="https://{{ page.domain }}/wiki/{{ page.page_title }}">{{ page.page_title|replace_underscores|truncatechars:20 }}</a>
-                            </td>
-                            <td>
-                                {{ page.links_added }}
-                            </td>
-                            <td>
-                                {{ page.links_removed }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-                <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-                </div>
-            </div>
-            <div class="col-4">
-                <table class="table">
-                    <tr>
-                        <th>Project</th>
-                        <th>Added</th>
-                        <th>Removed</th>
-                    </tr>
-                    {% for project in collection.top_projects %}
-                        <tr>
-                            <td>
-                                {{ project.domain }}
-                            </td>
-                            <td>
-                                {{ project.links_added }}
-                            </td>
-                            <td>
-                                {{ project.links_removed }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-                <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-                </div>
-            </div>
-            <div class="col-4">
-                <table class="table">
-                    <tr>
-                        <th>Username</th>
-                        <th>Added</th>
-                        <th>Removed</th>
-                    </tr>
-                    {% for user in collection.top_users %}
-                        <tr>
-                            <td>
-                                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username__username }}">{{ user.username__username|truncatechars:15 }}</a>
-                            </td>
-                            <td>
-                                {{ user.links_added }}
-                            </td>
-                            <td>
-                                {{ user.links_removed }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-                <div style="text-align:right;">
-                    <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-                </div>
-            </div>
-        </div>
-        <div class="row" style="margin-top:40px;">
-            <h3>Latest link events</h3>
-            <table class="table">
-                <tr>
-                    <th>Link</th>
-                    <th>User</th>
-                    <th>Page</th>
-                    <th>Project</th>
-                    <th>Timestamp</th>
-                </tr>
-                {% for linkevent in collection.latest_links %}
-                    {% if linkevent.change == 1 %}
-                        <tr style="background-color: rgba(5,255,57,0.12);">
+      </div>
+    <div class="col-3 stat-box">
+        <h4>Statistics</h4>
+        <table style="width:90%; margin-top: 30px;">
+            <tr class="stat-table-header">
+                <td>Link events</td>
+            </tr>
+            <tr>
+                <td>Total added:</td>
+                <td style="text-align: right;">{{ collection.total_added }}</td>
+            </tr>
+            <tr>
+                <td>Total removed:</td>
+                <td style="text-align: right;">{{ collection.total_removed }}</td>
+            </tr>
+            <tr style="line-height:55px;">
+                <td></td>
+                <td style="text-align: right; font-weight: bold;
+                    {% if collection.total_diff > 0 %}
+                            color: green;">+
                     {% else %}
-                        <tr style="background-color: rgba(255,46,44,0.12);">
+                            color: red;">
                     {% endif %}
-                        <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
-                        <td><a href="https://{{ linkevent.domain }}/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
-                        <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
-                        <td>{{ linkevent.domain }}</td>
-                        <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
-                    </tr>
-                {% endfor %}
-            </table>
-            <div style="text-align:right;">
-                <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-            </div>
+                    {{ collection.total_diff }}
+                </td>
+            </tr>
+            {% if collection.linksearch_total_start %}
+              <tr class="stat-table-header">
+                <td>Total links (Wikipedia only)</td>
+              </tr>
+              <tr>
+                <td>{{ collection.linksearch_start_date }}:</td>
+                <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
+              </tr>
+              <tr>
+                <td>Current total:</td>
+                <td style="text-align: right;">{{ collection.linksearch_total_current }}</td>
+              </tr>
+              <tr style="line-height:55px;">
+                <td></td>
+                <td style="text-align: right; font-weight: bold;
+                    {% if collection.linksearch_total_diff > 0 %}
+                            color: green;">+
+                    {% else %}
+                            color: red;">
+                    {% endif %}
+                    {{ collection.linksearch_total_diff }}
+                </td>
+              </tr>
+            {% endif %}
+            <tr class="stat-table-header">
+              <td>Other</td>
+            </tr>
+            <tr>
+              <td>Total editors:</td>
+              <td style="text-align: right;">{{ collection.total_editors }}</td>
+            </tr>
+            <tr>
+              <td>Total projects:</td>
+              <td style="text-align: right;">{{ collection.total_projects }}</td>
+            </tr>
+        </table>
+    </div>
+    </div>
+    <div class="row" style="margin-top:40px;">
+        <h3>Totals</h3>
+    </div>
+    <div class="row">
+      <div class="col-4">
+        <table class="table">
+            <tr>
+              <th>Page</th>
+              <th>Added</th>
+              <th>Removed</th>
+              <th>Net Change</th>
+            </tr>
+            {% for page in collection.top_pages %}
+              <tr>
+                <td>
+                  <a href="https://{{ page.project_name }}/wiki/{{ page.page_name }}">{{ page.page_name|replace_underscores|truncatechars:20 }}</a>
+                </td>
+                <td>
+                  {{ page.links_added }}
+                </td>
+                <td>
+                  {{ page.links_removed }}
+                </td>
+                <td>
+                  {{ page.links_diff }}
+                </td>
+              </tr>
+            {% endfor %}
+        </table>
+        <div style="text-align:right;">
+          <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
-    {% endfor %}
+      </div>
+      <div class="col-4">
+        <table class="table">
+          <tr>
+            <th>Project</th>
+            <th>Added</th>
+            <th>Removed</th>
+            <th>Net Change</th>
+          </tr>
+          {% for project in collection.top_projects %}
+            <tr>
+              <td>
+                {{ project.project_name }}
+              </td>
+              <td>
+                {{ project.links_added }}
+              </td>
+              <td>
+                {{ project.links_removed }}
+              </td>
+              <td>
+                {{ project.links_diff }}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+        <div style="text-align:right;">
+          <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+        </div>
+      </div>
+      <div class="col-4">
+        <table class="table">
+          <tr>
+            <th>Username</th>
+            <th>Added</th>
+            <th>Removed</th>
+            <th>Net Change</th>
+          </tr>
+          {% for user in collection.top_users %}
+            <tr>
+              <td>
+                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
+              </td>
+              <td>
+                {{ user.links_added }}
+              </td>
+              <td>
+                {{ user.links_removed }}
+              </td>
+              <td>
+                {{ user.links_diff }}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+        <div style="text-align:right;">
+          <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:40px;">
+      <h3>Latest link events</h3>
+      <table class="table">
+        <tr>
+          <th>Link</th>
+          <th>User</th>
+          <th>Page</th>
+          <th>Project</th>
+          <th>Timestamp</th>
+        </tr>
+        {% for linkevent in collection.latest_links %}
+          {% if linkevent.change == 1 %}
+            <tr style="background-color: rgba(5,255,57,0.12);">
+          {% else %}
+            <tr style="background-color: rgba(255,46,44,0.12);">
+          {% endif %}
+            <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
+            <td><a href="https://{{ linkevent.domain }}/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
+            <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
+            <td>{{ linkevent.domain }}</td>
+            <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
+          </tr>
+        {% endfor %}
+      </table>
+      <div style="text-align:right;">
+        <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+      </div>
+    </div>
+  {% endfor %}
 </div>
 
 <script type="text/javascript">
     {% for collection_name, collection in collections.items %}
-        var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
-        var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
-            type: 'bar',
-            data: {
-                labels: {{ collection.eventstream_dates | safe }},
-                datasets: [
-                    {
-                        label: "Added",
-                        fill: false,
-                        backgroundColor: 'rgba(100,220,128,0.81)',
-                        borderWidth: 0.5,
-                        borderColor: 'rgb(0,76,23)',
-                        data: {{ collection.eventstream_added_data }},
-                        tension: 0.2
-                    },
-                    {
-                        label: "Removed",
-                        fill: false,
-                        backgroundColor: 'rgba(220,44,42,0.81)',
-                        borderWidth: 0.5,
-                        borderColor: 'rgb(76,1,0)',
-                        data: {{ collection.eventstream_removed_data }},
-                        tension: 0.2
-                    }
-                ]
+      var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
+      var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
+        type: 'line',
+        data: {
+          labels: {{ collection.eventstream_dates | safe }},
+          datasets: [
+            {
+              label: "Net Changes",
+              borderColor: '#3b8ba5',
+              fill: false,
+              data: {{ collection.eventstream_net_change }},
+              tension: 0.2
             },
-            options: {
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            min: 0,
-                            callback: function (value) { if (Number.isInteger(value)) { return value; } },
-                        }
-                    }]
-                },
-            },
-        });
+          ]
+        },
+        options: {
+          scales: {
+            yAxes: [{
+              ticks: {
+                callback: function (value) { if (Number.isInteger(value)) { return value; } },
+              }
+            }]
+          },
+        },
+      });
 
-        var {{ collection_name }}_ctx_ls = document.getElementById('{{ collection_name }}_totalLinksChart').getContext('2d');
-        var {{ collection_name }}_totalLinksChart = new Chart({{ collection_name }}_ctx_ls, {
-            type: 'line',
-            data: {
-                labels: {{ collection.linksearch_dates | safe }},
-                datasets: [
-                    {
-                        label: "Total",
-                        fill: false,
-                        borderColor: 'rgba(100,220,128,0.81)',
-                        data: {{ collection.linksearch_data }},
-                        tension: 0.2
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            min: 0,
-                            callback: function (value) { if (Number.isInteger(value)) { return value; } },
-                        }
-                    }]
-                },
-            },
-        });
+      var {{ collection_name }}_ctx_ls = document.getElementById('{{ collection_name }}_totalLinksChart').getContext('2d');
+      var {{ collection_name }}_totalLinksChart = new Chart({{ collection_name }}_ctx_ls, {
+        type: 'line',
+        data: {
+          labels: {{ collection.linksearch_dates | safe }},
+          datasets: [
+            {
+              label: "Total",
+              fill: false,
+              borderColor: 'rgba(100,220,128,0.81)',
+              data: {{ collection.linksearch_data }},
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          scales: {
+            yAxes: [{
+              ticks: {
+                min: 0,
+                callback: function (value) { if (Number.isInteger(value)) { return value; } },
+              }
+            }]
+          },
+        },
+      });
     {% endfor %}
 
     function openGraph(evt, collection, graphName) {
@@ -284,9 +284,9 @@
       // Get all elements with class="tablinks" and remove the class "active"
       tablinks = document.getElementsByClassName("tablinks");
       for (i = 0; i < tablinks.length; i++) {
-          if (tabcontent[i].id.indexOf(collection)!=-1) {
-              tablinks[i].className = tablinks[i].className.replace(" active", "");
-          }
+        if (tabcontent[i].id.indexOf(collection)!=-1) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
       }
 
       // Show the current tab, and add an "active" class to the button that opened the tab
@@ -296,6 +296,6 @@
 
     // Click all Link Events buttons
     {% for collection_name, collection in collections.items %}
-        document.getElementById('{{ collection_name }}_linkEvents_button').click();
+      document.getElementById('{{ collection_name }}_linkEvents_button').click();
     {% endfor %}
 </script>
