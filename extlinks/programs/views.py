@@ -84,14 +84,18 @@ class ProgramDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
+        if form_data:
+            queryset_filter = self._build_queryset_filters(form_data, organisations)
+        else:
+            queryset_filter = Q(organisation__in=organisations)
 
-        context = self._fill_chart_context(organisations, context, form_data)
-        context = self._fill_statistics_table_context(organisations, context, form_data)
-        context = self._fill_totals_tables(organisations, context, form_data)
+        context = self._fill_chart_context(organisations, context, queryset_filter)
+        context = self._fill_statistics_table_context(context, queryset_filter)
+        context = self._fill_totals_tables(context, queryset_filter)
 
         return context
 
-    def _fill_chart_context(self, organisations, context, form_data):
+    def _fill_chart_context(self, organisations, context, queryset_filter):
         """
         This function adds the chart information to the context
         dictionary to display in ProgramDetailView
@@ -104,19 +108,15 @@ class ProgramDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
-        form_data: dict|None
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the aggregates tables by dates
+        queryset_filter: Q
+            If the information is filtered, this set of filters will filter it.
+            The default is only filtering by the organisations that are part of
+            the program
 
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
-        if form_data:
-            queryset_filter = self._build_queryset_filters(form_data, organisations)
-        else:
-            queryset_filter = Q(organisation__in=organisations)
-
         try:
             earliest_link_date = (
                 LinkAggregate.objects.filter(queryset_filter)
@@ -153,32 +153,25 @@ class ProgramDetailView(DetailView):
 
         return context
 
-    def _fill_statistics_table_context(self, organisations, context, form_data):
+    def _fill_statistics_table_context(self, context, queryset_filter):
         """
         This function adds the Statistics table information to the context
         dictionary to display in ProgramDetailView
 
         Parameters
         ----------
-        organisations : List[Organisation]
-            A list of organisations that belong to the program
-
         context : dict
             The context dictionary that the function will be adding information to
 
-        form_data: dict|None
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the aggregates tables by dates
+        queryset_filter: Q
+            If the information is filtered, this set of filters will filter it.
+            The default is only filtering by the organisations that are part of
+            the program
 
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
-        if form_data:
-            queryset_filter = self._build_queryset_filters(form_data, organisations)
-        else:
-            queryset_filter = Q(organisation__in=organisations)
-
         links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
             links_added=Sum("total_links_added"),
             links_removed=Sum("total_links_removed"),
@@ -200,32 +193,25 @@ class ProgramDetailView(DetailView):
 
         return context
 
-    def _fill_totals_tables(self, organisations, context, form_data):
+    def _fill_totals_tables(self, context, queryset_filter):
         """
         This function adds the information for the Totals tables to the context
         dictionary to display in ProgramDetailView
 
         Parameters
         ----------
-        organisations : List[Organisation]
-            A list of organisations that belong to the program
-
         context : dict
             The context dictionary that the function will be adding information to
 
-        form_data: dict|None
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the aggregates tables by dates
+        queryset_filter: Q
+            If the information is filtered, this set of filters will filter it.
+            The default is only filtering by the organisations that are part of
+            the program
 
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
-        if form_data:
-            queryset_filter = self._build_queryset_filters(form_data, organisations)
-        else:
-            queryset_filter = Q(organisation__in=organisations)
-
         context["top_organisations"] = (
             LinkAggregate.objects.filter(queryset_filter)
             .values("organisation__pk", "organisation__name")
