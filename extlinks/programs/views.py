@@ -1,7 +1,9 @@
+from datetime import date, datetime
+
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -48,18 +50,20 @@ class ProgramDetailView(DetailView):
         form = self.form_class(self.request.GET)
         context["form"] = form
 
+        form_data = None
         # Filter queryset based on form, if used
         if form.is_valid():
             form_data = form.cleaned_data
-            # TODO: Add filters
 
-        context = self._build_context_dictionary(this_program_organisations, context)
+        context = self._build_context_dictionary(
+            this_program_organisations, context, form_data
+        )
 
         context["query_string"] = self.request.META["QUERY_STRING"]
 
         return context
 
-    def _build_context_dictionary(self, organisations, context):
+    def _build_context_dictionary(self, organisations, context, form_data):
         """
         This function builds the context dictionary that will populate the
         ProgramDetailView
@@ -72,18 +76,22 @@ class ProgramDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
+        form_data: dict|None
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the aggregates tables by dates
+
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
 
-        context = self._fill_chart_context(organisations, context)
-        context = self._fill_statistics_table_context(organisations, context)
-        context = self._fill_totals_tables(organisations, context)
+        context = self._fill_chart_context(organisations, context, form_data)
+        context = self._fill_statistics_table_context(organisations, context, form_data)
+        context = self._fill_totals_tables(organisations, context, form_data)
 
         return context
 
-    def _fill_chart_context(self, organisations, context):
+    def _fill_chart_context(self, organisations, context, form_data):
         """
         This function adds the chart information to the context
         dictionary to display in ProgramDetailView
@@ -96,20 +104,35 @@ class ProgramDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
+        form_data: dict|None
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the aggregates tables by dates
+
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
-        earliest_link_date = (
-            LinkAggregate.objects.filter(organisation__in=organisations)
-            .earliest("full_date")
-            .full_date
-        )
+        if form_data:
+            queryset_filter = self._build_queryset_filters(form_data, organisations)
+        else:
+            queryset_filter = Q(organisation__in=organisations)
+
+        try:
+            earliest_link_date = (
+                LinkAggregate.objects.filter(queryset_filter)
+                .earliest("full_date")
+                .full_date
+            )
+        except LinkAggregate.DoesNotExist:
+            earliest_link_date = (
+                LinkAggregate.objects.filter(organisation__in=organisations)
+                .earliest("full_date")
+                .full_date
+            )
 
         links_aggregated_date = (
             LinkAggregate.objects.filter(
-                organisation__in=organisations,
-                full_date__gte=earliest_link_date,
+                queryset_filter & Q(full_date__gte=earliest_link_date),
             )
             .values("month", "year")
             .annotate(
@@ -130,7 +153,7 @@ class ProgramDetailView(DetailView):
 
         return context
 
-    def _fill_statistics_table_context(self, organisations, context):
+    def _fill_statistics_table_context(self, organisations, context, form_data):
         """
         This function adds the Statistics table information to the context
         dictionary to display in ProgramDetailView
@@ -143,13 +166,20 @@ class ProgramDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
+        form_data: dict|None
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the aggregates tables by dates
+
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
-        links_added_removed = LinkAggregate.objects.filter(
-            organisation__in=organisations
-        ).aggregate(
+        if form_data:
+            queryset_filter = self._build_queryset_filters(form_data, organisations)
+        else:
+            queryset_filter = Q(organisation__in=organisations)
+
+        links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
             links_added=Sum("total_links_added"),
             links_removed=Sum("total_links_removed"),
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -158,19 +188,19 @@ class ProgramDetailView(DetailView):
         context["total_removed"] = links_added_removed["links_removed"]
         context["total_diff"] = links_added_removed["links_diff"]
 
-        editor_count = UserAggregate.objects.filter(
-            organisation__in=organisations
-        ).aggregate(editor_count=Count("username", distinct=True))
+        editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+            editor_count=Count("username", distinct=True)
+        )
         context["total_editors"] = editor_count["editor_count"]
 
-        project_count = PageProjectAggregate.objects.filter(
-            organisation__in=organisations
-        ).aggregate(project_count=Count("project_name", distinct=True))
+        project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+            project_count=Count("project_name", distinct=True)
+        )
         context["total_projects"] = project_count["project_count"]
 
         return context
 
-    def _fill_totals_tables(self, organisations, context):
+    def _fill_totals_tables(self, organisations, context, form_data):
         """
         This function adds the information for the Totals tables to the context
         dictionary to display in ProgramDetailView
@@ -183,12 +213,21 @@ class ProgramDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
+        form_data: dict|None
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the aggregates tables by dates
+
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
+        if form_data:
+            queryset_filter = self._build_queryset_filters(form_data, organisations)
+        else:
+            queryset_filter = Q(organisation__in=organisations)
+
         context["top_organisations"] = (
-            LinkAggregate.objects.filter(organisation__in=organisations)
+            LinkAggregate.objects.filter(queryset_filter)
             .values("organisation__pk", "organisation__name")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -199,7 +238,7 @@ class ProgramDetailView(DetailView):
         )[:5]
 
         context["top_projects"] = (
-            PageProjectAggregate.objects.filter(organisation__in=organisations)
+            PageProjectAggregate.objects.filter(queryset_filter)
             .values("project_name")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -210,7 +249,7 @@ class ProgramDetailView(DetailView):
         )[:5]
 
         context["top_users"] = (
-            UserAggregate.objects.filter(organisation__in=organisations)
+            UserAggregate.objects.filter(queryset_filter)
             .values("username")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -221,3 +260,51 @@ class ProgramDetailView(DetailView):
         )[:5]
 
         return context
+
+    def _build_queryset_filters(self, form_data, organisations):
+        """
+        This function parses the form_data filter and creates Q object to filter
+        the aggregates tables by
+
+        Parameters
+        ----------
+        form_data: dict
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the aggregates tables by dates
+
+        organisations : List[Organisation]
+            A list of organisations that belong to the program
+
+        Returns
+        -------
+        Q : A Q object which will filter the aggregates queries
+        """
+        start_date_filter = None
+        end_date_filter = None
+        # The aggregates queries will always be filtered by organisation
+        organisation_filter = Q(organisation__in=organisations)
+
+        if "start_date" in form_data:
+            start_date = form_data["start_date"]
+            if start_date:
+                start_date_filter = Q(full_date__gte=start_date)
+        if "end_date" in form_data:
+            end_date = form_data["end_date"]
+            # The end date must not be greater than today's date
+            if end_date:
+                end_date_filter = Q(full_date__lte=end_date)
+
+        if start_date_filter and end_date_filter:
+            # If the start date is greater tham the end date, it won't filter
+            # by date
+            if start_date >= end_date:
+                return organisation_filter
+            return organisation_filter & start_date_filter & end_date_filter
+
+        if start_date_filter and end_date_filter is None:
+            return organisation_filter & start_date_filter
+
+        if start_date_filter is None and end_date:
+            return organisation_filter & end_date_filter
+
+        return organisation_filter
