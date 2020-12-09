@@ -13,13 +13,10 @@ from extlinks.aggregates.models import (
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (
-    filter_queryset,
-    get_linkevent_context,
-    annotate_top,
     get_linksearchtotal_data_by_time,
     filter_linksearchtotals,
 )
-from extlinks.links.models import LinkSearchTotal, URLPattern
+from extlinks.links.models import LinkSearchTotal
 from .models import Organisation, Collection
 
 

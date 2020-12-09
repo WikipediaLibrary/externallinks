@@ -16,7 +16,7 @@
             <div class="row">
                 <div class="col-6">
                     <h1>{{ object }}</h1>
-                    <p>Organisations: {{ program.get_org_count }}</p>
+                    <p>Organisations: {{ program.organisation_set.count }}</p>
                 </div>
                 <div class="col-6">
                     <form method="GET" id="graph-date-form">

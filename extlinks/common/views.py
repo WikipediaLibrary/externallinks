@@ -1,11 +1,16 @@
 import csv
 
+from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.views.generic import View
 
-from extlinks.common.helpers import annotate_top, top_organisations, filter_queryset
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    PageProjectAggregate,
+    UserAggregate,
+)
 from extlinks.links.models import LinkEvent
-from extlinks.organisations.models import Organisation
+from extlinks.organisations.models import Organisation, Collection
 from extlinks.programs.models import Program
 
 
@@ -37,46 +42,68 @@ class CSVOrgTotals(_CSVDownloadView):
     def _write_data(self, response):
         program_pk = self.kwargs["pk"]
         this_program_orgs = Organisation.objects.filter(program__pk=program_pk)
-        program = Program.objects.get(pk=program_pk)
-        this_program_linkevents = program.get_linkevents()
-        this_program_linkevents = filter_queryset(
-            this_program_linkevents, self.request.GET
+
+        top_orgs = (
+            LinkAggregate.objects.filter(organisation__in=this_program_orgs)
+            .values("organisation__pk", "organisation__name")
+            .annotate(
+                links_added=Sum("total_links_added"),
+                links_removed=Sum("total_links_removed"),
+                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+            )
+            .order_by("-links_diff", "-links_added", "-links_removed")
         )
-        top_orgs = top_organisations(this_program_orgs, this_program_linkevents)
 
         writer = csv.writer(response)
 
-        writer.writerow(["Organisation", "Links added", "Links removed"])
+        writer.writerow(["Organisation", "Links added", "Links removed", "Net Change"])
 
         for org in top_orgs:
-            writer.writerow([org.name, org.links_added, org.links_removed])
+            writer.writerow(
+                [
+                    org["organisation__name"],
+                    org["links_added"],
+                    org["links_removed"],
+                    org["links_diff"],
+                ]
+            )
 
 
 class CSVPageTotals(_CSVDownloadView):
     def _write_data(self, response):
-        org_pk = self.kwargs["pk"]
-        linkevents = LinkEvent.objects.filter(
-            url__collection__organisation__pk=org_pk
-        ).distinct()
+        pk = self.kwargs["pk"]
+        # If we came from an organisation page, then we are passing the collection id
+        if "/organisation" in self.request.build_absolute_uri():
+            collection = Collection.objects.get(pk=pk)
+            queryset_filter = Q(collection=collection)
+        else:
+            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
+            queryset_filter = Q(organisation__in=program.organisation_set.all())
 
-        linkevents = filter_queryset(linkevents, self.request.GET)
-
-        top_pages = annotate_top(
-            linkevents,
-            "-links_added",
-            ["page_title", "domain"],
+        top_pages = (
+            PageProjectAggregate.objects.filter(queryset_filter)
+            .values("project_name", "page_name")
+            .annotate(
+                links_added=Sum("total_links_added"),
+                links_removed=Sum("total_links_removed"),
+                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+            )
+            .order_by("-links_diff", "-links_added", "-links_removed")
         )
         writer = csv.writer(response)
 
-        writer.writerow(["Page title", "Project", "Links added", "Links removed"])
+        writer.writerow(
+            ["Page title", "Project", "Links added", "Links removed", "Net Change"]
+        )
 
         for page in top_pages:
             writer.writerow(
                 [
-                    page["page_title"],
-                    page["domain"],
+                    page["page_name"],
+                    page["project_name"],
                     page["links_added"],
                     page["links_removed"],
+                    page["links_diff"],
                 ]
             )
 
@@ -84,50 +111,72 @@ class CSVPageTotals(_CSVDownloadView):
 class CSVProjectTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        # If we came from an organisation page:
+        # If we came from an organisation page, then we are passing the collection id
         if "/organisation" in self.request.build_absolute_uri():
-            linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk
-            ).distinct()
+            collection = Collection.objects.get(pk=pk)
+            queryset_filter = Q(collection=collection)
         else:
-            program = Program.objects.get(pk=pk)
-            linkevents = program.get_linkevents()
+            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
+            queryset_filter = Q(organisation__in=program.organisation_set.all())
 
-        linkevents = filter_queryset(linkevents, self.request.GET)
-
-        top_projects = annotate_top(linkevents, "-links_added", ["domain"])
+        top_projects = (
+            PageProjectAggregate.objects.filter(queryset_filter)
+            .values("project_name")
+            .annotate(
+                links_added=Sum("total_links_added"),
+                links_removed=Sum("total_links_removed"),
+                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+            )
+            .order_by("-links_diff", "-links_added", "-links_removed")
+        )
         writer = csv.writer(response)
 
-        writer.writerow(["Project", "Links added", "Links removed"])
+        writer.writerow(["Project", "Links added", "Links removed", "Net Change"])
 
         for project in top_projects:
             writer.writerow(
-                [project["domain"], project["links_added"], project["links_removed"]]
+                [
+                    project["project_name"],
+                    project["links_added"],
+                    project["links_removed"],
+                    project["links_diff"],
+                ]
             )
 
 
 class CSVUserTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        # If we came from an organisation page:
-        if "/organisation" in self.request.build_absolute_uri():
-            linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk
-            ).distinct()
+        # If we came from an organisation page, then we are passing the collection id
+        if "/organisations" in self.request.build_absolute_uri():
+            collection = Collection.objects.get(pk=pk)
+            queryset_filter = Q(collection=collection)
         else:
-            program = Program.objects.get(pk=pk)
-            linkevents = program.get_linkevents()
+            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
+            queryset_filter = Q(organisation__in=program.organisation_set.all())
 
-        linkevents = filter_queryset(linkevents, self.request.GET)
-
-        top_users = annotate_top(linkevents, "-links_added", ["username__username"])
+        top_users = (
+            UserAggregate.objects.filter(queryset_filter)
+            .values("username")
+            .annotate(
+                links_added=Sum("total_links_added"),
+                links_removed=Sum("total_links_removed"),
+                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+            )
+            .order_by("-links_diff", "-links_added", "-links_removed")
+        )
         writer = csv.writer(response)
 
-        writer.writerow(["Username", "Links added", "Links removed"])
+        writer.writerow(["Username", "Links added", "Links removed", "Net Change"])
 
         for user in top_users:
             writer.writerow(
-                [user["username__username"], user["links_added"], user["links_removed"]]
+                [
+                    user["username"],
+                    user["links_added"],
+                    user["links_removed"],
+                    user["links_diff"],
+                ]
             )
 
 
@@ -142,10 +191,6 @@ class CSVAllLinkEvents(_CSVDownloadView):
         else:
             program = Program.objects.get(pk=pk)
             linkevents = program.get_linkevents()
-
-        linkevents = filter_queryset(
-            linkevents.select_related("username"), self.request.GET
-        )
 
         writer = csv.writer(response)
 

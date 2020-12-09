@@ -120,7 +120,7 @@
             {% endfor %}
         </table>
         <div style="text-align:right;">
-          <a href="{% url 'organisations:csv_page_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+          <a href="{% url 'organisations:csv_page_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
@@ -149,7 +149,7 @@
           {% endfor %}
         </table>
         <div style="text-align:right;">
-          <a href="{% url 'organisations:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+          <a href="{% url 'organisations:csv_project_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
@@ -178,7 +178,7 @@
           {% endfor %}
         </table>
         <div style="text-align:right;">
-          <a href="{% url 'organisations:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+          <a href="{% url 'organisations:csv_user_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
     </div>
