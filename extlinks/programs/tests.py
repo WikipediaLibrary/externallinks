@@ -234,6 +234,27 @@ class ProgramDetailTest(TestCase):
 
         self.assertEqual(csv_content, expected_output)
 
+    def test_top_organisations_csv_filtered(self):
+        """
+        Test that the top pages CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "programs:csv_org_totals", kwargs={"pk": self.organisation1.pk}
+        )
+
+        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+        request = factory.get(csv_url, data)
+        response = CSVOrgTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Organisation,Links added,Links removed,Net Change\r\n" "Org 1,2,0,2\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
     def test_top_projects_csv(self):
         """
         Test that the top projects CSV returns the expected data
@@ -255,6 +276,28 @@ class ProgramDetailTest(TestCase):
 
         self.assertEqual(csv_content, expected_output)
 
+    def test_top_projects_csv_filtered(self):
+        """
+        Test that the top projects CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "programs:csv_project_totals", kwargs={"pk": self.program1.pk}
+        )
+
+        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+        request = factory.get(csv_url, data)
+        response = CSVProjectTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Project,Links added,Links removed,Net Change\r\n"
+            "en.wikipedia.org,2,0,2\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
     def test_top_users_csv(self):
         """
         Test that the top users CSV returns the expected data
@@ -272,6 +315,24 @@ class ProgramDetailTest(TestCase):
             "Jim,2,0,2\r\n"
             "Mary,1,0,1\r\n"
             "Bob,0,1,-1\r\n"
+        )
+        self.assertEqual(csv_content, expected_output)
+
+    def test_top_users_csv_filtered(self):
+        """
+        Test that the top users CSV returns the expected data
+        """
+        factory = RequestFactory()
+
+        csv_url = reverse("programs:csv_user_totals", kwargs={"pk": self.program1.pk})
+
+        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+        request = factory.get(csv_url, data)
+        response = CSVUserTotals.as_view()(request, pk=self.program1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Username,Links added,Links removed,Net Change\r\n" "Jim,2,0,2\r\n"
         )
         self.assertEqual(csv_content, expected_output)
 

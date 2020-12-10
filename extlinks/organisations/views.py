@@ -15,6 +15,7 @@ from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (
     get_linksearchtotal_data_by_time,
     filter_linksearchtotals,
+    build_queryset_filters,
 )
 from extlinks.links.models import LinkSearchTotal
 from .models import Organisation, Collection
@@ -137,7 +138,9 @@ class OrganisationDetailView(DetailView):
         dict : The context dictionary with the relevant statistics
         """
         if form_data:
-            queryset_filter = self._build_queryset_filters(form_data, collection)
+            queryset_filter = build_queryset_filters(
+                form_data, {"collection": collection}
+            )
         else:
             queryset_filter = Q(collection=collection)
 
@@ -322,51 +325,3 @@ class OrganisationDetailView(DetailView):
         ).order_by("-timestamp")[:10]
 
         return context
-
-    def _build_queryset_filters(self, form_data, collection):
-        """
-        This function parses the form_data filter and creates Q object to filter
-        the aggregates tables by
-
-        Parameters
-        ----------
-        form_data: dict
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the aggregates tables by dates
-
-        collection : Collection
-            A collection that belongs to the organisation
-
-        Returns
-        -------
-        Q : A Q object which will filter the aggregates queries
-        """
-        start_date_filter = None
-        end_date_filter = None
-        # The aggregates queries will always be filtered by organisation
-        organisation_filter = Q(collection=collection)
-
-        if "start_date" in form_data:
-            start_date = form_data["start_date"]
-            if start_date:
-                start_date_filter = Q(full_date__gte=start_date)
-        if "end_date" in form_data:
-            end_date = form_data["end_date"]
-            # The end date must not be greater than today's date
-            if end_date:
-                end_date_filter = Q(full_date__lte=end_date)
-
-        if start_date_filter and end_date_filter:
-            # If the start date is greater tham the end date, it won't filter
-            # by date
-            if start_date >= end_date:
-                return organisation_filter
-            return organisation_filter & start_date_filter & end_date_filter
-
-        if start_date_filter and end_date_filter is None:
-            return organisation_filter & start_date_filter
-
-        if start_date_filter is None and end_date:
-            return organisation_filter & end_date_filter
-
-        return organisation_filter

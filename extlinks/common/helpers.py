@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.db.models.functions import TruncMonth
 
 from logging import getLogger
@@ -80,3 +80,60 @@ def filter_linksearchtotals(queryset, filter_dict):
             queryset = queryset.filter(date__lte=end_date)
 
     return queryset
+
+
+def build_queryset_filters(form_data, collection_or_organisations):
+    """
+    This function parses a filter dictionary and creates Q object to filter
+    the aggregates tables by
+
+    Parameters
+    ----------
+    form_data: dict
+        If the filter form has valid filters, then there will be a dictionary
+        to filter the aggregates tables by dates
+
+    collection_or_organisations : dict
+        A dictionary that will have either a collection or a set of
+        organisations to filter by.
+
+    Returns
+    -------
+    Q : A Q object which will filter the aggregates queries
+    """
+    start_date_filter = None
+    end_date_filter = None
+    # The aggregates queries will always be filtered by organisation
+    if "organisations" in collection_or_organisations:
+        collection_or_organisation_filter = Q(
+            organisation__in=collection_or_organisations["organisations"]
+        )
+    else:
+        collection_or_organisation_filter = Q(
+            collection=collection_or_organisations["collection"]
+        )
+
+    if "start_date" in form_data:
+        start_date = form_data["start_date"]
+        if start_date:
+            start_date_filter = Q(full_date__gte=start_date)
+    if "end_date" in form_data:
+        end_date = form_data["end_date"]
+        # The end date must not be greater than today's date
+        if end_date:
+            end_date_filter = Q(full_date__lte=end_date)
+
+    if start_date_filter and end_date_filter:
+        # If the start date is greater tham the end date, it won't filter
+        # by date
+        if start_date >= end_date:
+            return collection_or_organisation_filter
+        return collection_or_organisation_filter & start_date_filter & end_date_filter
+
+    if start_date_filter and end_date_filter is None:
+        return collection_or_organisation_filter & start_date_filter
+
+    if start_date_filter is None and end_date_filter:
+        return collection_or_organisation_filter & end_date_filter
+
+    return collection_or_organisation_filter

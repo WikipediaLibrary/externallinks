@@ -9,6 +9,7 @@ from extlinks.aggregates.models import (
     PageProjectAggregate,
     UserAggregate,
 )
+from extlinks.common.helpers import build_queryset_filters
 from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Organisation, Collection
 from extlinks.programs.models import Program
@@ -41,10 +42,12 @@ class _CSVDownloadView(View):
 class CSVOrgTotals(_CSVDownloadView):
     def _write_data(self, response):
         program_pk = self.kwargs["pk"]
-        this_program_orgs = Organisation.objects.filter(program__pk=program_pk)
+        queryset_filter = _get_queryset_filter(
+            program_pk, self.request.build_absolute_uri(), self.request.GET
+        )
 
         top_orgs = (
-            LinkAggregate.objects.filter(organisation__in=this_program_orgs)
+            LinkAggregate.objects.filter(queryset_filter)
             .values("organisation__pk", "organisation__name")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -72,13 +75,9 @@ class CSVOrgTotals(_CSVDownloadView):
 class CSVPageTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        # If we came from an organisation page, then we are passing the collection id
-        if "/organisation" in self.request.build_absolute_uri():
-            collection = Collection.objects.get(pk=pk)
-            queryset_filter = Q(collection=collection)
-        else:
-            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
-            queryset_filter = Q(organisation__in=program.organisation_set.all())
+        queryset_filter = _get_queryset_filter(
+            pk, self.request.build_absolute_uri(), self.request.GET
+        )
 
         top_pages = (
             PageProjectAggregate.objects.filter(queryset_filter)
@@ -111,13 +110,9 @@ class CSVPageTotals(_CSVDownloadView):
 class CSVProjectTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        # If we came from an organisation page, then we are passing the collection id
-        if "/organisation" in self.request.build_absolute_uri():
-            collection = Collection.objects.get(pk=pk)
-            queryset_filter = Q(collection=collection)
-        else:
-            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
-            queryset_filter = Q(organisation__in=program.organisation_set.all())
+        queryset_filter = _get_queryset_filter(
+            pk, self.request.build_absolute_uri(), self.request.GET
+        )
 
         top_projects = (
             PageProjectAggregate.objects.filter(queryset_filter)
@@ -147,13 +142,9 @@ class CSVProjectTotals(_CSVDownloadView):
 class CSVUserTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        # If we came from an organisation page, then we are passing the collection id
-        if "/organisations" in self.request.build_absolute_uri():
-            collection = Collection.objects.get(pk=pk)
-            queryset_filter = Q(collection=collection)
-        else:
-            program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
-            queryset_filter = Q(organisation__in=program.organisation_set.all())
+        queryset_filter = _get_queryset_filter(
+            pk, self.request.build_absolute_uri(), self.request.GET
+        )
 
         top_users = (
             UserAggregate.objects.filter(queryset_filter)
@@ -220,3 +211,39 @@ class CSVAllLinkEvents(_CSVDownloadView):
                     link.change,
                 ]
             )
+
+
+def _get_queryset_filter(pk, uri, filters):
+    """
+    This function returns a Q object with filters depending on which URL a user
+    is requesting information from
+
+    Parameters
+    ----------
+    pk: int
+        The primary key of a collection or a program, depending on the origin of
+        the request
+
+    uri: str
+        The origin URL from the request. If the URL is from the organisations view,
+        then we will obtain the collection. Otherwise, if the URL is from the
+        programs view, we will obtain the organisations associated to that program
+
+    filters: dict
+        The filters (if there are any) that were passed in the request
+
+    Returns
+    -------
+    Q : A Q object which will filter the aggregates queries
+    """
+    # If we came from an organisation page, then we are passing the collection id
+    if "/organisations" in uri:
+        collection = Collection.objects.get(pk=pk)
+        queryset_filter = build_queryset_filters(filters, {"collection": collection})
+    else:
+        program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
+        queryset_filter = build_queryset_filters(
+            filters, {"organisations": program.organisation_set.all()}
+        )
+
+    return queryset_filter
