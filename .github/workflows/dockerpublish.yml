@@ -26,7 +26,7 @@ jobs:
           docker-compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py test
       - name: Save externallinks image
         run: |
-          docker save wikipedialibrary/externallinks:latest | gzip > externallinks.tar.gz
+          docker save quay.io/wikipedialibrary/externallinks:latest | gzip > externallinks.tar.gz
       - name: upload externallinks image
         uses: actions/upload-artifact@v2
         with:
@@ -34,7 +34,7 @@ jobs:
           path: externallinks.tar.gz
       - name: Save eventstream image
         run: |
-          docker save wikipedialibrary/eventstream:latest | gzip > eventstream.tar.gz
+          docker save quay.io/wikipedialibrary/eventstream:latest | gzip > eventstream.tar.gz
       - name: upload eventstream image
         uses: actions/upload-artifact@v2
         with:
@@ -70,7 +70,7 @@ jobs:
         run: docker load -i eventstream.tar.gz
 
       - name: Log into Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
 
       - name: Set branch tag
         id: branch
@@ -100,7 +100,7 @@ jobs:
       - name: Push externallinks image
         run: |
           # The image name represents both the local image name and the remote image repository.
-          image_name=wikipedialibrary/externallinks
+          image_name=quay.io/wikipedialibrary/externallinks
           branch_tag=${{ steps.branch.outputs.tag }}
           commit_tag=${{ steps.commit.outputs.tag }}
 
@@ -112,7 +112,7 @@ jobs:
       - name: Push eventstream image
         run: |
           # The image name represents both the local image name and the remote image repository.
-          image_name=wikipedialibrary/eventstream
+          image_name=quay.io/wikipedialibrary/eventstream
           branch_tag=${{ steps.branch.outputs.tag }}
           commit_tag=${{ steps.commit.outputs.tag }}
 

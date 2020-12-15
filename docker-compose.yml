@@ -5,7 +5,7 @@ volumes:
 
 services:
  externallinks:
-   image: wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
+   image: quay.io/wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
    build:
      context: .
      target: externallinks
@@ -42,7 +42,7 @@ services:
    depends_on:
      - externallinks
  eventstream:
-   image: wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
+   image: quay.io/wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
    build:
      context: .
      target: eventstream
