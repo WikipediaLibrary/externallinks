@@ -3,196 +3,174 @@
 
 <hr style="width: 100%;">
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-8">
-            <canvas id="eventStreamChart" width="700" height="400"></canvas>
-        </div>
-        <div class="col-3 stat-box">
-            <h4>Statistics</h4>
-            <table style="width:90%; margin-top: 30px;">
-                <tr class="stat-table-header">
-                    <td>Link events</td>
-                </tr>
-                <tr>
-                    <td>Total added:</td>
-                    <td style="text-align: right;">{{ total_added }}</td>
-                </tr>
-                <tr>
-                    <td>Total removed:</td>
-                    <td style="text-align: right;">{{ total_removed }}</td>
-                </tr>
-                <tr style="line-height:55px;">
-                    <td></td>
-                    <td style="text-align: right; font-weight: bold;
-                        {% if total_diff > 0 %}
-                                color: green;">+
-                        {% else %}
-                                color: red;">
-                        {% endif %}
-                        {{ total_diff }}
-                    </td>
-                </tr>
-                <tr class="stat-table-header">
-                    <td>Other</td>
-                </tr>
-                <tr>
-                    <td>Total editors:</td>
-                    <td style="text-align: right;">{{ total_editors }}</td>
-                </tr>
-                <tr>
-                    <td>Total projects:</td>
-                    <td style="text-align: right;">{{ total_projects }}</td>
-                </tr>
-            </table>
-        </div>
+  <div class="row">
+    <div class="col-8">
+      <canvas id="eventStreamChart" width="700" height="400"></canvas>
     </div>
-    <div class="row" style="margin-top:40px;">
-        <h2>Totals</h2>
+    <div class="col-3 stat-box">
+      <h4>Statistics</h4>
+      <table style="width:90%; margin-top: 30px;">
+          <tr class="stat-table-header">
+            <td>Link events</td>
+          </tr>
+          <tr>
+            <td>Total added:</td>
+            <td style="text-align: right;">{{ total_added }}</td>
+          </tr>
+          <tr>
+            <td>Total removed:</td>
+            <td style="text-align: right;">{{ total_removed }}</td>
+          </tr>
+          <tr style="line-height:55px;">
+            <td></td>
+            <td style="text-align: right; font-weight: bold;
+                {% if total_diff > 0 %}
+                        color: green;">+
+                {% else %}
+                        color: red;">
+                {% endif %}
+                {{ total_diff }}
+            </td>
+          </tr>
+          <tr class="stat-table-header">
+            <td>Other</td>
+          </tr>
+          <tr>
+            <td>Total editors:</td>
+            <td style="text-align: right;">{{ total_editors }}</td>
+          </tr>
+          <tr>
+            <td>Total projects:</td>
+            <td style="text-align: right;">{{ total_projects }}</td>
+          </tr>
+      </table>
     </div>
-    <div class="row">
-        <div class="col-4">
-            <table class="table">
-                <tr>
-                    <th>Organisation</th>
-                    <th>Added</th>
-                    <th>Removed</th>
-                </tr>
-                {% for organisation in top_organisations %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation|truncatechars:20 }}</a>
-                        </td>
-                        <td>
-                            {{ organisation.links_added }}
-                        </td>
-                        <td>
-                            {{ organisation.links_removed }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-            <div style="text-align:right;">
-                <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-            </div>
-        </div>
-        <div class="col-4">
-            <table class="table">
-                <tr>
-                    <th>Project</th>
-                    <th>Added</th>
-                    <th>Removed</th>
-                </tr>
-                {% for project in top_projects %}
-                    <tr>
-                        <td>
-                            {{ project.domain }}
-                        </td>
-                        <td>
-                            {{ project.links_added }}
-                        </td>
-                        <td>
-                            {{ project.links_removed }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-            <div style="text-align:right;">
-                <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-            </div>
-        </div>
-        <div class="col-4">
-            <table class="table">
-                <tr>
-                    <th>Username</th>
-                    <th>Added</th>
-                    <th>Removed</th>
-                </tr>
-                {% for user in top_users %}
-                    <tr>
-                        <td>
-                            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username__username }}">{{ user.username__username|truncatechars:15 }}</a>
-                        </td>
-                        <td>
-                            {{ user.links_added }}
-                        </td>
-                        <td>
-                            {{ user.links_removed }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-            <div style="text-align:right;">
-                <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
-            </div>
-        </div>
+  </div>
+  <div class="row" style="margin-top:40px;">
+    <h2>Totals</h2>
+  </div>
+  <div class="row">
+    <div class="col-4">
+      <table class="table">
+        <tr>
+          <th>Organisation</th>
+          <th>Added</th>
+          <th>Removed</th>
+          <th>Net Change</th>
+        </tr>
+        {% for organisation in top_organisations %}
+          <tr>
+            <td>
+              <a href="{% url 'organisations:detail' pk=organisation.organisation__pk %}?{{ query_string }}">{{ organisation.organisation__name|truncatechars:20 }}</a>
+            </td>
+            <td>
+              {{ organisation.links_added }}
+            </td>
+            <td>
+              {{ organisation.links_removed }}
+            </td>
+            <td>
+              {{ organisation.links_diff }}
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+      <div style="text-align:right;">
+        <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+      </div>
     </div>
-    <div class="row" style="margin-top:40px;">
-        <h2>Latest link events</h2>
+    <div class="col-4">
         <table class="table">
             <tr>
-                <th>Link</th>
-                <th>User</th>
-                <th>Page</th>
-                <th>Project</th>
-                <th>Organisation</th>
-                <th>Timestamp</th>
+              <th>Project</th>
+              <th>Added</th>
+              <th>Removed</th>
+              <th>Net Change</th>
             </tr>
-            {% for linkevent in latest_links %}
-                {% if linkevent.change == 1 %}
-                    <tr style="background-color: rgba(5,255,57,0.12);">
-                {% else %}
-                    <tr style="background-color: rgba(255,46,44,0.12);">
-                {% endif %}
-                    <td><a href="{{ linkevent.link }}">{{ linkevent.link|truncatechars:50 }}</a></td>
-                    <td><a href="https://{{ linkevent.domain }}/wiki/User:{{ linkevent.username }}">{{ linkevent.username|truncatechars:12 }}</a></td>
-                    <td><a href="https://{{ linkevent.domain }}/wiki/{{ linkevent.page_title }}">{{ linkevent.page_title|replace_underscores|truncatechars:20 }}</a></td>
-                    <td>{{ linkevent.domain }}</td>
-                    <td>
-                        <a href="{% url 'organisations:detail' pk=linkevent.get_organisation.pk %}?{{ query_string }}">{{ linkevent.get_organisation }}</a>
-                    </td>
-                    <td><a href="https://{{ linkevent.domain }}/wiki/Special:Diff/{{ linkevent.rev_id }}">{{ linkevent.timestamp }}</a></td>
-                </tr>
+            {% for project in top_projects %}
+              <tr>
+                <td>
+                  {{ project.project_name }}
+                </td>
+                <td>
+                  {{ project.links_added }}
+                </td>
+                <td>
+                  {{ project.links_removed }}
+                </td>
+                <td>
+                  {{ project.links_diff }}
+                </td>
+              </tr>
             {% endfor %}
         </table>
         <div style="text-align:right;">
-            <a href="{% url 'programs:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+            <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
     </div>
+    <div class="col-4">
+      <table class="table">
+          <tr>
+            <th>Username</th>
+            <th>Added</th>
+            <th>Removed</th>
+            <th>Net Change</th>
+          </tr>
+          {% for user in top_users %}
+            <tr>
+              <td>
+                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
+              </td>
+              <td>
+                {{ user.links_added }}
+              </td>
+              <td>
+                {{ user.links_removed }}
+              </td>
+              <td>
+                {{ user.links_diff }}
+              </td>
+            </tr>
+          {% endfor %}
+      </table>
+      <div style="text-align:right;">
+        <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:40px;">
+    <h2>Get link events</h2>
+  </div>
+  <div class="row">
+    <div style="text-align:right;">
+      <a href="{% url 'programs:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+    </div>
+  </div>
 </div>
 <script type="text/javascript">
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: {{ eventstream_dates | safe }},
-            datasets: [
-                {
-                    label: "Added",
-                    backgroundColor: 'rgba(100,220,128,0.81)',
-                    borderWidth: 0.5,
-                    borderColor: 'rgb(0,76,23)',
-                    data: {{ eventstream_added_data }},
-                    tension: 0.2
-                },
-                {
-                    label: "Removed",
-                    backgroundColor: 'rgba(220,44,42,0.81)',
-                    borderWidth: 0.5,
-                    borderColor: 'rgb(76,1,0)',
-                    data: {{ eventstream_removed_data }},
-                    tension: 0.2
-                }
-            ]
+          labels: {{ eventstream_dates | safe }},
+          datasets: [
+              {
+                label: "Net Changes",
+                borderColor: '#3b8ba5',
+                fill: false,
+                data: {{ eventstream_net_change }},
+                tension: 0.2
+              },
+          ]
         },
         options: {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        min: 0,
-                        callback: function (value) { if (Number.isInteger(value)) { return value; } },
-                    }
-                }]
-            },
+          scales: {
+            yAxes: [{
+              ticks: {
+                callback: function (value) { if (Number.isInteger(value)) { return value; } },
+              }
+            }]
+          },
         },
     })
 </script>

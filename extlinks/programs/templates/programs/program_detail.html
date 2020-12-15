@@ -16,7 +16,7 @@
             <div class="row">
                 <div class="col-6">
                     <h1>{{ object }}</h1>
-                    <p>Organisations: {{ program.get_org_count }}</p>
+                    <p>Organisations: {{ program.organisation_set.count }}</p>
                 </div>
                 <div class="col-6">
                     <form method="GET" id="graph-date-form">
@@ -33,31 +33,6 @@
                                 {{ form.end_date.label_tag }} {{ form.end_date }}
                                 {% if form.end_date.help_text %}
                                     <p class="help">{{ form.end_date.help_text|safe }}</p>
-                                {% endif %}
-                            </div>
-                            <div class=fieldWrapper style="padding: 15px;">
-                                {{ form.namespace_id.errors }}
-                                {{ form.namespace_id.label_tag }}{{ form.namespace_id }}
-                                {% if form.namespace_id.help_text %}
-                                    <p class="help">{{ form.namespace_id.help_text|safe }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            {% if program.any_orgs_user_list %}
-                                <div class="fieldWrapper" style="padding: 15px;">
-                                    {{ form.limit_to_user_list.errors }}
-                                    {{ form.limit_to_user_list.label_tag }} {{ form.limit_to_user_list }}
-                                    {% if form.limit_to_user_list.help_text %}
-                                        <p class="help">{{ form.limit_to_user_list.help_text|safe }}</p>
-                                    {% endif %}
-                                </div>
-                             {% endif %}
-                            <div class="fieldWrapper" style="padding: 15px;">
-                                {{ form.exclude_bots.errors }}
-                                {{ form.exclude_bots.label_tag }} {{ form.exclude_bots }}
-                                {% if form.exclude_bots.help_text %}
-                                    <p class="help">{{ form.exclude_bots.help_text|safe }}</p>
                                 {% endif %}
                             </div>
                             <div class="col">

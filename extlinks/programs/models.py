@@ -22,10 +22,6 @@ class Program(models.Model):
         ).distinct()
 
     @property
-    def get_org_count(self):
-        return Organisation.objects.filter(program=self).count()
-
-    @property
     def any_orgs_user_list(self):
         """
         Returns True if any of this program's organisations limit by user
