@@ -50,9 +50,9 @@ def get_linksearchtotal_data_by_time(queryset):
             current_date = month_first - timedelta(days=1)
 
         # If a month has no data for some reason, we should use whatever
-        # figure we have for the previous month.
+        # figure we have for the previous month, unless it is the current month
         for i, data in enumerate(linksearch_data):
-            if data == 0:
+            if data == 0 and i != len(linksearch_data) - 1:
                 linksearch_data[i] = linksearch_data[i + 1]
 
         return dates[::-1], linksearch_data[::-1]

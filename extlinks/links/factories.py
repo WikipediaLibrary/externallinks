@@ -41,5 +41,6 @@ class LinkSearchTotalFactory(factory.django.DjangoModelFactory):
         model = LinkSearchTotal
         strategy = factory.CREATE_STRATEGY
 
+    url = factory.SubFactory(URLPatternFactory)
     date = datetime.today()
     total = random.randint(1, 1000)
