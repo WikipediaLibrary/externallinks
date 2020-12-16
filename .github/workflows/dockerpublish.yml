@@ -69,7 +69,7 @@ jobs:
       - name: Load eventstream image
         run: docker load -i eventstream.tar.gz
 
-      - name: Log into Docker Hub
+      - name: Log into quay.io
         run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
 
       - name: Set branch tag
