@@ -54,7 +54,7 @@ services:
    volumes:
      - ./:/app
  cache:
-   image: memcached
+   image: quay.io/wikipedialibrary/memcached:latest
    ports:
     - "11211:11211"
    entrypoint:
