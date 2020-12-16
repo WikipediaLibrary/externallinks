@@ -1,5 +1,5 @@
 # Dockerfile
-FROM python:3.8-buster as eventstream
+FROM quay.io/wikipedialibrary/python:3.8-buster as eventstream
 
 WORKDIR /app
 ARG REQUIREMENTS_FILE

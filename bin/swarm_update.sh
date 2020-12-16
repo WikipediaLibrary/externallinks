@@ -49,8 +49,8 @@ then
 fi
 
 # Pull image updates.
-pull wikipedialibrary/externallinks ${externallinks_tag}
-pull wikipedialibrary/eventstream ${eventstream_tag}
+pull quay.io/wikipedialibrary/externallinks ${externallinks_tag}
+pull quay.io/wikipedialibrary/eventstream ${eventstream_tag}
 
 # Update repository for updates to code or to the swarm deployment itself.
 git -C ${dir} pull
