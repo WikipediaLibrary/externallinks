@@ -11,9 +11,25 @@ on:
   pull_request:
 
 jobs:
+  # Mirror docker.io/library/python to quay.io/wikipedialibrary/python
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull docker.io/library/python
+        run: |
+          docker pull docker.io/library/python:3.8-buster
+          docker tag docker.io/library/python:3.8-buster quay.io/wikipedialibrary/python:3.8-buster
+      - name: Log into quay.io
+        run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
+      - name: Push python image to quay.io/wikipedialibrary/python
+        run: |
+          docker push quay.io/wikipedialibrary/python:3.8-buster
+
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
+    # Ensure latest python image is mirrored before running tests.
+    needs: mirror
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
