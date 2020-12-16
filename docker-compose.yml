@@ -33,7 +33,7 @@ services:
      interval: 10s
      retries: 10
  nginx:
-   image: nginx
+   image: quay.io/wikipedialibrary/nginx:latest
    volumes:
      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
      - ./static:/app/static
