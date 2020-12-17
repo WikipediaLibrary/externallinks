@@ -8,42 +8,7 @@
       <canvas id="eventStreamChart" width="700" height="400"></canvas>
     </div>
     <div class="col-3 stat-box">
-      <h4>Statistics</h4>
-      <table style="width:90%; margin-top: 30px;">
-          <tr class="stat-table-header">
-            <td>Link events</td>
-          </tr>
-          <tr>
-            <td>Total added:</td>
-            <td style="text-align: right;">{{ total_added }}</td>
-          </tr>
-          <tr>
-            <td>Total removed:</td>
-            <td style="text-align: right;">{{ total_removed }}</td>
-          </tr>
-          <tr style="line-height:55px;">
-            <td></td>
-            <td style="text-align: right; font-weight: bold;
-                {% if total_diff > 0 %}
-                        color: green;">+
-                {% else %}
-                        color: red;">
-                {% endif %}
-                {{ total_diff }}
-            </td>
-          </tr>
-          <tr class="stat-table-header">
-            <td>Other</td>
-          </tr>
-          <tr>
-            <td>Total editors:</td>
-            <td style="text-align: right;">{{ total_editors }}</td>
-          </tr>
-          <tr>
-            <td>Total projects:</td>
-            <td style="text-align: right;">{{ total_projects }}</td>
-          </tr>
-      </table>
+      {% include "common/statistics_table.html" %}
     </div>
   </div>
   <div class="row" style="margin-top:40px;">
@@ -51,64 +16,19 @@
   </div>
   <div class="row">
     <div class="col-4">
-      <table class="table">
-        <tr>
-          <th>Organisation</th>
-          <th>Net Change</th>
-        </tr>
-        {% for organisation in top_organisations %}
-          <tr>
-            <td>
-              <a href="{% url 'organisations:detail' pk=organisation.organisation__pk %}?{{ query_string }}">{{ organisation.organisation__name|truncatechars:20 }}</a>
-            </td>
-            <td>
-              {{ organisation.links_diff }}
-            </td>
-          </tr>
-        {% endfor %}
-      </table>
+      {% include "common/top_organisations_table.html" %}
       <div style="text-align:right;">
         <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
       </div>
     </div>
     <div class="col-4">
-        <table class="table">
-            <tr>
-              <th>Project</th>
-              <th>Net Change</th>
-            </tr>
-            {% for project in top_projects %}
-              <tr>
-                <td>
-                  {{ project.project_name }}
-                </td>
-                <td>
-                  {{ project.links_diff }}
-                </td>
-              </tr>
-            {% endfor %}
-        </table>
+        {% include "common/top_projects_table.html" %}
         <div style="text-align:right;">
             <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
     </div>
     <div class="col-4">
-      <table class="table">
-          <tr>
-            <th>Username</th>
-            <th>Net Change</th>
-          </tr>
-          {% for user in top_users %}
-            <tr>
-              <td>
-                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
-              </td>
-              <td>
-                {{ user.links_diff }}
-              </td>
-            </tr>
-          {% endfor %}
-      </table>
+      {% include "common/top_users_table.html" %}
       <div style="text-align:right;">
         <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
       </div>

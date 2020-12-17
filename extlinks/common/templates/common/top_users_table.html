@@ -1,0 +1,30 @@
+<table class="table">
+    <tr>
+      <th>Username</th>
+      <th>Net Change</th>
+    </tr>
+    {% if collections %}
+      {% for user in collection.top_users %}
+        <tr>
+          <td>
+            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
+          </td>
+          <td>
+            {{ user.links_diff }}
+          </td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      {% for user in top_users %}
+        <tr>
+          <td>
+            <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
+          </td>
+          <td>
+            {{ user.links_diff }}
+          </td>
+        </tr>
+      {% endfor %}
+    {% endif %}
+
+</table>

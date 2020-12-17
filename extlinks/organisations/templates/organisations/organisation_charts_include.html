@@ -28,66 +28,7 @@
         </div>
       </div>
     <div class="col-3 stat-box">
-        <h4>Statistics</h4>
-        <table style="width:90%; margin-top: 30px;">
-            <tr class="stat-table-header">
-                <td>Link events</td>
-            </tr>
-            <tr>
-                <td>Total added:</td>
-                <td style="text-align: right;">{{ collection.total_added }}</td>
-            </tr>
-            <tr>
-                <td>Total removed:</td>
-                <td style="text-align: right;">{{ collection.total_removed }}</td>
-            </tr>
-            <tr style="line-height:55px;">
-                <td></td>
-                <td style="text-align: right; font-weight: bold;
-                    {% if collection.total_diff > 0 %}
-                            color: green;">+
-                    {% else %}
-                            color: red;">
-                    {% endif %}
-                    {{ collection.total_diff }}
-                </td>
-            </tr>
-            {% if collection.linksearch_total_start %}
-              <tr class="stat-table-header">
-                <td>Total links (Wikipedia only)</td>
-              </tr>
-              <tr>
-                <td>{{ collection.linksearch_start_date }}:</td>
-                <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
-              </tr>
-              <tr>
-                <td>Current total:</td>
-                <td style="text-align: right;">{{ collection.linksearch_total_current }}</td>
-              </tr>
-              <tr style="line-height:55px;">
-                <td></td>
-                <td style="text-align: right; font-weight: bold;
-                    {% if collection.linksearch_total_diff > 0 %}
-                            color: green;">+
-                    {% else %}
-                            color: red;">
-                    {% endif %}
-                    {{ collection.linksearch_total_diff }}
-                </td>
-              </tr>
-            {% endif %}
-            <tr class="stat-table-header">
-              <td>Other</td>
-            </tr>
-            <tr>
-              <td>Total editors:</td>
-              <td style="text-align: right;">{{ collection.total_editors }}</td>
-            </tr>
-            <tr>
-              <td>Total projects:</td>
-              <td style="text-align: right;">{{ collection.total_projects }}</td>
-            </tr>
-        </table>
+      {% include "common/statistics_table.html" %}
     </div>
     </div>
     <div class="row" style="margin-top:40px;">
@@ -95,64 +36,19 @@
     </div>
     <div class="row">
       <div class="col-4">
-        <table class="table">
-            <tr>
-              <th>Page</th>
-              <th>Net Change</th>
-            </tr>
-            {% for page in collection.top_pages %}
-              <tr>
-                <td>
-                  <a href="https://{{ page.project_name }}/wiki/{{ page.page_name }}">{{ page.page_name|replace_underscores|truncatechars:20 }}</a>
-                </td>
-                <td>
-                  {{ page.links_diff }}
-                </td>
-              </tr>
-            {% endfor %}
-        </table>
+        {% include "common/top_pages_table.html" %}
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_page_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
-        <table class="table">
-          <tr>
-            <th>Project</th>
-            <th>Net Change</th>
-          </tr>
-          {% for project in collection.top_projects %}
-            <tr>
-              <td>
-                {{ project.project_name }}
-              </td>
-              <td>
-                {{ project.links_diff }}
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
+        {% include "common/top_projects_table.html" %}
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_project_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
-        <table class="table">
-          <tr>
-            <th>Username</th>
-            <th>Net Change</th>
-          </tr>
-          {% for user in collection.top_users %}
-            <tr>
-              <td>
-                <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
-              </td>
-              <td>
-                {{ user.links_diff }}
-              </td>
-            </tr>
-          {% endfor %}
-        </table>
+        {% include "common/top_users_table.html" %}
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_user_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
