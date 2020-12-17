@@ -54,20 +54,12 @@
       <table class="table">
         <tr>
           <th>Organisation</th>
-          <th>Added</th>
-          <th>Removed</th>
           <th>Net Change</th>
         </tr>
         {% for organisation in top_organisations %}
           <tr>
             <td>
               <a href="{% url 'organisations:detail' pk=organisation.organisation__pk %}?{{ query_string }}">{{ organisation.organisation__name|truncatechars:20 }}</a>
-            </td>
-            <td>
-              {{ organisation.links_added }}
-            </td>
-            <td>
-              {{ organisation.links_removed }}
             </td>
             <td>
               {{ organisation.links_diff }}
@@ -83,20 +75,12 @@
         <table class="table">
             <tr>
               <th>Project</th>
-              <th>Added</th>
-              <th>Removed</th>
               <th>Net Change</th>
             </tr>
             {% for project in top_projects %}
               <tr>
                 <td>
                   {{ project.project_name }}
-                </td>
-                <td>
-                  {{ project.links_added }}
-                </td>
-                <td>
-                  {{ project.links_removed }}
                 </td>
                 <td>
                   {{ project.links_diff }}
@@ -112,20 +96,12 @@
       <table class="table">
           <tr>
             <th>Username</th>
-            <th>Added</th>
-            <th>Removed</th>
             <th>Net Change</th>
           </tr>
           {% for user in top_users %}
             <tr>
               <td>
                 <a href="https://meta.wikimedia.org/wiki/User:{{ user.username }}">{{ user.username|truncatechars:15 }}</a>
-              </td>
-              <td>
-                {{ user.links_added }}
-              </td>
-              <td>
-                {{ user.links_removed }}
               </td>
               <td>
                 {{ user.links_diff }}
