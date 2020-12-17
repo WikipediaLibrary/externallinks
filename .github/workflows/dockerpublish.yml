@@ -46,6 +46,7 @@ jobs:
   mirror:
     needs: test
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - name: Pull and retag docker.io library images
         run: |
