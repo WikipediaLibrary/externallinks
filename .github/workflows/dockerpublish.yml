@@ -15,7 +15,6 @@ jobs:
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     # Ensure latest python image is mirrored before running tests.
-    needs: mirror
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
