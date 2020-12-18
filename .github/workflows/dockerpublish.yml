@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build and Start Image
+      - name: Build and Start Images
         run: |
           cp template.env .env
           docker-compose up -d --build
@@ -55,6 +55,11 @@ jobs:
           docker push quay.io/wikipedialibrary/nginx:latest
           docker push quay.io/wikipedialibrary/mysql:5.7
           docker push quay.io/wikipedialibrary/memcached:latest
+
+      - name: Build Images
+        run: |
+          cp template.env .env
+          docker-compose build
 
       - name: Set branch tag
         id: branch
