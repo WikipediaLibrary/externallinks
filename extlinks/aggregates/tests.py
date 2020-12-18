@@ -464,3 +464,48 @@ class PageProjectAggregateCommandTest(TestCase):
 
         self.assertEqual(updated_page_aggregate.total_links_added, 2)
         self.assertEqual(updated_page_aggregate.total_links_removed, 0)
+
+        def test_pageproject_aggregate_with_argument(self):
+            # Create a new collection and some LinkEvents associated with it
+            new_collection = CollectionFactory(name="Monsters Inc")
+            url_pattern = URLPatternFactory(
+                url="www.duckduckgo.com", collection=new_collection
+            )
+            # Creating a collection and LinkEvent that won't be run in the command
+            other_collection = CollectionFactory(name="Unused")
+            other_url_pattern = URLPatternFactory(
+                url="www.notusingthis.com", collection=other_collection
+            )
+
+            new_link_event_1 = LinkEventFactory(
+                timestamp=datetime(2020, 1, 1, 15, 30, 35)
+            )
+            new_link_event_1.url.add(url_pattern)
+            new_link_event_1.save()
+
+            new_link_event_2 = LinkEventFactory(
+                timestamp=datetime(2020, 4, 23, 8, 50, 13)
+            )
+            new_link_event_2.url.add(url_pattern)
+            new_link_event_2.save()
+
+            other_link_event = LinkEventFactory()
+            other_link_event.url.add(other_url_pattern)
+            other_link_event.save()
+
+            self.assertEqual(
+                PageProjectAggregate.objects.filter(collection=new_collection).count(),
+                0,
+            )
+
+            call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
+
+            self.assertEqual(
+                PageProjectAggregate.objects.filter(collection=new_collection).count(),
+                2,
+            )
+
+        def test_pageproject_aggregate_with_argument_error(self):
+            # Calling the command with a collection that doesn't exist
+            with self.assertRaises(CommandError):
+                call_command("fill_pageproject_aggregates", collections=[9999999])
