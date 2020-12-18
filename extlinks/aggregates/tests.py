@@ -1,7 +1,7 @@
 import factory
 from datetime import datetime, date, timedelta
 
-from django.core.management import call_command
+from django.core.management import call_command, CommandError
 from django.test import TestCase
 
 from .factories import (
@@ -128,6 +128,36 @@ class LinkAggregateCommandTest(TestCase):
 
         self.assertEqual(updated_link_aggregate.total_links_added, 2)
         self.assertEqual(updated_link_aggregate.total_links_removed, 0)
+
+    def test_link_aggregate_with_argument(self):
+        # Create a new collection and some LinkEvents associated with it
+        new_collection = CollectionFactory(name="Monsters Inc")
+        url_pattern = URLPatternFactory(
+            url="www.duckduckgo.com", collection=new_collection
+        )
+
+        new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35))
+        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.save()
+
+        new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13))
+        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.save()
+
+        self.assertEqual(
+            LinkAggregate.objects.filter(collection=new_collection).count(), 0
+        )
+
+        call_command("fill_link_aggregates", collections=[new_collection.pk])
+
+        self.assertEqual(
+            LinkAggregate.objects.filter(collection=new_collection).count(), 2
+        )
+
+    def test_link_aggregate_with_argument_error(self):
+        # Calling the command with a collection that doesn't exist
+        with self.assertRaises(CommandError):
+            call_command("fill_link_aggregates", collections=[9999999])
 
 
 class UserAggregateCommandTest(TestCase):
