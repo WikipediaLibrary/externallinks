@@ -12,7 +12,6 @@ on:
 
 jobs:
   # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     # Ensure latest python image is mirrored before running tests.
     runs-on: ubuntu-latest
@@ -25,29 +24,17 @@ jobs:
       - name: Run tests
         run: |
           docker-compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py test
-      - name: Save externallinks image
-        run: |
-          docker save quay.io/wikipedialibrary/externallinks:latest | gzip > externallinks.tar.gz
-      - name: upload externallinks image
-        uses: actions/upload-artifact@v2
-        with:
-          name: externallinks-${{ github.run_id }}
-          path: externallinks.tar.gz
-      - name: Save eventstream image
-        run: |
-          docker save quay.io/wikipedialibrary/eventstream:latest | gzip > eventstream.tar.gz
-      - name: upload eventstream image
-        uses: actions/upload-artifact@v2
-        with:
-          name: eventstream-${{ github.run_id }}
-          path: eventstream.tar.gz
 
-  # Mirror docker.io/library/python to quay.io/wikipedialibrary/python
-  mirror:
+  # Push images to quay.io/wikipedialibrary.
+  push:
+    # Ensure test job passes before pushing images.
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+
     steps:
+      - uses: actions/checkout@v2
+
       - name: Pull and retag docker.io library images
         run: |
           docker pull docker.io/library/python:3.8-buster
@@ -58,44 +45,16 @@ jobs:
           docker tag docker.io/library/mysql:5.7 quay.io/wikipedialibrary/mysql:5.7
           docker pull docker.io/library/memcached:latest
           docker tag docker.io/library/memcached:latest quay.io/wikipedialibrary/memcached:latest
+
       - name: Log into quay.io
         run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
+
       - name: Push docker.io library images to quay.io/wikipedialibrary
         run: |
           docker push quay.io/wikipedialibrary/python:3.8-buster
           docker push quay.io/wikipedialibrary/nginx:latest
           docker push quay.io/wikipedialibrary/mysql:5.7
           docker push quay.io/wikipedialibrary/memcached:latest
-
-# Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
-  push:
-    # Ensure test job passes before pushing image.
-    needs: mirror
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Download externallinks image
-        uses: actions/download-artifact@v2
-        with:
-          name: externallinks-${{ github.run_id }}
-
-      - name: Load externallinks image
-        run: docker load -i externallinks.tar.gz
-
-      - name: Download eventstream image
-        uses: actions/download-artifact@v2
-        with:
-          name: eventstream-${{ github.run_id }}
-
-      - name: Load eventstream image
-        run: docker load -i eventstream.tar.gz
-
-      - name: Log into quay.io
-        run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
 
       - name: Set branch tag
         id: branch
@@ -122,7 +81,7 @@ jobs:
 
           echo ::set-output name=tag::$(echo $commit_tag)
 
-      - name: Push externallinks image
+      - name: Push externallinks image to quay.io/wikipedialibrary
         run: |
           # The image name represents both the local image name and the remote image repository.
           image_name=quay.io/wikipedialibrary/externallinks
@@ -134,7 +93,7 @@ jobs:
           docker push ${image_name}:${branch_tag}
           docker push ${image_name}:${commit_tag}
 
-      - name: Push eventstream image
+      - name: Push eventstream image to quay.io/wikipedialibrary
         run: |
           # The image name represents both the local image name and the remote image repository.
           image_name=quay.io/wikipedialibrary/eventstream
@@ -145,10 +104,3 @@ jobs:
           docker tag ${image_name}:latest ${image_name}:${commit_tag}
           docker push ${image_name}:${branch_tag}
           docker push ${image_name}:${commit_tag}
-
-      - name: Delete images from github
-        uses: geekyeggo/delete-artifact@v1
-        with:
-          name: |
-              externallinks-${{ github.run_id }}
-              eventstream-${{ github.run_id }}
