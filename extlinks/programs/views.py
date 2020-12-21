@@ -214,33 +214,27 @@ class ProgramDetailView(DetailView):
             LinkAggregate.objects.filter(queryset_filter)
             .values("organisation__pk", "organisation__name")
             .annotate(
-                links_added=Sum("total_links_added"),
-                links_removed=Sum("total_links_removed"),
                 links_diff=Sum("total_links_added") - Sum("total_links_removed"),
             )
-            .order_by("-links_diff", "-links_added", "-links_removed")
+            .order_by("-links_diff")
         )[:5]
 
         context["top_projects"] = (
             PageProjectAggregate.objects.filter(queryset_filter)
             .values("project_name")
             .annotate(
-                links_added=Sum("total_links_added"),
-                links_removed=Sum("total_links_removed"),
                 links_diff=Sum("total_links_added") - Sum("total_links_removed"),
             )
-            .order_by("-links_diff", "-links_added", "-links_removed")
+            .order_by("-links_diff")
         )[:5]
 
         context["top_users"] = (
             UserAggregate.objects.filter(queryset_filter)
             .values("username")
             .annotate(
-                links_added=Sum("total_links_added"),
-                links_removed=Sum("total_links_removed"),
                 links_diff=Sum("total_links_added") - Sum("total_links_removed"),
             )
-            .order_by("-links_diff", "-links_added", "-links_removed")
+            .order_by("-links_diff")
         )[:5]
 
         return context

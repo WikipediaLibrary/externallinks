@@ -1,0 +1,17 @@
+{% load common_filters %}
+<table class="table">
+  <tr>
+    <th>Organisation</th>
+    <th>Added Links</th>
+  </tr>
+  {% for organisation in top_organisations %}
+    <tr>
+      <td>
+        <a href="{% url 'organisations:detail' pk=organisation.organisation__pk %}?{{ query_string }}">{{ organisation.organisation__name|truncatechars:20 }}</a>
+      </td>
+      <td>
+        {{ organisation.links_diff }}
+      </td>
+    </tr>
+  {% endfor %}
+</table>
