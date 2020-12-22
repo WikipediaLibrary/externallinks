@@ -66,7 +66,9 @@ class Command(BaseCommand):
             linkaggregate_filter = Q()
 
         if UserAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = UserAggregate.objects.latest("full_date")
+            latest_aggregated_link_date = UserAggregate.objects.filter(
+                linkaggregate_filter
+            ).latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
