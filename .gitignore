@@ -10,5 +10,6 @@ __pycache__/
 
 static/admin
 static/debug_toolbar
+static/django_extensions
 
 db.json
