@@ -173,18 +173,15 @@ class OrganisationDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
-        try:
-            earliest_link_date = (
-                LinkAggregate.objects.filter(queryset_filter)
-                .earliest("full_date")
-                .full_date
-            )
-        except LinkAggregate.DoesNotExist:
-            earliest_link_date = (
-                LinkAggregate.objects.filter(collection=collection)
-                .earliest("full_date")
-                .full_date
-            )
+
+        filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
+
+        if filtered_link_aggregate:
+            earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
+        else:
+            # No link information from that collection, so setting earliest_link_date
+            # to January 1 2000, an arbitrary early date
+            earliest_link_date = datetime(2000, 1, 1)
 
         links_aggregated_date = (
             LinkAggregate.objects.filter(
