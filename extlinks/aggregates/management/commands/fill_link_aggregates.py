@@ -30,6 +30,9 @@ class Command(BaseCommand):
                     collection = Collection.objects.get(pk=col_id)
                 except Collection.DoesNotExist:
                     raise CommandError(f"Collection '{col_id}' does not exist")
+                    self.stdout.write(
+                        self.style.ERROR(f"Error: Collection '{col_id}' does not exist")
+                    )
 
                 link_event_filter = self._get_linkevent_filter(collection)
                 self._process_single_collection(link_event_filter, collection)
@@ -66,7 +69,9 @@ class Command(BaseCommand):
             linkaggregate_filter = Q()
 
         if LinkAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = LinkAggregate.objects.latest("full_date")
+            latest_aggregated_link_date = LinkAggregate.objects.filter(
+                linkaggregate_filter
+            ).latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
