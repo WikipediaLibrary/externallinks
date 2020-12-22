@@ -16,6 +16,7 @@ DEFAULT_FROM_EMAIL = SERVER_EMAIL
 if os.environ["REQUIREMENTS_FILE"] == "local.txt":
     INSTALLED_APPS += [
         "debug_toolbar",
+        "django_extensions",
     ]
 
     MIDDLEWARE += [
