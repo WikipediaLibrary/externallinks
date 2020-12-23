@@ -11,7 +11,7 @@ def add_link_events_to_proquest_openurl_collection(apps, schema_editor):
             link__icontains="gateway.proquest.com/openurl"
         )
         for proquest_openurl_linkevent in proquest_openurl_linkevents:
-            proquest_openurl_linkevent.url.add(proquest_openurl_collection.url.get())
+            proquest_openurl_linkevent.url.add(proquest_openurl_collection[0].url.get())
             proquest_openurl_linkevent.save()
 
 
