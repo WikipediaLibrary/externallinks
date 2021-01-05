@@ -23,6 +23,7 @@ class LinkAggregate(models.Model):
     full_date = models.DateField()
     total_links_added = models.PositiveIntegerField()
     total_links_removed = models.PositiveIntegerField()
+    on_user_list = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -41,9 +42,10 @@ class LinkAggregate(models.Model):
             organisation=self.organisation,
             collection=self.collection,
             full_date=self.full_date,
+            on_user_list=self.on_user_list,
         ).exists():
             raise ValidationError(
-                message="LinkAggregate with this combination (organisation, collection, full_date) already exists.",
+                message="LinkAggregate with this combination (organisation, collection, full_date, on_user_list) already exists.",
                 code="unique_together",
             )
 
@@ -68,6 +70,7 @@ class UserAggregate(models.Model):
     full_date = models.DateField()
     total_links_added = models.PositiveIntegerField()
     total_links_removed = models.PositiveIntegerField()
+    on_user_list = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -87,9 +90,10 @@ class UserAggregate(models.Model):
             collection=self.collection,
             username=self.username,
             full_date=self.full_date,
+            on_user_list=self.on_user_list,
         ).exists():
             raise ValidationError(
-                message="UserAggregate with this combination (organisation, collection, username, full_date) already exists.",
+                message="UserAggregate with this combination (organisation, collection, username, full_date, on_user_list) already exists.",
                 code="unique_together",
             )
 
@@ -115,6 +119,7 @@ class PageProjectAggregate(models.Model):
     full_date = models.DateField()
     total_links_added = models.PositiveIntegerField()
     total_links_removed = models.PositiveIntegerField()
+    on_user_list = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -135,8 +140,9 @@ class PageProjectAggregate(models.Model):
             project_name=self.project_name,
             page_name=self.page_name,
             full_date=self.full_date,
+            on_user_list=self.on_user_list,
         ).exists():
             raise ValidationError(
-                message="PageProjectAggregate with this combination (organisation, collection, project_name, page_name, full_date) already exists.",
+                message="PageProjectAggregate with this combination (organisation, collection, project_name, page_name, full_date, on_user_list) already exists.",
                 code="unique_together",
             )
