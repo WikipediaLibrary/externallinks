@@ -1,49 +1,59 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="wrapper">
-        <nav id="sidebar">
-            <ul class="list-unstyled components">
-                <p style="font-size: 18px">Organisations</p>
-                {% for organisation in organisations %}
-                    <li>
-                        <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
-                    </li>
-                {% endfor %}
-            </ul>
-        </nav>
-        <nav id="content" class="charts-body">
-            <div class="row">
-                <div class="col-6">
-                    <h1>{{ object }}</h1>
-                    <p>Organisations: {{ program.organisation_set.count }}</p>
-                </div>
-                <div class="col-6">
-                    <form method="GET" id="graph-date-form">
-                        <div class="form-row">
-                            <div class="fieldWrapper" style="padding: 15px;">
-                                {{ form.start_date.errors }}
-                                {{ form.start_date.label_tag }} {{ form.start_date }}
-                                {% if form.start_date.help_text %}
-                                    <p class="help">{{ form.start_date.help_text|safe }}</p>
-                                {% endif %}
-                            </div>
-                            <div class="fieldWrapper" style="padding: 15px;">
-                                {{ form.end_date.errors }}
-                                {{ form.end_date.label_tag }} {{ form.end_date }}
-                                {% if form.end_date.help_text %}
-                                    <p class="help">{{ form.end_date.help_text|safe }}</p>
-                                {% endif %}
-                            </div>
-                            <div class="col">
-                                <button type="submit" class="btn btn-primary">Submit</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+  <div class="wrapper">
+    <nav id="sidebar">
+      <ul class="list-unstyled components">
+        <p style="font-size: 18px">Organisations</p>
+        {% for organisation in organisations %}
+          <li>
+            <a href="{% url 'organisations:detail' pk=organisation.pk %}?{{ query_string }}">{{ organisation }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <nav id="content" class="charts-body">
+      <div class="row">
+        <div class="col-6">
+          <h1>{{ object }}</h1>
+          <p>Organisations: {{ program.organisation_set.count }}</p>
+        </div>
+        <div class="col-6">
+          <form method="GET" id="graph-date-form">
+            <div class="form-row">
+              <div class="fieldWrapper" style="padding: 15px;">
+                {{ form.start_date.errors }}
+                {{ form.start_date.label_tag }} {{ form.start_date }}
+                {% if form.start_date.help_text %}
+                  <p class="help">{{ form.start_date.help_text|safe }}</p>
+                {% endif %}
+              </div>
+              <div class="fieldWrapper" style="padding: 15px;">
+                {{ form.end_date.errors }}
+                {{ form.end_date.label_tag }} {{ form.end_date }}
+                {% if form.end_date.help_text %}
+                  <p class="help">{{ form.end_date.help_text|safe }}</p>
+                {% endif %}
+              </div>
             </div>
-
-            {% include "programs/program_charts_include.html" %}
-        </nav>
-    </div>
+            <div class="form-row">
+              {% if program.any_orgs_user_list %}
+                <div class="fieldWrapper" style="padding: 15px;">
+                  {{ form.limit_to_user_list.errors }}
+                  {{ form.limit_to_user_list.label_tag }} {{ form.limit_to_user_list }}
+                  {% if form.limit_to_user_list.help_text %}
+                    <p class="help">{{ form.limit_to_user_list.help_text|safe }}</p>
+                  {% endif %}
+                </div>
+              {% endif %}
+              <div class="col">
+                  <button type="submit" class="btn btn-primary" style="margin: 5px;">Submit</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% include "programs/program_charts_include.html" %}
+    </nav>
+  </div>
 {% endblock %}

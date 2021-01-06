@@ -10,8 +10,9 @@ class LinkAggregateAdmin(admin.ModelAdmin):
         "full_date",
         "total_links_added",
         "total_links_removed",
+        "on_user_list",
     )
-    list_filter = ("organisation", "collection", "month", "year")
+    list_filter = ("organisation", "collection", "month", "year", "on_user_list")
 
 
 admin.site.register(LinkAggregate, LinkAggregateAdmin)
@@ -25,8 +26,9 @@ class UserAggregateAdmin(admin.ModelAdmin):
         "full_date",
         "total_links_added",
         "total_links_removed",
+        "on_user_list",
     )
-    list_filter = ("organisation", "collection", "month", "year")
+    list_filter = ("organisation", "collection", "month", "year", "on_user_list")
 
 
 admin.site.register(UserAggregate, UserAggregateAdmin)
@@ -41,8 +43,9 @@ class PageProjectAggregateAdmin(admin.ModelAdmin):
         "full_date",
         "total_links_added",
         "total_links_removed",
+        "on_user_list",
     )
-    list_filter = ("organisation", "collection", "month", "year")
+    list_filter = ("organisation", "collection", "month", "year", "on_user_list")
 
 
 admin.site.register(PageProjectAggregate, PageProjectAggregateAdmin)

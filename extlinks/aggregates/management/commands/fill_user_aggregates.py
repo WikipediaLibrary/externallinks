@@ -113,7 +113,7 @@ class Command(BaseCommand):
             )
             link_events = (
                 link_events_with_annotated_timestamp.values(
-                    "username__username", "timestamp_date"
+                    "username__username", "timestamp_date", "on_user_list"
                 )
                 .filter(link_event_filter)
                 .annotate(
@@ -156,6 +156,7 @@ class Command(BaseCommand):
                 collection=collection,
                 username=link_event["username__username"],
                 full_date=link_event["timestamp_date"],
+                on_user_list=link_event["on_user_list"],
             ).exists():
                 # Query UserAggregate for the existing field
                 existing_link_aggregate = UserAggregate.objects.get(
@@ -163,6 +164,7 @@ class Command(BaseCommand):
                     collection=collection,
                     username=link_event["username__username"],
                     full_date=link_event["timestamp_date"],
+                    on_user_list=link_event["on_user_list"],
                 )
                 if (
                     existing_link_aggregate.total_links_added
@@ -187,4 +189,5 @@ class Command(BaseCommand):
                     full_date=link_event["timestamp_date"],
                     total_links_added=link_event["links_added"],
                     total_links_removed=link_event["links_removed"],
+                    on_user_list=link_event["on_user_list"],
                 )

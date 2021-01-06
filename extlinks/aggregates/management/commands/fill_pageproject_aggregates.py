@@ -113,7 +113,7 @@ class Command(BaseCommand):
             )
             link_events = (
                 link_events_with_annotated_timestamp.values(
-                    "domain", "page_title", "timestamp_date"
+                    "domain", "page_title", "timestamp_date", "on_user_list"
                 )
                 .filter(link_event_filter)
                 .annotate(
@@ -157,6 +157,7 @@ class Command(BaseCommand):
                 page_name=link_event["page_title"],
                 project_name=link_event["domain"],
                 full_date=link_event["timestamp_date"],
+                on_user_list=link_event["on_user_list"],
             ).exists():
                 # Query PageProjectAggregate for the existing field
                 existing_link_aggregate = PageProjectAggregate.objects.get(
@@ -165,6 +166,7 @@ class Command(BaseCommand):
                     page_name=link_event["page_title"],
                     project_name=link_event["domain"],
                     full_date=link_event["timestamp_date"],
+                    on_user_list=link_event["on_user_list"],
                 )
                 if (
                     existing_link_aggregate.total_links_added
@@ -190,4 +192,5 @@ class Command(BaseCommand):
                     full_date=link_event["timestamp_date"],
                     total_links_added=link_event["links_added"],
                     total_links_removed=link_event["links_removed"],
+                    on_user_list=link_event["on_user_list"],
                 )

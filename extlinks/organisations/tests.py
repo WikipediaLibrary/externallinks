@@ -193,8 +193,6 @@ class OrganisationDetailTest(TestCase):
         """
         Test that the user list limiting form works on the organisation detail page.
         """
-        # TODO: Skipping this test until we have implemented the user list filter
-        self.skipTest("Skipping test")
         factory = RequestFactory()
 
         data = {"limit_to_user_list": True}

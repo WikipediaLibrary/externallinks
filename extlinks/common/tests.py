@@ -1,4 +1,6 @@
 import datetime
+import time_machine
+from unittest import mock
 
 from django.test import TestCase
 
@@ -27,9 +29,10 @@ class LinkSearchDataByTimeTest(TestCase):
         self.assertEqual(0, len(linksearch_data))
 
     def test_linksearch_data(self):
-        linksearch = LinkSearchTotal.objects.all()
+        with time_machine.travel(datetime.date(2020, 12, 31)):
+            linksearch = LinkSearchTotal.objects.all()
 
-        dates, linksearch_data = get_linksearchtotal_data_by_time(linksearch)
+            dates, linksearch_data = get_linksearchtotal_data_by_time(linksearch)
 
-        self.assertEqual(12, len(dates))
-        self.assertEqual(12, len(linksearch_data))
+            self.assertEqual(12, len(dates))
+            self.assertEqual(12, len(linksearch_data))

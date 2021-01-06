@@ -91,7 +91,8 @@ def build_queryset_filters(form_data, collection_or_organisations):
     ----------
     form_data: dict
         If the filter form has valid filters, then there will be a dictionary
-        to filter the aggregates tables by dates
+        to filter the aggregates tables by dates or if a user is part of a user
+        list
 
     collection_or_organisations : dict
         A dictionary that will have either a collection or a set of
@@ -101,8 +102,11 @@ def build_queryset_filters(form_data, collection_or_organisations):
     -------
     Q : A Q object which will filter the aggregates queries
     """
-    start_date_filter = None
-    end_date_filter = None
+    start_date = None
+    end_date = None
+    start_date_filter = Q()
+    end_date_filter = Q()
+    limit_to_user_list_filter = Q()
     # The aggregates queries will always be filtered by organisation
     if "organisations" in collection_or_organisations:
         collection_or_organisation_filter = Q(
@@ -123,17 +127,20 @@ def build_queryset_filters(form_data, collection_or_organisations):
         if end_date:
             end_date_filter = Q(full_date__lte=end_date)
 
-    if start_date_filter and end_date_filter:
+    if "limit_to_user_list" in form_data:
+        limit_to_user_list = form_data["limit_to_user_list"]
+        if limit_to_user_list:
+            limit_to_user_list_filter = Q(on_user_list=True)
+
+    if start_date and end_date:
         # If the start date is greater tham the end date, it won't filter
         # by date
         if start_date >= end_date:
-            return collection_or_organisation_filter
-        return collection_or_organisation_filter & start_date_filter & end_date_filter
+            return collection_or_organisation_filter & limit_to_user_list_filter
 
-    if start_date_filter and end_date_filter is None:
-        return collection_or_organisation_filter & start_date_filter
-
-    if start_date_filter is None and end_date_filter:
-        return collection_or_organisation_filter & end_date_filter
-
-    return collection_or_organisation_filter
+    return (
+        collection_or_organisation_filter
+        & limit_to_user_list_filter
+        & start_date_filter
+        & end_date_filter
+    )
