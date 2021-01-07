@@ -174,14 +174,16 @@ class CSVUserTotals(_CSVDownloadView):
 class CSVAllLinkEvents(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
+        queryset_filter = build_queryset_filters(self.request.GET, {"linkevents": ""})
         # If we came from an organisation page:
         if "/organisation" in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                url__collection__organisation__pk=pk
+                Q(url__collection__organisation__pk=pk) & queryset_filter
             ).distinct()
         else:
             program = Program.objects.get(pk=pk)
             linkevents = program.get_linkevents()
+            linkevents = linkevents.filter(queryset_filter)
 
         writer = csv.writer(response)
 

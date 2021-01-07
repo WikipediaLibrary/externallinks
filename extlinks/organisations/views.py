@@ -147,7 +147,7 @@ class OrganisationDetailView(DetailView):
         context = self._fill_chart_context(collection, context, queryset_filter)
         context = self._fill_statistics_table_context(context, queryset_filter)
         context = self._fill_totals_tables(context, queryset_filter)
-        context = self._fill_latest_linkevents(collection, context)
+        context = self._fill_latest_linkevents(collection, context, form_data)
 
         return context
 
@@ -294,7 +294,7 @@ class OrganisationDetailView(DetailView):
 
         return context
 
-    def _fill_latest_linkevents(self, collection, context):
+    def _fill_latest_linkevents(self, collection, context, form_data):
         """
         This function gets the latest linkevents
 
@@ -306,13 +306,23 @@ class OrganisationDetailView(DetailView):
         context : dict
             The context dictionary that the function will be adding information to
 
+        form_data: dict|None
+            If the filter form has valid filters, then there will be a dictionary
+            to filter the linkevents table by dates or by user list
+
         Returns
         -------
         dict : The context dictionary with the relevant statistics
         """
         linkevents = collection.get_linkevents()
-        context["latest_links"] = linkevents.prefetch_related(
-            "username", "url", "url__collection", "url__collection__organisation"
-        ).order_by("-timestamp")[:10]
+        if form_data:
+            linkevents_filter = build_queryset_filters(form_data, {"linkevents": ""})
+        context["latest_links"] = (
+            linkevents.prefetch_related(
+                "username", "url", "url__collection", "url__collection__organisation"
+            )
+            .filter(linkevents_filter)
+            .order_by("-timestamp")[:10]
+        )
 
         return context

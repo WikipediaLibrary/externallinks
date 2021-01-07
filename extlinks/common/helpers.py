@@ -112,6 +112,8 @@ def build_queryset_filters(form_data, collection_or_organisations):
         collection_or_organisation_filter = Q(
             organisation__in=collection_or_organisations["organisations"]
         )
+    elif "linkevents" in collection_or_organisations:
+        collection_or_organisation_filter = Q()
     else:
         collection_or_organisation_filter = Q(
             collection=collection_or_organisations["collection"]
@@ -120,12 +122,18 @@ def build_queryset_filters(form_data, collection_or_organisations):
     if "start_date" in form_data:
         start_date = form_data["start_date"]
         if start_date:
-            start_date_filter = Q(full_date__gte=start_date)
+            if "linkevents" in collection_or_organisations:
+                start_date_filter = Q(timestamp__gte=start_date)
+            else:
+                start_date_filter = Q(full_date__gte=start_date)
     if "end_date" in form_data:
         end_date = form_data["end_date"]
         # The end date must not be greater than today's date
         if end_date:
-            end_date_filter = Q(full_date__lte=end_date)
+            if "linkevents" in collection_or_organisations:
+                end_date_filter = Q(timestamp__gte=end_date)
+            else:
+                end_date_filter = Q(full_date__lte=end_date)
 
     if "limit_to_user_list" in form_data:
         limit_to_user_list = form_data["limit_to_user_list"]
