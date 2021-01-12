@@ -115,18 +115,14 @@ class ProgramDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
-        try:
-            earliest_link_date = (
-                LinkAggregate.objects.filter(queryset_filter)
-                .earliest("full_date")
-                .full_date
-            )
-        except LinkAggregate.DoesNotExist:
-            earliest_link_date = (
-                LinkAggregate.objects.filter(organisation__in=organisations)
-                .earliest("full_date")
-                .full_date
-            )
+        filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
+
+        if filtered_link_aggregate:
+            earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
+        else:
+            # No link information from that collection, so setting earliest_link_date
+            # to January 1 2000, an arbitrary early date
+            earliest_link_date = datetime(2000, 1, 1)
 
         links_aggregated_date = (
             LinkAggregate.objects.filter(
@@ -136,12 +132,16 @@ class ProgramDetailView(DetailView):
             .annotate(
                 net_change=Sum("total_links_added") - Sum("total_links_removed"),
             )
+            .order_by("year", "month")
         )
 
         eventstream_dates = []
         eventstream_net_change = []
         for link in links_aggregated_date:
-            date_combined = f"{link['year']}-{link['month']}"
+            if link["month"] < 10:
+                date_combined = f"{link['year']}-0{link['month']}"
+            else:
+                date_combined = f"{link['year']}-{link['month']}"
             eventstream_dates.append(date_combined)
             eventstream_net_change.append(link["net_change"])
 

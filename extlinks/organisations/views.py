@@ -191,12 +191,16 @@ class OrganisationDetailView(DetailView):
             .annotate(
                 net_change=Sum("total_links_added") - Sum("total_links_removed"),
             )
+            .order_by("year", "month")
         )
 
         eventstream_dates = []
         eventstream_net_change = []
         for link in links_aggregated_date:
-            date_combined = f"{link['year']}-{link['month']}"
+            if link["month"] < 10:
+                date_combined = f"{link['year']}-0{link['month']}"
+            else:
+                date_combined = f"{link['year']}-{link['month']}"
             eventstream_dates.append(date_combined)
             eventstream_net_change.append(link["net_change"])
 
