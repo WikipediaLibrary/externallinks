@@ -18,6 +18,9 @@ services:
    command: ["/app/bin/gunicorn.sh"]
    volumes:
      - ./:/app
+     - type: bind
+       source: ${HOST_BACKUP_DIR}
+       target: /app/backup
  db:
    image: quay.io/wikipedialibrary/mysql:5.7
    env_file:
