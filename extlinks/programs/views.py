@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
@@ -115,6 +115,11 @@ class ProgramDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
+        dates = []
+        existing_link_aggregates = {}
+        eventstream_dates = []
+        eventstream_net_change = []
+        current_date = date.today()
         filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
 
         if filtered_link_aggregate:
@@ -135,15 +140,28 @@ class ProgramDetailView(DetailView):
             .order_by("year", "month")
         )
 
-        eventstream_dates = []
-        eventstream_net_change = []
+        # Filling an array of dates that should be in the chart
+        while current_date >= earliest_link_date:
+            dates.append(current_date.strftime("%Y-%m"))
+            # Figure out what the last month is regardless of today's date
+            current_date = current_date.replace(day=1) - timedelta(days=1)
+
+        dates = dates[::-1]
+
         for link in links_aggregated_date:
             if link["month"] < 10:
                 date_combined = f"{link['year']}-0{link['month']}"
             else:
                 date_combined = f"{link['year']}-{link['month']}"
-            eventstream_dates.append(date_combined)
-            eventstream_net_change.append(link["net_change"])
+
+            existing_link_aggregates[date_combined] = link["net_change"]
+
+        for month_year in dates:
+            eventstream_dates.append(month_year)
+            if month_year in existing_link_aggregates:
+                eventstream_net_change.append(existing_link_aggregates[month_year])
+            else:
+                eventstream_net_change.append(0)
 
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
