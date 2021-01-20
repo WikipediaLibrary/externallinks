@@ -126,13 +126,11 @@ class ProgramDetailView(DetailView):
             earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
         else:
             # No link information from that collection, so setting earliest_link_date
-            # to January 1 2000, an arbitrary early date
-            earliest_link_date = datetime(2000, 1, 1)
+            # to the first of the current month
+            earliest_link_date = current_date.replace(day=1)
 
         links_aggregated_date = (
-            LinkAggregate.objects.filter(
-                queryset_filter & Q(full_date__gte=earliest_link_date),
-            )
+            LinkAggregate.objects.filter(queryset_filter)
             .values("month", "year")
             .annotate(
                 net_change=Sum("total_links_added") - Sum("total_links_removed"),
