@@ -131,7 +131,7 @@ def build_queryset_filters(form_data, collection_or_organisations):
         # The end date must not be greater than today's date
         if end_date:
             if "linkevents" in collection_or_organisations:
-                end_date_filter = Q(timestamp__gte=end_date)
+                end_date_filter = Q(timestamp__lte=end_date)
             else:
                 end_date_filter = Q(full_date__lte=end_date)
 
