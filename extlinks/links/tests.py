@@ -1,7 +1,18 @@
+from datetime import datetime
+
 from django.core.management import call_command
 from django.test import TestCase
 
-from extlinks.organisations.factories import OrganisationFactory, CollectionFactory
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    PageProjectAggregate,
+    UserAggregate,
+)
+from extlinks.organisations.factories import (
+    OrganisationFactory,
+    CollectionFactory,
+    UserFactory,
+)
 from .factories import LinkEventFactory, URLPatternFactory
 from .helpers import link_is_tracked, split_url_for_query
 from .models import URLPattern, LinkEvent
@@ -259,6 +270,8 @@ class LinkEventsCollectCommandTest(TestCase):
 
 class EZProxyRemovalCommandTest(TestCase):
     def setUp(self):
+        self.user = UserFactory(username="jonsnow")
+
         self.jstor_organisation = OrganisationFactory(name="JSTOR")
         self.jstor_collection = CollectionFactory(
             name="JSTOR", organisation=self.jstor_organisation
@@ -285,34 +298,58 @@ class EZProxyRemovalCommandTest(TestCase):
             url="wikipedialibrary.idm.oclc", collection=self.proxy_collection
         )
 
-        self.linkevent_jstor1 = LinkEventFactory(link="www.jstor.org/dgsajdga")
+        self.linkevent_jstor1 = LinkEventFactory(
+            link="www.jstor.org/dgsajdga",
+            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            page_title="Page1",
+            username=self.user,
+        )
         self.linkevent_jstor1.url.add(self.jstor_url_pattern)
-        self.linkevent_jstor2 = LinkEventFactory(link="www.jstor.org/eiuqwyeiu445")
+        self.linkevent_jstor2 = LinkEventFactory(
+            link="www.jstor.org/eiuqwyeiu445",
+            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            page_title="Page1",
+            username=self.user,
+        )
         self.linkevent_jstor2.url.add(self.jstor_url_pattern)
         self.linkevent_jstor_proxy = LinkEventFactory(
-            link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445"
+            link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
+            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            page_title="Page1",
+            username=self.user,
         )
         self.linkevent_jstor_proxy.url.add(self.proxy_url_pattern)
 
         self.linkevent_proquest1 = LinkEventFactory(
-            link="www.proquest.com/vclmxvldfgf465"
+            link="www.proquest.com/vclmxvldfgf465",
+            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            page_title="Page1",
+            username=self.user,
         )
         self.linkevent_proquest1.url.add(self.proquest_url_pattern)
         self.linkevent_proquest2 = LinkEventFactory(
-            link="www.proquest.com/dkjsahdj2893"
+            link="www.proquest.com/dkjsahdj2893",
+            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            page_title="Page1",
+            username=self.user,
         )
         self.linkevent_proquest2.url.add(self.proquest_url_pattern)
         self.linkevent_proquest_proxy = LinkEventFactory(
-            link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273"
+            link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
+            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            page_title="Page1",
+            username=self.user,
         )
         self.linkevent_proquest_proxy.url.add(self.proxy_url_pattern)
 
     def test_change_linkevents_to_non_ezproxy_collections_command(self):
         # Call the commands to fill the aggregates tables
-        call_command("fill_link_aggregates", collections=[collection.pk])
-        call_command("fill_pageproject_aggregates", collections=[collection.pk])
-        call_command("fill_user_aggregates", collections=[collection.pk])
+        call_command("fill_link_aggregates")
+        call_command("fill_pageproject_aggregates")
+        call_command("fill_user_aggregates")
 
+        # Assert the correct number of LinkEvents before deleting the proxy url
+        # and collection
         self.assertEqual(
             LinkEvent.objects.filter(url=self.jstor_url_pattern).count(), 2
         )
@@ -323,6 +360,12 @@ class EZProxyRemovalCommandTest(TestCase):
             LinkEvent.objects.filter(url=self.proxy_url_pattern).count(), 2
         )
 
+        # Assert the correct number of aggregates before deleting the proxy url
+        # and collection
+        self.assertEqual(LinkAggregate.objects.count(), 3)
+        self.assertEqual(UserAggregate.objects.count(), 3)
+        self.assertEqual(PageProjectAggregate.objects.count(), 3)
+
         call_command("remove_ezproxy_collection")
 
         self.assertEqual(
@@ -331,3 +374,6 @@ class EZProxyRemovalCommandTest(TestCase):
         self.assertEqual(
             LinkEvent.objects.filter(url=self.proquest_url_pattern).count(), 3
         )
+        self.assertEqual(LinkAggregate.objects.count(), 2)
+        self.assertEqual(UserAggregate.objects.count(), 2)
+        self.assertEqual(PageProjectAggregate.objects.count(), 2)

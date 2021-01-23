@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand, call_command
+from django.core.management.base import BaseCommand
+from django.core.management import call_command
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -13,12 +14,38 @@ class Command(BaseCommand):
     help = "Monitors page-links-change for link events"
 
     def handle(self, *args, **options):
-        # Delete organisations, collections and URLPatterns that are related to
-        # EZProxy
-        ezproxy_org = Organisation.objects.filter(name="Wikipedia Library OCLC EZProxy")
-        ezproxy_collection = Collection.objects.filter(name="EZProxy")
-        url_patterns = URLPattern.objects.filter(collection=ezproxy_collection)
+        ezproxy_org = self._get_ezproxy_organisation()
+        ezproxy_collection = self._get_ezproxy_collection()
+        url_patterns = self._get_ezproxy_url_patterns(ezproxy_collection)
 
+        self._delete_aggregates_ezproxy(ezproxy_org, ezproxy_collection, url_patterns)
+
+        # Get LinkEvents that have no URLPatterns associated
+        linkevents = LinkEvent.objects.filter(url__isnull=True)
+
+        collections = Collection.objects.all()
+
+        self._process_linkevents_collections(linkevents, collections)
+
+    def _get_ezproxy_organisation(self):
+        if Organisation.objects.filter(name="Wikipedia Library OCLC EZProxy").exists():
+            return Organisation.objects.get(name="Wikipedia Library OCLC EZProxy")
+
+        return None
+
+    def _get_ezproxy_collection(self):
+        if Collection.objects.filter(name="EZProxy").exists():
+            return Collection.objects.get(name="EZProxy")
+
+        return None
+
+    def _get_ezproxy_url_patterns(self, collection):
+        if collection and URLPattern.objects.filter(collection=collection).exists():
+            return URLPattern.objects.get(collection=collection)
+
+        return None
+
+    def _delete_aggregates_ezproxy(self, ezproxy_org, ezproxy_collection, url_patterns):
         LinkAggregate.objects.filter(
             organisation=ezproxy_org, collection=ezproxy_collection
         ).delete()
@@ -33,11 +60,7 @@ class Command(BaseCommand):
         ezproxy_collection.delete()
         ezproxy_org.delete()
 
-        # Get LinkEvents that have no URLPatterns associated
-        linkevents = LinkEvent.objects.filter(url__isnull=True)
-
-        collections = Collection.objects.all()
-
+    def _process_linkevents_collections(self, linkevents, collections):
         linkevents_changed = 0
         for collection in collections:
             collection_urls = collection.url.all()
