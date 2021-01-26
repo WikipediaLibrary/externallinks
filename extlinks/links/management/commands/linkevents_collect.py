@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import logging
 import pytz
+import sys
 from sseclient import SSEClient as EventSource
 from urllib.parse import unquote
 
@@ -27,8 +28,21 @@ class Command(BaseCommand):
             help="Parse event stream from last logged event",
         )
 
+        parser.add_argument(
+            "--test",
+            nargs=1,
+            help="Test the command without having to access the stream. Passes a json event",
+        )
+
     def handle(self, *args, **options):
         base_stream_url = "https://stream.wikimedia.org/v2/stream/page-links-change"
+
+        if options["test"]:
+            event_data = options["test"]
+            self._evaluate_link(event_data)
+            # Since we are not testing the EventStream functionality, we finish
+            # execution here
+            sys.exit(0)
 
         # Every time this script is started, find the latest entry in the
         # database, and start the eventstream from there. This ensures that in
@@ -48,6 +62,9 @@ class Command(BaseCommand):
         else:
             url = base_stream_url
 
+        self._process_events(url)
+
+    def _process_events(self, url):
         # Eventsource should fail if it can't read data after ~15 minutes.
         for event in EventSource(
             url,
@@ -70,17 +87,18 @@ class Command(BaseCommand):
                 except ValueError:
                     continue
 
-                if "added_links" in event_data:
-                    self.process_links(
-                        event_data["added_links"], LinkEvent.ADDED, event_data
-                    )
+                self._evaluate_link(event_data)
 
-                if "removed_links" in event_data:
-                    self.process_links(
-                        event_data["removed_links"], LinkEvent.REMOVED, event_data
-                    )
+    def _evaluate_link(self, event_data):
+        if "added_links" in event_data:
+            self._process_links(event_data["added_links"], LinkEvent.ADDED, event_data)
 
-    def process_links(self, link_list, change, event_dict):
+        if "removed_links" in event_data:
+            self._process_links(
+                event_data["removed_links"], LinkEvent.REMOVED, event_data
+            )
+
+    def _process_links(self, link_list, change, event_dict):
         """
         Given a list of links, process them.
         Change = 0: Removed
@@ -100,9 +118,9 @@ class Command(BaseCommand):
 
                     # We skip the URL if the length is greater than 2083
                     if not event_objects.exists() and len(unquoted_url) < 2084:
-                        self.add_linkevent_to_db(unquoted_url, change, event_dict)
+                        self._add_linkevent_to_db(unquoted_url, change, event_dict)
 
-    def add_linkevent_to_db(self, link, change, event_data):
+    def _add_linkevent_to_db(self, link, change, event_data):
         if "Z" in event_data["meta"]["dt"]:
             string_format = "%Y-%m-%dT%H:%M:%SZ"
         else:
@@ -127,7 +145,11 @@ class Command(BaseCommand):
 
         # All URL patterns matching this link
         tracked_urls = URLPattern.objects.all()
-        url_patterns = [pattern for pattern in tracked_urls if pattern.url in link]
+        url_patterns = [
+            pattern
+            for pattern in tracked_urls
+            if pattern.url in link or pattern.get_proxied_url in link
+        ]
 
         # We make a hard assumption here that a given link, despite
         # potentially being associated with multiple url patterns, should
