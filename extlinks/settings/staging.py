@@ -17,6 +17,8 @@ CRON_CLASSES += ["extlinks.links.cron.TotalLinksCron"]
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+DEFAULT_FROM_EMAIL = "Wikilink Staging <noreply@wikilink-staging.wmflabs.org>"
+
 sentry_sdk.init(
     dsn="https://a33ceca60d69401998f52637fc69a754@glitchtip-wikilink.wmflabs.org/1",
     integrations=[DjangoIntegration()],
