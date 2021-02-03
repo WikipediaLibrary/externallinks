@@ -8,11 +8,6 @@ from extlinks.organisations.urls import urlpatterns as organisations_urls
 
 from .views import Homepage, Documentation
 
-
-def trigger_error(request):
-    division_by_zero = 1 / 0
-
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", Homepage.as_view(), name="homepage"),
@@ -22,7 +17,6 @@ urlpatterns = [
         "organisations/",
         include((organisations_urls, "organisations"), namespace="organisations"),
     ),
-    path("glitchtip-debug/", trigger_error),
 ]
 
 if settings.DEBUG and os.environ["REQUIREMENTS_FILE"] == "local.txt":
