@@ -7,11 +7,6 @@ import logging.config
 # mail_admins behavior.
 # Logging is in another file since Django 3.1 because of https://code.djangoproject.com/ticket/32016
 
-ADMINS = [("Wikilink Developers", "librarycard-dev@lists.wikimedia.org")]
-DJANGO_EMAIL_ADMINS_BACKEND = os.environ.get(
-    "DJANGO_EMAIL_ADMINS_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-
 LOGGING_CONFIG = None
 
 logging.config.dictConfig(
@@ -44,16 +39,10 @@ logging.config.dictConfig(
                 "class": "logging.StreamHandler",
                 "formatter": "django.server",
             },
-            "mail_admins": {
-                "level": "ERROR",
-                "filters": ["require_debug_false"],
-                "class": "django.utils.log.AdminEmailHandler",
-                "email_backend": DJANGO_EMAIL_ADMINS_BACKEND,
-            },
         },
         "loggers": {
             "django": {
-                "handlers": ["nodebug_console", "debug_console", "mail_admins"],
+                "handlers": ["nodebug_console", "debug_console"],
                 "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
             },
             "django.server": {
@@ -62,7 +51,7 @@ logging.config.dictConfig(
                 "propagate": False,
             },
             "Wikilink": {
-                "handlers": ["nodebug_console", "debug_console", "mail_admins"],
+                "handlers": ["nodebug_console", "debug_console"],
                 "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
             },
         },
