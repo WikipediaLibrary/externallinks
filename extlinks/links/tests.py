@@ -377,3 +377,146 @@ class EZProxyRemovalCommandTest(TestCase):
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
+
+
+class FixOnUserListCommandTest(TestCase):
+    def setUp(self):
+        self.user1 = UserFactory(username="jonsnow")
+
+        self.jstor_organisation = OrganisationFactory(name="JSTOR")
+        self.jstor_organisation.username_list.add(self.user1)
+
+        self.jstor_collection = CollectionFactory(
+            name="JSTOR", organisation=self.jstor_organisation
+        )
+        self.jstor_url_pattern = URLPatternFactory(
+            url="www.jstor.org", collection=self.jstor_collection
+        )
+
+        self.proquest_organisation = OrganisationFactory(name="ProQuest")
+        self.proquest_organisation.username_list.add(self.user1)
+
+        self.proquest_collection = CollectionFactory(
+            name="ProQuest", organisation=self.proquest_organisation
+        )
+        self.proquest_url_pattern = URLPatternFactory(
+            url="www.proquest.com", collection=self.proquest_collection
+        )
+
+        self.linkevent_jstor1 = LinkEventFactory(
+            link="www.jstor.org/dgsajdga",
+            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=True,
+        )
+        self.linkevent_jstor1.url.add(self.jstor_url_pattern)
+        self.linkevent_jstor2 = LinkEventFactory(
+            link="www.jstor.org/eiuqwyeiu445",
+            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=True,
+        )
+        self.linkevent_jstor2.url.add(self.jstor_url_pattern)
+        self.linkevent_jstor_proxy = LinkEventFactory(
+            link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
+            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=False,
+        )
+        self.linkevent_jstor_proxy.url.add(self.jstor_url_pattern)
+
+        self.linkevent_proquest1 = LinkEventFactory(
+            link="www.proquest.com/vclmxvldfgf465",
+            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=True,
+        )
+        self.linkevent_proquest1.url.add(self.proquest_url_pattern)
+        self.linkevent_proquest2 = LinkEventFactory(
+            link="www.proquest.com/dkjsahdj2893",
+            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=True,
+        )
+        self.linkevent_proquest2.url.add(self.proquest_url_pattern)
+        self.linkevent_proquest_proxy = LinkEventFactory(
+            link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
+            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            page_title="Page1",
+            username=self.user1,
+            on_user_list=False,
+        )
+        self.linkevent_proquest_proxy.url.add(self.proquest_url_pattern)
+
+    def test_fix_proxy_linkevents_on_user_list_command(self):
+        # Call the commands to fill the aggregates tables
+        call_command("fill_link_aggregates")
+        call_command("fill_pageproject_aggregates")
+        call_command("fill_user_aggregates")
+
+        # Assert the correct number of LinkEvents before running the command to
+        # fix the user list
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.jstor_url_pattern, on_user_list=True
+            ).count(),
+            2,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.jstor_url_pattern, on_user_list=False
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.proquest_url_pattern, on_user_list=True
+            ).count(),
+            2,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.proquest_url_pattern, on_user_list=False
+            ).count(),
+            1,
+        )
+
+        # Assert the correct number of aggregates before running the fix command
+        self.assertEqual(LinkAggregate.objects.count(), 4)
+        self.assertEqual(UserAggregate.objects.count(), 4)
+        self.assertEqual(PageProjectAggregate.objects.count(), 4)
+
+        call_command("fix_proxy_linkevents_on_user_list")
+
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.jstor_url_pattern, on_user_list=True
+            ).count(),
+            3,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.proquest_url_pattern, on_user_list=True
+            ).count(),
+            3,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.jstor_url_pattern, on_user_list=False
+            ).count(),
+            0,
+        )
+        self.assertEqual(
+            LinkEvent.objects.filter(
+                url=self.proquest_url_pattern, on_user_list=False
+            ).count(),
+            0,
+        )
+        self.assertEqual(LinkAggregate.objects.count(), 2)
+        self.assertEqual(UserAggregate.objects.count(), 2)
+        self.assertEqual(PageProjectAggregate.objects.count(), 2)
