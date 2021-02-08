@@ -133,8 +133,8 @@ class Command(BaseCommand):
         -------
 
         """
-        linkevents_changed = 0
         for collection in collections:
+            linkevents_changed = 0
             collection_urls = collection.url.all()
             for url_pattern in collection_urls:
                 for linkevent in linkevents:
