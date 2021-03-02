@@ -5,5 +5,5 @@ faker==6.5.0
 mysqlclient==2.0.3
 python-memcached==1.59
 sentry-sdk==0.20.3
-sseclient==0.0.22
+sseclient==0.0.27
 time_machine==2.1.0
