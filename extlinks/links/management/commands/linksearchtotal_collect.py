@@ -26,7 +26,7 @@ class Command(BaseCommand):
         total_links_dictionary = {}
         for i, language in enumerate(wiki_list_data):
             db = MySQLdb.connect(
-                host="{lang}wiki.analytics.db.svc.eqiad.wmflabs".format(lang=language),
+                host="{lang}wiki.analytics.db.svc.wikimedia.cloud".format(lang=language),
                 user=os.environ["REPLICA_DB_USER"],
                 passwd=os.environ["REPLICA_DB_PASSWORD"],
                 db="{lang}wiki_p".format(lang=language),
