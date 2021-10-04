@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "extlinks.common",
+    "extlinks.healthcheck",
     "extlinks.links",
     "extlinks.organisations",
     "extlinks.programs",
