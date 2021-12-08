@@ -3,6 +3,7 @@
 .vscode
 .env
 .env.*
+.swp
 
 # Python stuff
 __pycache__/
