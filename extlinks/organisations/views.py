@@ -25,8 +25,10 @@ class OrganisationListView(ListView):
     model = Organisation
 
     def get_queryset(self, **kwargs):
-        queryset = Organisation.objects.all().annotate(
-            collection_count=Count("collection")
+        queryset = (
+            Organisation.objects.all()
+            .annotate(collection_count=Count("collection"))
+            .order_by("name")
         )
         return queryset
 
