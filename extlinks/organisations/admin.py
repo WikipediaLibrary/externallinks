@@ -13,6 +13,7 @@ admin.site.register(User, UserAdmin)
 class OrganisationAdmin(admin.ModelAdmin):
     list_display = ("name",)
     list_filter = ("name",)
+    exclude = ("username_list",)
 
 
 admin.site.register(Organisation, OrganisationAdmin)
