@@ -4,63 +4,80 @@ volumes:
   mysql:
 
 services:
- externallinks:
-   image: quay.io/wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
-   build:
-     context: .
-     target: externallinks
-   env_file:
-     - '.env'
-   depends_on:
-     - db
-   ports:
-     - "8000:8000"
-   command: ["/app/bin/gunicorn.sh"]
-   volumes:
-     - ./:/app
-     - type: bind
-       source: ${HOST_BACKUP_DIR}
-       target: /app/backup
- db:
-   image: quay.io/wikipedialibrary/mysql:5.7
-   env_file:
-     - '.env'
-   ports:
-     - "3306:3306"
-   command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
-   volumes:
-       - mysql:/var/lib/mysql
-   healthcheck:
-     test: ["CMD", "mysqladmin", "ping", "-h", "localhost","-plinks"]
-     timeout: 20s
-     interval: 10s
-     retries: 10
- nginx:
-   image: quay.io/wikipedialibrary/nginx:latest
-   volumes:
-     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-     - ./static:/app/static
-   ports:
-     - "80:80"
-   depends_on:
-     - externallinks
- eventstream:
-   image: quay.io/wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
-   build:
-     context: .
-     target: eventstream
-   depends_on:
-     - db
-   env_file:
-     - '.env'
-   command: ["python", "django_wait_for_migrations.py", "linkevents_collect", "--historical"]
-   volumes:
-     - ./:/app
- cache:
-   image: quay.io/wikipedialibrary/memcached:latest
-   ports:
-    - "11211:11211"
-   entrypoint:
-     - memcached
-   depends_on:
-     - externallinks
+  externallinks:
+    image: quay.io/wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
+    build:
+      context: .
+      target: externallinks
+    env_file:
+      - ".env"
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    command: ["/app/bin/gunicorn.sh"]
+    volumes:
+      - ./:/app
+      - type: bind
+        source: ${HOST_BACKUP_DIR}
+        target: /app/backup
+  db:
+    image: quay.io/wikipedialibrary/mysql:5.7
+    env_file:
+      - ".env"
+    ports:
+      - "3306:3306"
+    command:
+      [
+        "mysqld",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+      ]
+    volumes:
+      - mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-plinks"]
+      timeout: 20s
+      interval: 10s
+      retries: 10
+  nginx:
+    image: quay.io/wikipedialibrary/nginx:latest
+    volumes:
+      - type: volume
+        target: /var/lib/nginx/cache
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+      - type: bind
+        source: ./static
+        target: /app/static
+    ports:
+      - "80:80"
+    depends_on:
+      - externallinks
+  eventstream:
+    image: quay.io/wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
+    build:
+      context: .
+      target: eventstream
+    depends_on:
+      - db
+    env_file:
+      - ".env"
+    command:
+      [
+        "python",
+        "django_wait_for_migrations.py",
+        "linkevents_collect",
+        "--historical",
+      ]
+    volumes:
+      - ./:/app
+  cache:
+    image: quay.io/wikipedialibrary/memcached:latest
+    ports:
+      - "11211:11211"
+    entrypoint:
+      - memcached
+    depends_on:
+      - externallinks
