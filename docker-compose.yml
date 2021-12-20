@@ -17,7 +17,9 @@ services:
       - "8000:8000"
     command: ["/app/bin/gunicorn.sh"]
     volumes:
-      - ./:/app
+      - type: bind
+        source: ./
+        target: /app
       - type: bind
         source: ${HOST_BACKUP_DIR}
         target: /app/backup
@@ -72,7 +74,9 @@ services:
         "--historical",
       ]
     volumes:
-      - ./:/app
+      - type: bind
+        source: ./
+        target: /app
   cache:
     image: quay.io/wikipedialibrary/memcached:latest
     ports:
