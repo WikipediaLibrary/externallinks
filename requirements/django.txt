@@ -1,4 +1,4 @@
-Django>=3.1.0,<3.2.0
+Django>=3.1.0,<4.1.0
 django_cron==0.5.1
 factory_boy>=3.0.1
 faker==8.2.1
