@@ -26,9 +26,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["collections"]:
             for col_id in options["collections"]:
-                try:
-                    collection = Collection.objects.get(pk=col_id)
-                except Collection.DoesNotExist:
+                collection = (
+                    Collection.objects.filter(pk=col_id).prefetch_related("url").first()
+                )
+                if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
 
                 link_event_filter = self._get_linkevent_filter(collection)
