@@ -44,6 +44,9 @@
   </div>
 </div>
 <script type="text/javascript">
+    var form_data = {{ form_data|safe }};
+    var orgs_values = {{ orgs_values|safe }};
+    document.body.onload = function() {getEditorCount( orgs_values, form_data ), getProjectCount( orgs_values, form_data )};
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
         type: 'line',
@@ -69,4 +72,42 @@
           },
         },
     })
+
+    function getEditorCount(orgs_values, form_data){
+      console.log("Getting the editor count....");
+      console.log(orgs_values);
+      console.log(form_data);
+      $.ajax({
+       url: "{% url 'programs:editor_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+       // on success
+       success: function(response) {
+         console.log(response);
+         document.getElementById("total-editors").innerHTML = response.editor_count;
+       },
+       // on error
+       error: function(response) {
+           // alert the error if any error occured
+           console.log(response.responseJSON.errors)
+       }
+     });
+    }
+
+    function getProjectCount(orgs_values, form_data){
+      console.log("Getting the project count....");
+      console.log(orgs_values);
+      console.log(form_data);
+      $.ajax({
+       url: "{% url 'programs:project_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+       // on success
+       success: function(response) {
+         console.log(response);
+         document.getElementById("total-projects").innerHTML = response.project_count;
+       },
+       // on error
+       error: function(response) {
+           // alert the error if any error occured
+           console.log(response.responseJSON.errors)
+       }
+     });
+    }
 </script>

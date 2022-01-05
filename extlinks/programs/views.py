@@ -1,9 +1,12 @@
 from datetime import date, datetime, timedelta
+import json
 
+from django.core import serializers
+from django.db.models import Sum, Count, Q
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from django.db.models import Sum, Count, Q
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -30,7 +33,7 @@ class ProgramListView(ListView):
         return queryset
 
 
-@method_decorator(cache_page(60 * 60), name="dispatch")
+# @method_decorator(cache_page(60 * 60), name="dispatch")
 class ProgramDetailView(DetailView):
     model = Program
     form_class = FilterForm
@@ -43,6 +46,7 @@ class ProgramDetailView(DetailView):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
+        context["orgs_values"] = [org.pk for org in this_program_organisations]
         form = self.form_class(self.request.GET)
         context["form"] = form
 
@@ -50,6 +54,7 @@ class ProgramDetailView(DetailView):
         # Filter queryset based on form, if used
         if form.is_valid():
             form_data = form.cleaned_data
+            context["form_data"] = json.dumps(form_data, default=str)
 
         context = self._build_context_dictionary(
             this_program_organisations, context, form_data
@@ -195,16 +200,6 @@ class ProgramDetailView(DetailView):
         context["total_removed"] = links_added_removed["links_removed"]
         context["total_diff"] = links_added_removed["links_diff"]
 
-        editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
-            editor_count=Count("username", distinct=True)
-        )
-        context["total_editors"] = editor_count["editor_count"]
-
-        project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
-            project_count=Count("project_name", distinct=True)
-        )
-        context["total_projects"] = project_count["project_count"]
-
         return context
 
     def _fill_totals_tables(self, context, queryset_filter):
@@ -254,3 +249,49 @@ class ProgramDetailView(DetailView):
         )[:5]
 
         return context
+
+
+def get_editor_count(request):
+    """
+    Ajax request for editor count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+        editor_count=Count("username", distinct=True)
+    )
+
+    response = {"editor_count": editor_count["editor_count"]}
+
+    return JsonResponse(response)
+
+
+def get_project_count(request):
+    """
+    Ajax request for project count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+        project_count=Count("project_name", distinct=True)
+    )
+
+    response = {"project_count": project_count["project_count"]}
+
+    return JsonResponse(response)
