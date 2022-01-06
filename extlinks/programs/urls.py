@@ -9,6 +9,7 @@ from .views import (
     get_editor_count,
     get_project_count,
     get_links_count,
+    get_top_organisations,
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     url(r"^editor_count/$", get_editor_count, name="editor_count"),
     url(r"^project_count/$", get_project_count, name="project_count"),
     url(r"^links_count/$", get_links_count, name="links_count"),
+    url(r"^top_organisations/$", get_top_organisations, name="top_organisations"),
     # CSV downloads
     path("<int:pk>/csv/org_totals", CSVOrgTotals.as_view(), name="csv_org_totals"),
 ]

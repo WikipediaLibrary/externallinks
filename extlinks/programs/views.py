@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta
 import json
 
-from django.core import serializers
 from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
@@ -190,15 +189,6 @@ class ProgramDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
-        context["top_organisations"] = (
-            LinkAggregate.objects.filter(queryset_filter)
-            .values("organisation__pk", "organisation__name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
         context["top_projects"] = (
             PageProjectAggregate.objects.filter(queryset_filter)
             .values("project_name")
@@ -289,5 +279,35 @@ def get_links_count(request):
         "links_removed": links_added_removed["links_removed"],
         "links_diff": links_added_removed["links_diff"],
     }
+
+    return JsonResponse(response)
+
+
+def get_top_organisations(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_organisations = (
+        LinkAggregate.objects.filter(queryset_filter)
+        .values("organisation__pk", "organisation__name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_orgs = json.dumps(list(top_organisations))
+
+    response = {"top_organisations": serialized_orgs}
 
     return JsonResponse(response)

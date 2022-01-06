@@ -16,7 +16,12 @@
   </div>
   <div class="row">
     <div class="col-4">
-      {% include "common/top_organisations_table.html" %}
+      <table id="top-organisations-table" class="table">
+        <tr>
+          <th>Organisation</th>
+          <th>Added Links</th>
+        </tr>
+      </table>
       <div style="text-align:right;">
         <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
       </div>
@@ -49,7 +54,8 @@
     document.body.onload = function() {
       getEditorCount( orgs_values, form_data ),
       getProjectCount( orgs_values, form_data ),
-      getLinksCount( orgs_values, form_data )
+      getLinksCount( orgs_values, form_data ),
+      getTopOrganisations( orgs_values, form_data )
     };
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
@@ -127,19 +133,52 @@
 
     function getProjectCount(orgs_values, form_data){
       $.ajax({
-       url: "{% url 'programs:project_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
-       beforeSend: function() {
-         document.getElementById("total-projects").innerHTML = "Loading...";
-       },
-       // on success
-       success: function(response) {
-         document.getElementById("total-projects").innerHTML = response.project_count;
-       },
-       // on error
-       error: function(response) {
-           // alert the error if any error occured
-           console.log(response.responseJSON.errors)
-       }
-     });
+        url: "{% url 'programs:project_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        beforeSend: function() {
+          document.getElementById("total-projects").innerHTML = "Loading...";
+        },
+        // on success
+        success: function(response) {
+          document.getElementById("total-projects").innerHTML = response.project_count;
+        },
+        // on error
+        error: function(response) {
+          // alert the error if any error occured
+          console.log(response.responseJSON.errors)
+        }
+      });
+    }
+
+    function getTopOrganisations(orgs_values, form_data){
+      $.ajax({
+        url: "{% url 'programs:top_organisations' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        beforeSend: function() {
+          // document.getElementById("top-organisations-table").innerHTML = "Loading...";
+        },
+        // on success
+        success: function(response) {
+          // Building table data
+          organisations = JSON.parse(response.top_organisations)
+          for (var i = 0; i < organisations.length; i++) {
+            var tr = document.createElement("tr");
+            var tdOrgName = document.createElement("td");
+            var a = document.createElement("a");
+            a.href = "{% url 'organisations:detail' pk=12345 %}".replace(/12345/, organisations[i].organisation__pk.toString());
+            a.appendChild(document.createTextNode(organisations[i].organisation__name));
+            tdOrgName.appendChild(a);
+            var tdLinks = document.createElement("td");
+            tdLinks.innerHTML = organisations[i].links_diff;
+            tr.appendChild(tdOrgName);
+            tr.appendChild(tdLinks);
+            document.getElementById("top-organisations-table").appendChild(tr);
+          }
+
+        },
+        // on error
+        error: function(response) {
+          // alert the error if any error occured
+          console.log(response.responseJSON.errors)
+        }
+      });
     }
 </script>
