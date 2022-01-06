@@ -16,18 +16,18 @@
   </div>
   <div class="row">
     <div class="col-4">
-      <table id="top-organisations-table" class="table">
-        <tr>
-          <th>Organisation</th>
-          <th>Added Links</th>
-        </tr>
-      </table>
+      {% include "common/top_organisations_table.html" %}
       <div style="text-align:right;">
         <a href="{% url 'programs:csv_org_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
       </div>
     </div>
     <div class="col-4">
-        {% include "common/top_projects_table.html" %}
+        <table id="top-projects-table" class="table">
+          <tr>
+            <th>Project</th>
+            <th>Added Links</th>
+          </tr>
+        </table>
         <div style="text-align:right;">
             <a href="{% url 'programs:csv_project_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
@@ -55,7 +55,8 @@
       getEditorCount( orgs_values, form_data ),
       getProjectCount( orgs_values, form_data ),
       getLinksCount( orgs_values, form_data ),
-      getTopOrganisations( orgs_values, form_data )
+      getTopOrganisations( orgs_values, form_data ),
+      getTopProjects( orgs_values, form_data )
     };
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
@@ -171,6 +172,36 @@
             tr.appendChild(tdOrgName);
             tr.appendChild(tdLinks);
             document.getElementById("top-organisations-table").appendChild(tr);
+          }
+
+        },
+        // on error
+        error: function(response) {
+          // alert the error if any error occured
+          console.log(response.responseJSON.errors)
+        }
+      });
+    }
+
+    function getTopProjects(orgs_values, form_data){
+      $.ajax({
+        url: "{% url 'programs:top_projects' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        beforeSend: function() {
+          // document.getElementById("top-organisations-table").innerHTML = "Loading...";
+        },
+        // on success
+        success: function(response) {
+          // Building table data
+          projects = JSON.parse(response.top_projects)
+          for (var i = 0; i < projects.length; i++) {
+            var tr = document.createElement("tr");
+            var tdOrgName = document.createElement("td");
+            tdOrgName.appendChild(document.createTextNode(projects[i].project_name));
+            var tdLinks = document.createElement("td");
+            tdLinks.innerHTML = projects[i].links_diff;
+            tr.appendChild(tdOrgName);
+            tr.appendChild(tdLinks);
+            document.getElementById("top-projects-table").appendChild(tr);
           }
 
         },

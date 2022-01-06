@@ -189,15 +189,6 @@ class ProgramDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
-        context["top_projects"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
         context["top_users"] = (
             UserAggregate.objects.filter(queryset_filter)
             .values("username")
@@ -309,5 +300,35 @@ def get_top_organisations(request):
     serialized_orgs = json.dumps(list(top_organisations))
 
     response = {"top_organisations": serialized_orgs}
+
+    return JsonResponse(response)
+
+
+def get_top_projects(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_projects = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_projects = json.dumps(list(top_projects))
+
+    response = {"top_projects": serialized_projects}
 
     return JsonResponse(response)
