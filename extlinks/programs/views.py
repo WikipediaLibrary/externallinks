@@ -93,7 +93,6 @@ class ProgramDetailView(DetailView):
             queryset_filter = Q(organisation__in=organisations)
 
         context = self._fill_chart_context(organisations, context, queryset_filter)
-        context = self._fill_statistics_table_context(context, queryset_filter)
         context = self._fill_totals_tables(context, queryset_filter)
 
         return context
@@ -169,36 +168,6 @@ class ProgramDetailView(DetailView):
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
         context["eventstream_net_change"] = eventstream_net_change
-
-        return context
-
-    def _fill_statistics_table_context(self, context, queryset_filter):
-        """
-        This function adds the Statistics table information to the context
-        dictionary to display in ProgramDetailView
-
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the organisations that are part of
-            the program
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
-            links_added=Sum("total_links_added"),
-            links_removed=Sum("total_links_removed"),
-            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-        )
-        context["total_added"] = links_added_removed["links_added"]
-        context["total_removed"] = links_added_removed["links_removed"]
-        context["total_diff"] = links_added_removed["links_diff"]
 
         return context
 
@@ -293,5 +262,32 @@ def get_project_count(request):
     )
 
     response = {"project_count": project_count["project_count"]}
+
+    return JsonResponse(response)
+
+
+def get_links_count(request):
+    """
+    Ajax request for link events counts (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+        links_added=Sum("total_links_added"),
+        links_removed=Sum("total_links_removed"),
+        links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+    )
+    response = {
+        "links_added": links_added_removed["links_added"],
+        "links_removed": links_added_removed["links_removed"],
+        "links_diff": links_added_removed["links_diff"],
+    }
 
     return JsonResponse(response)
