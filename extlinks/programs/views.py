@@ -92,7 +92,6 @@ class ProgramDetailView(DetailView):
             queryset_filter = Q(organisation__in=organisations)
 
         context = self._fill_chart_context(organisations, context, queryset_filter)
-        context = self._fill_totals_tables(context, queryset_filter)
 
         return context
 
@@ -167,36 +166,6 @@ class ProgramDetailView(DetailView):
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
         context["eventstream_net_change"] = eventstream_net_change
-
-        return context
-
-    def _fill_totals_tables(self, context, queryset_filter):
-        """
-        This function adds the information for the Totals tables to the context
-        dictionary to display in ProgramDetailView
-
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the organisations that are part of
-            the program
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        context["top_users"] = (
-            UserAggregate.objects.filter(queryset_filter)
-            .values("username")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
 
         return context
 
@@ -330,5 +299,35 @@ def get_top_projects(request):
     serialized_projects = json.dumps(list(top_projects))
 
     response = {"top_projects": serialized_projects}
+
+    return JsonResponse(response)
+
+
+def get_top_users(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_users = (
+        UserAggregate.objects.filter(queryset_filter)
+        .values("username")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_users = json.dumps(list(top_users))
+
+    response = {"top_users": serialized_users}
 
     return JsonResponse(response)

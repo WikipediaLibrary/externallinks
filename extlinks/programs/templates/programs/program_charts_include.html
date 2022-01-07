@@ -33,7 +33,12 @@
         </div>
     </div>
     <div class="col-4">
-      {% include "common/top_users_table.html" %}
+      <table id="top-users-table" class="table">
+        <tr>
+          <th>Username</th>
+          <th>Added Links</th>
+        </tr>
+      </table>
       <div style="text-align:right;">
         <a href="{% url 'programs:csv_user_totals' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
       </div>
@@ -56,7 +61,8 @@
       getProjectCount( orgs_values, form_data ),
       getLinksCount( orgs_values, form_data ),
       getTopOrganisations( orgs_values, form_data ),
-      getTopProjects( orgs_values, form_data )
+      getTopProjects( orgs_values, form_data ),
+      getTopUsers( orgs_values, form_data )
     };
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
@@ -195,13 +201,46 @@
           projects = JSON.parse(response.top_projects)
           for (var i = 0; i < projects.length; i++) {
             var tr = document.createElement("tr");
-            var tdOrgName = document.createElement("td");
-            tdOrgName.appendChild(document.createTextNode(projects[i].project_name));
+            var tdProjectName = document.createElement("td");
+            tdProjectName.appendChild(document.createTextNode(projects[i].project_name));
             var tdLinks = document.createElement("td");
             tdLinks.innerHTML = projects[i].links_diff;
-            tr.appendChild(tdOrgName);
+            tr.appendChild(tdProjectName);
             tr.appendChild(tdLinks);
             document.getElementById("top-projects-table").appendChild(tr);
+          }
+
+        },
+        // on error
+        error: function(response) {
+          // alert the error if any error occured
+          console.log(response.responseJSON.errors)
+        }
+      });
+    }
+
+    function getTopUsers(orgs_values, form_data){
+      $.ajax({
+        url: "{% url 'programs:top_users' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        beforeSend: function() {
+          // document.getElementById("top-organisations-table").innerHTML = "Loading...";
+        },
+        // on success
+        success: function(response) {
+          // Building table data
+          users = JSON.parse(response.top_users)
+          for (var i = 0; i < users.length; i++) {
+            var tr = document.createElement("tr");
+            var tdUsername = document.createElement("td");
+            var a = document.createElement("a");
+            a.href = "https://meta.wikimedia.org/wiki/User:" + users[i].username;
+            a.appendChild(document.createTextNode(users[i].username));
+            tdUsername.appendChild(a);
+            var tdLinks = document.createElement("td");
+            tdLinks.innerHTML = users[i].links_diff;
+            tr.appendChild(tdUsername);
+            tr.appendChild(tdLinks);
+            document.getElementById("top-users-table").appendChild(tr);
           }
 
         },
