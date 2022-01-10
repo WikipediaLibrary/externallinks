@@ -32,7 +32,7 @@ class ProgramListView(ListView):
         return queryset
 
 
-# @method_decorator(cache_page(60 * 60), name="dispatch")
+@method_decorator(cache_page(60 * 60), name="dispatch")
 class ProgramDetailView(DetailView):
     model = Program
     form_class = FilterForm
