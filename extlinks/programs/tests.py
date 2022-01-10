@@ -23,7 +23,10 @@ from extlinks.organisations.factories import (
     CollectionFactory,
 )
 from .factories import ProgramFactory
-from .views import ProgramListView, ProgramDetailView
+from .views import (
+    ProgramListView,
+    ProgramDetailView,
+)
 
 
 class ProgramListTest(TestCase):
@@ -140,33 +143,60 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        form_data = {}
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        self.assertEqual(response.context_data["total_added"], 3)
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(response["links_added"], 3)
 
     def test_program_detail_links_removed(self):
         """
         Test that we're counting the correct total number of removed links
         for this program.
         """
-        factory = RequestFactory()
+        form_data = {}
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        self.assertEqual(response.context_data["total_removed"], 1)
+        self.assertEqual(response["links_removed"], 1)
 
     def test_program_detail_total_editors(self):
         """
         Test that we're counting the correct total number of editors
         for this program.
         """
-        factory = RequestFactory()
+        form_data = {}
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        url = reverse("programs:editor_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        self.assertEqual(response.context_data["total_editors"], 3)
+        self.assertEqual(response["total_editors"], 3)
 
     def test_program_detail_date_form(self):
         """
