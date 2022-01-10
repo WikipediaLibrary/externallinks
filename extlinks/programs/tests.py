@@ -157,7 +157,7 @@ class ProgramDetailTest(TestCase):
         )
         response = self.client.get(url_with_params)
 
-        self.assertEqual(json.loads(response.content)["data"]["links_added"], 3)
+        self.assertEqual(json.loads(response.content)["links_added"], 3)
 
     def test_program_detail_links_removed(self):
         """
@@ -177,7 +177,7 @@ class ProgramDetailTest(TestCase):
         )
         response = self.client.get(url_with_params)
 
-        self.assertEqual(json.loads(response.content)["data"]["links_removed"], 1)
+        self.assertEqual(json.loads(response.content)["links_removed"], 1)
 
     def test_program_detail_total_editors(self):
         """
@@ -197,7 +197,7 @@ class ProgramDetailTest(TestCase):
         )
         response = self.client.get(url_with_params)
 
-        self.assertEqual(json.loads(response.content)["data"]["total_editors"], 3)
+        self.assertEqual(json.loads(response.content)["total_editors"], 3)
 
     def test_program_detail_date_form(self):
         """
