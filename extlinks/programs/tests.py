@@ -144,7 +144,7 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        form_data = {}
+        form_data = "{}"
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
@@ -164,7 +164,7 @@ class ProgramDetailTest(TestCase):
         Test that we're counting the correct total number of removed links
         for this program.
         """
-        form_data = {}
+        form_data = "{}"
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
@@ -184,7 +184,7 @@ class ProgramDetailTest(TestCase):
         Test that we're counting the correct total number of editors
         for this program.
         """
-        form_data = {}
+        form_data = "{}"
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
@@ -203,7 +203,7 @@ class ProgramDetailTest(TestCase):
         """
         Test that the date limiting form works on the program detail page.
         """
-        form_data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+        form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
@@ -223,7 +223,7 @@ class ProgramDetailTest(TestCase):
         """
         Test that the user list limiting form works on the program detail page.
         """
-        form_data = {"limit_to_user_list": True}
+        form_data = '{"limit_to_user_list": True}'
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
