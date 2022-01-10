@@ -223,7 +223,7 @@ class ProgramDetailTest(TestCase):
         """
         Test that the user list limiting form works on the program detail page.
         """
-        form_data = '{"limit_to_user_list": True}'
+        form_data = '{"limit_to_user_list": true}'
         organisations = self.program1.organisation_set.all()
         org_values = [org.pk for org in organisations]
         str_org_values = ",".join(map(str, org_values))
