@@ -157,7 +157,9 @@ class Command(BaseCommand):
         # I can't think of any situation when this wouldn't be the
         # case, but I can't wait to find out why I'm wrong.
         on_user_list = False
-        this_link_org = url_patterns[0].collection.organisation
+        this_link_collection = url_patterns[0].collection
+        if hasattr(this_link_collection, "organization"):
+            this_link_org = url_patterns[0].collection.organisation
         if hasattr(this_link_org, "username_list"):
             username_list = this_link_org.username_list
             if username_list:
