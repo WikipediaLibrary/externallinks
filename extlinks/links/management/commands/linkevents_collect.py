@@ -158,6 +158,7 @@ class Command(BaseCommand):
         # case, but I can't wait to find out why I'm wrong.
         on_user_list = False
         this_link_collection = url_patterns[0].collection
+        this_link_org = None
         if hasattr(this_link_collection, "organization"):
             this_link_org = url_patterns[0].collection.organisation
         if hasattr(this_link_org, "username_list"):
