@@ -23,6 +23,11 @@ services:
       - type: bind
         source: ${HOST_BACKUP_DIR}
         target: /app/backup
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: "384M"
   db:
     image: quay.io/wikipedialibrary/mysql:5.7
     env_file:
@@ -42,6 +47,11 @@ services:
       timeout: 20s
       interval: 10s
       retries: 10
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.5"
+          memory: "2.5G"
   nginx:
     image: quay.io/wikipedialibrary/nginx:latest
     volumes:
@@ -57,6 +67,11 @@ services:
       - "80:80"
     depends_on:
       - externallinks
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: "32M"
   eventstream:
     image: quay.io/wikipedialibrary/eventstream:${EVENTSTREAM_TAG}
     build:
@@ -77,6 +92,11 @@ services:
       - type: bind
         source: ./
         target: /app
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: "48M"
   cache:
     image: quay.io/wikipedialibrary/memcached:latest
     ports:
@@ -85,3 +105,8 @@ services:
       - memcached
     depends_on:
       - externallinks
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: "32M"
