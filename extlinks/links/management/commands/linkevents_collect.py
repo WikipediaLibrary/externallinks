@@ -158,14 +158,27 @@ class Command(BaseCommand):
         # case, but I can't wait to find out why I'm wrong.
         on_user_list = False
         this_link_collection = url_patterns[0].collection
-        this_link_org = None
-        if hasattr(this_link_collection, "organization"):
+
+        if hasattr(this_link_collection, "organisation"):
             this_link_org = url_patterns[0].collection.organisation
-        if hasattr(this_link_org, "username_list"):
-            username_list = this_link_org.username_list
-            if username_list:
-                if username_object in username_list.all():
-                    on_user_list = True
+            if hasattr(this_link_org, "username_list"):
+                username_list = this_link_org.username_list
+                if username_list:
+                    if username_object in username_list.all():
+                        on_user_list = True
+            else:
+                logger.error(
+                    "Collection {this_link_collection}, Organization {this_link_org} has no username list.".format(
+                        this_link_collection=this_link_collection,
+                        this_link_org=this_link_org,
+                    )
+                )
+        else:
+            logger.error(
+                "Collection {this_link_collection} has no organisation.".format(
+                    this_link_collection=this_link_collection
+                )
+            )
 
         # Log actions such as page moves and image uploads have no
         # revision ID.
