@@ -1,9 +1,11 @@
 from datetime import date, datetime, timedelta
+import json
 
+from django.db.models import Sum, Count, Q
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
-from django.db.models import Sum, Count, Q
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -43,6 +45,7 @@ class ProgramDetailView(DetailView):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
+        context["orgs_values"] = [org.pk for org in this_program_organisations]
         form = self.form_class(self.request.GET)
         context["form"] = form
 
@@ -50,6 +53,7 @@ class ProgramDetailView(DetailView):
         # Filter queryset based on form, if used
         if form.is_valid():
             form_data = form.cleaned_data
+            context["form_data"] = json.dumps(form_data, default=str)
 
         context = self._build_context_dictionary(
             this_program_organisations, context, form_data
@@ -88,8 +92,6 @@ class ProgramDetailView(DetailView):
             queryset_filter = Q(organisation__in=organisations)
 
         context = self._fill_chart_context(organisations, context, queryset_filter)
-        context = self._fill_statistics_table_context(context, queryset_filter)
-        context = self._fill_totals_tables(context, queryset_filter)
 
         return context
 
@@ -167,90 +169,165 @@ class ProgramDetailView(DetailView):
 
         return context
 
-    def _fill_statistics_table_context(self, context, queryset_filter):
-        """
-        This function adds the Statistics table information to the context
-        dictionary to display in ProgramDetailView
 
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
+def get_editor_count(request):
+    """
+    Ajax request for editor count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
 
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the organisations that are part of
-            the program
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
 
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
-            links_added=Sum("total_links_added"),
-            links_removed=Sum("total_links_removed"),
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+        editor_count=Count("username", distinct=True)
+    )
+
+    response = {"editor_count": editor_count["editor_count"]}
+
+    return JsonResponse(response)
+
+
+def get_project_count(request):
+    """
+    Ajax request for project count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+        project_count=Count("project_name", distinct=True)
+    )
+
+    response = {"project_count": project_count["project_count"]}
+
+    return JsonResponse(response)
+
+
+def get_links_count(request):
+    """
+    Ajax request for link events counts (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+        links_added=Sum("total_links_added"),
+        links_removed=Sum("total_links_removed"),
+        links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+    )
+    response = {
+        "links_added": links_added_removed["links_added"],
+        "links_removed": links_added_removed["links_removed"],
+        "links_diff": links_added_removed["links_diff"],
+    }
+
+    return JsonResponse(response)
+
+
+def get_top_organisations(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_organisations = (
+        LinkAggregate.objects.filter(queryset_filter)
+        .values("organisation__pk", "organisation__name")
+        .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_added"] = links_added_removed["links_added"]
-        context["total_removed"] = links_added_removed["links_removed"]
-        context["total_diff"] = links_added_removed["links_diff"]
+        .order_by("-links_diff")
+    )[:5]
 
-        editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
-            editor_count=Count("username", distinct=True)
+    serialized_orgs = json.dumps(list(top_organisations))
+
+    response = {"top_organisations": serialized_orgs}
+
+    return JsonResponse(response)
+
+
+def get_top_projects(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_projects = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_editors"] = editor_count["editor_count"]
+        .order_by("-links_diff")
+    )[:5]
 
-        project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
-            project_count=Count("project_name", distinct=True)
+    serialized_projects = json.dumps(list(top_projects))
+
+    response = {"top_projects": serialized_projects}
+
+    return JsonResponse(response)
+
+
+def get_top_users(request):
+    """
+    Ajax request to fill the top organisations table
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    organisations = request.GET.get("organisations", None)
+
+    if organisations:
+        orgs = organisations.split(",")
+    else:
+        orgs = []
+
+    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+
+    top_users = (
+        UserAggregate.objects.filter(queryset_filter)
+        .values("username")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_projects"] = project_count["project_count"]
+        .order_by("-links_diff")
+    )[:5]
 
-        return context
+    serialized_users = json.dumps(list(top_users))
 
-    def _fill_totals_tables(self, context, queryset_filter):
-        """
-        This function adds the information for the Totals tables to the context
-        dictionary to display in ProgramDetailView
+    response = {"top_users": serialized_users}
 
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the organisations that are part of
-            the program
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        context["top_organisations"] = (
-            LinkAggregate.objects.filter(queryset_filter)
-            .values("organisation__pk", "organisation__name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_projects"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_users"] = (
-            UserAggregate.objects.filter(queryset_filter)
-            .values("username")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        return context
+    return JsonResponse(response)

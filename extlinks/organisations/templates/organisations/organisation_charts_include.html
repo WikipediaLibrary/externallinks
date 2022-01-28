@@ -86,88 +86,88 @@
 </div>
 
 <script type="text/javascript">
-    {% for collection_name, collection in collections.items %}
-      var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
-      var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
-        type: 'line',
-        data: {
-          labels: {{ collection.eventstream_dates | safe }},
-          datasets: [
-            {
-              label: "Net Changes",
-              borderColor: '#3b8ba5',
-              fill: false,
-              data: {{ collection.eventstream_net_change }},
-              tension: 0.2
-            },
-          ]
-        },
-        options: {
-          scales: {
-            yAxes: [{
-              ticks: {
-                callback: function (value) { if (Number.isInteger(value)) { return value; } },
-              }
-            }]
+  {% for collection_name, collection in collections.items %}
+    var {{ collection_name }}_ctx = document.getElementById('{{ collection_name }}_eventStreamChart').getContext('2d');
+    var {{ collection_name }}_eventStreamChart = new Chart({{ collection_name }}_ctx, {
+      type: 'line',
+      data: {
+        labels: {{ collection.eventstream_dates | safe }},
+        datasets: [
+          {
+            label: "Net Changes",
+            borderColor: '#3b8ba5',
+            fill: false,
+            data: {{ collection.eventstream_net_change }},
+            tension: 0.2
           },
-        },
-      });
-
-      var {{ collection_name }}_ctx_ls = document.getElementById('{{ collection_name }}_totalLinksChart').getContext('2d');
-      var {{ collection_name }}_totalLinksChart = new Chart({{ collection_name }}_ctx_ls, {
-        type: 'line',
-        data: {
-          labels: {{ collection.linksearch_dates | safe }},
-          datasets: [
-            {
-              label: "Total",
-              fill: false,
-              borderColor: 'rgba(100,220,128,0.81)',
-              data: {{ collection.linksearch_data }},
-              tension: 0.2
+        ]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              callback: function (value) { if (Number.isInteger(value)) { return value; } },
             }
-          ]
+          }]
         },
-        options: {
-          scales: {
-            yAxes: [{
-              ticks: {
-                min: 0,
-                callback: function (value) { if (Number.isInteger(value)) { return value; } },
-              }
-            }]
-          },
+      },
+    });
+
+    var {{ collection_name }}_ctx_ls = document.getElementById('{{ collection_name }}_totalLinksChart').getContext('2d');
+    var {{ collection_name }}_totalLinksChart = new Chart({{ collection_name }}_ctx_ls, {
+      type: 'line',
+      data: {
+        labels: {{ collection.linksearch_dates | safe }},
+        datasets: [
+          {
+            label: "Total",
+            fill: false,
+            borderColor: 'rgba(100,220,128,0.81)',
+            data: {{ collection.linksearch_data }},
+            tension: 0.2
+          }
+        ]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              min: 0,
+              callback: function (value) { if (Number.isInteger(value)) { return value; } },
+            }
+          }]
         },
-      });
-    {% endfor %}
+      },
+    });
+  {% endfor %}
 
-    function openGraph(evt, collection, graphName) {
-      // Declare all variables
-      var i, tabcontent, tablinks;
+  function openGraph(evt, collection, graphName) {
+    // Declare all variables
+    var i, tabcontent, tablinks;
 
-      // Hide all graphs related to the clicked graph's collection
-      tabcontent = document.getElementsByClassName("tabcontent");
-      for (i = 0; i < tabcontent.length; i++) {
-        if (tabcontent[i].id.indexOf(collection)!=-1) {
-            tabcontent[i].style.display = "none";
-        }
+    // Hide all graphs related to the clicked graph's collection
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      if (tabcontent[i].id.indexOf(collection)!=-1) {
+          tabcontent[i].style.display = "none";
       }
-
-      // Get all elements with class="tablinks" and remove the class "active"
-      tablinks = document.getElementsByClassName("tablinks");
-      for (i = 0; i < tablinks.length; i++) {
-        if (tabcontent[i].id.indexOf(collection)!=-1) {
-          tablinks[i].className = tablinks[i].className.replace(" active", "");
-        }
-      }
-
-      // Show the current tab, and add an "active" class to the button that opened the tab
-      document.getElementById(graphName).style.display = "block";
-      evt.currentTarget.className += " active";
     }
 
-    // Click all Link Events buttons
-    {% for collection_name, collection in collections.items %}
-      document.getElementById('{{ collection_name }}_linkEvents_button').click();
-    {% endfor %}
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      if (tabcontent[i].id.indexOf(collection)!=-1) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(graphName).style.display = "block";
+    evt.currentTarget.className += " active";
+  }
+
+  // Click all Link Events buttons
+  {% for collection_name, collection in collections.items %}
+    document.getElementById('{{ collection_name }}_linkEvents_button').click();
+  {% endfor %}
 </script>

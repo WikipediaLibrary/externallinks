@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
@@ -23,7 +24,10 @@ from extlinks.organisations.factories import (
     CollectionFactory,
 )
 from .factories import ProgramFactory
-from .views import ProgramListView, ProgramDetailView
+from .views import (
+    ProgramListView,
+    ProgramDetailView,
+)
 
 
 class ProgramListTest(TestCase):
@@ -140,61 +144,100 @@ class ProgramDetailTest(TestCase):
         factory = RequestFactory()
 
         request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        form_data = "{}"
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        self.assertEqual(response.context_data["total_added"], 3)
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["links_added"], 3)
 
     def test_program_detail_links_removed(self):
         """
         Test that we're counting the correct total number of removed links
         for this program.
         """
-        factory = RequestFactory()
+        form_data = "{}"
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        self.assertEqual(response.context_data["total_removed"], 1)
+        self.assertEqual(json.loads(response.content)["links_removed"], 1)
 
     def test_program_detail_total_editors(self):
         """
         Test that we're counting the correct total number of editors
         for this program.
         """
-        factory = RequestFactory()
+        form_data = "{}"
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        request = factory.get(self.url1)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
+        url = reverse("programs:editor_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        self.assertEqual(response.context_data["total_editors"], 3)
+        self.assertEqual(json.loads(response.content)["editor_count"], 3)
 
     def test_program_detail_date_form(self):
         """
         Test that the date limiting form works on the program detail page.
         """
-        factory = RequestFactory()
+        form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
-
-        self.assertEqual(response.context_data["total_added"], 2)
-        self.assertEqual(response.context_data["total_removed"], 0)
+        self.assertEqual(json.loads(response.content)["links_added"], 2)
+        self.assertEqual(json.loads(response.content)["links_removed"], 0)
 
     def test_program_detail_user_list_form(self):
         """
         Test that the user list limiting form works on the program detail page.
         """
-        factory = RequestFactory()
+        form_data = '{"limit_to_user_list": true}'
+        organisations = self.program1.organisation_set.all()
+        org_values = [org.pk for org in organisations]
+        str_org_values = ",".join(map(str, org_values))
 
-        data = {"limit_to_user_list": True}
+        url = reverse("programs:links_count")
+        url_with_params = (
+            "{url}?organisations={org_values}&form_data={form_data}".format(
+                url=url, org_values=str_org_values, form_data=form_data
+            )
+        )
+        response = self.client.get(url_with_params)
 
-        request = factory.get(self.url1, data)
-        response = ProgramDetailView.as_view()(request, pk=self.program1.pk)
-
-        self.assertEqual(response.context_data["total_added"], 1)
-        self.assertEqual(response.context_data["total_removed"], 0)
+        self.assertEqual(json.loads(response.content)["links_added"], 1)
+        self.assertEqual(json.loads(response.content)["links_removed"], 0)
 
     def test_program_detail_namespace_form(self):
         """

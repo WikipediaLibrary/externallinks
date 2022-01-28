@@ -66,33 +66,26 @@
       </tr>
       <tr>
         <td>Total added:</td>
-        <td style="text-align: right;">{{ total_added }}</td>
+        <td id="links-added" style="text-align: right;"></td>
       </tr>
       <tr>
         <td>Total removed:</td>
-        <td style="text-align: right;">{{ total_removed }}</td>
+        <td id="links-removed" style="text-align: right;"></td>
       </tr>
       <tr style="line-height:55px;">
         <td></td>
-        <td style="text-align: right; font-weight: bold;
-            {% if total_diff > 0 %}
-                    color: green;">+
-            {% else %}
-                    color: red;">
-            {% endif %}
-            {{ total_diff }}
-        </td>
+        <td id="links-diff" style="text-align: right; font-weight: bold;"></td>
       </tr>
       <tr class="stat-table-header">
         <td>Other</td>
       </tr>
       <tr>
         <td>Total editors:</td>
-        <td style="text-align: right;">{{ total_editors }}</td>
+        <td id="total-editors" style="text-align: right;"></td>
       </tr>
       <tr>
         <td>Total projects:</td>
-        <td style="text-align: right;">{{ total_projects }}</td>
+        <td id="total-projects" style="text-align: right;"></td>
       </tr>
   </table>
 {% endif %}
