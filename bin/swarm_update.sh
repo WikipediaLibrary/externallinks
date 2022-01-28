@@ -56,4 +56,4 @@ pull quay.io/wikipedialibrary/eventstream ${eventstream_tag}
 git -C ${dir} pull
 
 # Deploy the updates.
-docker stack deploy -c <(cd ${dir}; docker-compose config) ${env}
+docker stack deploy -c <(cd ${dir}; docker-compose config 2>/dev/null) ${env}
