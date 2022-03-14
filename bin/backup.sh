@@ -24,10 +24,10 @@ flock -n ${lockfile}
 
         echo "Finished backup."
 
-        # Retain backups for 90 days.
-        find /app/backup -name "*.sql.gz" -mtime +90 -delete || :
+        # Retain backups for 30 days.
+        find /app/backup -name "*.sql.gz" -mtime +30 -delete || :
 
-        echo "Removed backups created 90 days ago or more."
+        echo "Removed backups created 30 days ago or more."
     else
         exit 1
     fi

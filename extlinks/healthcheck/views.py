@@ -16,7 +16,7 @@ class LinkEventHealthCheckView(View):
         status_msg = "error"
         try:
             latest_linkevent_datetime = LinkEvent.objects.all().latest().timestamp
-            cutoff_datetime = now() - timedelta(days=2)
+            cutoff_datetime = now() - timedelta(days=1)
             if latest_linkevent_datetime > cutoff_datetime:
                 status_code = 200
                 status_msg = "ok"

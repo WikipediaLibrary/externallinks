@@ -3,8 +3,8 @@ from django_cron import CronJobBase, Schedule
 
 
 class BackupCron(CronJobBase):
-    # 10080 is weekly.
-    schedule = Schedule(run_every_mins=10080)
+    # 1440 is daily.
+    schedule = Schedule(run_every_mins=1440)
     code = "common.backup"
 
     def do(self):
