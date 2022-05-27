@@ -35,26 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Pull and retag docker.io library images
-        run: |
-          docker pull docker.io/library/python:3.8-buster
-          docker tag docker.io/library/python:3.8-buster quay.io/wikipedialibrary/python:3.8-buster
-          docker pull docker.io/library/nginx:latest
-          docker tag docker.io/library/nginx:latest quay.io/wikipedialibrary/nginx:latest
-          docker pull docker.io/library/mysql:5.7
-          docker tag docker.io/library/mysql:5.7 quay.io/wikipedialibrary/mysql:5.7
-          docker pull docker.io/library/memcached:latest
-          docker tag docker.io/library/memcached:latest quay.io/wikipedialibrary/memcached:latest
-
       - name: Log into quay.io
         run: echo "${{ secrets.CR_PASSWORD }}" | docker login quay.io -u ${{ secrets.CR_USERNAME }} --password-stdin
-
-      - name: Push docker.io library images to quay.io/wikipedialibrary
-        run: |
-          docker push quay.io/wikipedialibrary/python:3.8-buster
-          docker push quay.io/wikipedialibrary/nginx:latest
-          docker push quay.io/wikipedialibrary/mysql:5.7
-          docker push quay.io/wikipedialibrary/memcached:latest
 
       - name: Build Images
         run: |
