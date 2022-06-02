@@ -29,7 +29,7 @@ services:
           cpus: "0.25"
           memory: "384M"
   db:
-    image: quay.io/wikipedialibrary/mysql:5.7
+    image: quay.io/wikipedialibrary/mysql:5.7-updated
     env_file:
       - ".env"
     ports:
@@ -53,7 +53,7 @@ services:
           cpus: "0.5"
           memory: "2.5G"
   nginx:
-    image: quay.io/wikipedialibrary/nginx:latest
+    image: quay.io/wikipedialibrary/nginx:latest-updated
     volumes:
       - type: volume
         target: /var/lib/nginx/cache
