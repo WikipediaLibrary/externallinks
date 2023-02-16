@@ -7,7 +7,7 @@ class User(models.Model):
     class Meta:
         app_label = "organisations"
 
-    username = models.CharField(max_length=235)
+    username = models.CharField(max_length=235, unique=True)
 
     def __str__(self):
         return self.username
