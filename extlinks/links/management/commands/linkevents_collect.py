@@ -1,6 +1,6 @@
 # Based heavily on
 # https://github.com/Samwalton9/hashtags/blob/master/scripts/collect_hashtags.py
-
+import hashlib
 from datetime import datetime
 import json
 import logging
@@ -65,7 +65,7 @@ class Command(BaseCommand):
         self._process_events(url)
 
     def _process_events(self, url):
-        # Eventsource should fail if it can't read data after ~15 minutes.
+        # Eventsource should fail if it can't read data after a while.
         for event in EventSource(
             url,
             # The retry argument sets the delay between retries in milliseconds.
@@ -73,13 +73,13 @@ class Command(BaseCommand):
             # There's no way to set the max_retries value with this library,
             # but since it depends upon requests, which in turn uses urllib3
             # by default, we get a default max_retries value of 3.
-            retry=300000,
+            retry=60000,
             # The timeout argument gets passed to requests.get.
             # An integer value sets connect (socket connect) and
             # read (time to first byte / since last byte) timeout values.
             # A tuple value sets each respective value independently.
             # https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
-            timeout=(3.05, 30),
+            timeout=(3.05, 7),
         ):
             if event.event == "message":
                 try:
@@ -112,8 +112,11 @@ class Command(BaseCommand):
                     unquoted_url = unquote(link["link"])
 
                     event_id = event_dict["meta"]["id"]
+                    link_event_id = unquoted_url + event_id
+                    hash = hashlib.sha256()
+                    hash.update(link_event_id.encode("utf-8"))
                     event_objects = LinkEvent.objects.filter(
-                        link=unquoted_url, event_id=event_id
+                        hash_link_event_id = hash.hexdigest()
                     )
 
                     # We skip the URL if the length is greater than 2083

@@ -1,3 +1,4 @@
+import hashlib
 from datetime import date
 
 from django.db import models
@@ -56,6 +57,9 @@ class LinkEvent(models.Model):
     class Meta:
         app_label = "links"
         get_latest_by = "timestamp"
+        indexes = [
+            models.Index(fields=["hash_link_event_id",]),
+        ]
 
     url = models.ManyToManyField(URLPattern, related_name="linkevent")
 
@@ -75,6 +79,7 @@ class LinkEvent(models.Model):
     page_namespace = models.IntegerField()
     event_id = models.CharField(max_length=36)
     user_is_bot = models.BooleanField(default=False)
+    hash_link_event_id = models.CharField(max_length=256, blank=True)
 
     # Were links added or removed?
     REMOVED = 0
@@ -95,3 +100,10 @@ class LinkEvent(models.Model):
     def get_organisation(self):
         url_patterns = self.url.all()
         return url_patterns[0].collection.organisation
+
+    def save(self, **kwargs):
+        link_event_id = self.link + self.event_id
+        hash = hashlib.sha256()
+        hash.update(link_event_id.encode("utf-8"))
+        self.hash_link_event_id = hash.hexdigest()
+        super().save(**kwargs)
