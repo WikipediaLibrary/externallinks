@@ -34,14 +34,14 @@ services:
       - ".env"
     ports:
       - "3306:3306"
-    command:
-      [
-        "mysqld",
-        "--character-set-server=utf8mb4",
-        "--collation-server=utf8mb4_unicode_ci",
-      ]
     volumes:
-      - mysql:/var/lib/mysql
+      - type: volume
+        source: mysql
+        target: /var/lib/mysql
+        volume: {}
+      - type: bind
+        source: ./db.cnf
+        target: /etc/mysql/conf.d/db.cnf
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-plinks"]
       timeout: 20s
