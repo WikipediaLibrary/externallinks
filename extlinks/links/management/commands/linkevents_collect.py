@@ -50,8 +50,8 @@ class Command(BaseCommand):
         # to the ~30 days that the EventStream historical data is kept anyway).
         if options["historical"]:
             all_events = LinkEvent.objects.all()
-            if all_events.count() > 0:
-                latest_datetime = LinkEvent.objects.all().latest().timestamp
+            if all_events.exists():
+                latest_datetime = all_events.latest().timestamp
                 latest_date_formatted = latest_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
                 url = base_stream_url + "?since={date}".format(

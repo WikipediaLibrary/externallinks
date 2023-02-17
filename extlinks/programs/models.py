@@ -26,11 +26,6 @@ class Program(models.Model):
         """
         Returns True if any of this program's organisations limit by user
         """
-        program_orgs = Organisation.objects.filter(
+        return Organisation.objects.filter(
             program=self, username_list__isnull=False
-        )
-
-        if program_orgs.count() > 0:
-            return True
-        else:
-            return False
+        ).exists()
