@@ -59,6 +59,7 @@ class LinkEvent(models.Model):
         get_latest_by = "timestamp"
         indexes = [
             models.Index(fields=["hash_link_event_id",]),
+            models.Index(fields=["timestamp",]),
         ]
 
     url = models.ManyToManyField(URLPattern, related_name="linkevent")
