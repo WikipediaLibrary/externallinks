@@ -1,5 +1,5 @@
 # Dockerfile
-FROM quay.io/wikipedialibrary/python:3.8-buster-updated as eventstream
+FROM quay.io/wikipedialibrary/python:3.11-bullseye-updated as eventstream
 
 WORKDIR /app
 ARG REQUIREMENTS_FILE
