@@ -32,10 +32,7 @@ class Organisation(models.Model):
 
     @property
     def limit_by_user(self):
-        if self.username_list.count() > 0:
-            return True
-        else:
-            return False
+        return self.username_list.exists()
 
 
 class Collection(models.Model):
