@@ -11,14 +11,14 @@ from django.utils.functional import cached_property
 logger = logging.getLogger("django")
 
 class URLPatternManager(models.Manager):
-    cached_patterns = cache.get('url_pattern_cache')
 
     def cached(self):
-        if not self.cached_patterns:
-            self.cached_patterns = self.all()
+        cached_patterns = cache.get('url_pattern_cache')
+        if not cached_patterns:
+            cached_patterns = self.all()
             logger.info('set url_pattern_cache')
-            cache.set('url_pattern_cache', self.cached_patterns, 60)
-        return self.cached_patterns
+            cache.set('url_pattern_cache', cached_patterns, None)
+        return cached_patterns
 
     def matches(self, link):
         # All URL patterns matching this link
@@ -59,7 +59,7 @@ class URLPattern(models.Model):
 @receiver(post_save, sender=URLPattern)
 def delete_url_pattern_cache(sender, instance, **kwargs):
     if cache.delete('url_pattern_cache'):
-        logger.info('url_pattern_cache deleted')
+        logger.info('delete url_pattern_cache')
 
 class LinkSearchTotal(models.Model):
     class Meta:
