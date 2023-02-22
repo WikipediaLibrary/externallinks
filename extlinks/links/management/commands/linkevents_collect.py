@@ -146,13 +146,7 @@ class Command(BaseCommand):
         # an edit from them before now.
         username_object, created = User.objects.get_or_create(username=username)
 
-        # All URL patterns matching this link
-        tracked_urls = URLPattern.objects.all()
-        url_patterns = [
-            pattern
-            for pattern in tracked_urls
-            if pattern.url in link or pattern.get_proxied_url in link
-        ]
+        url_patterns = URLPattern.objects.matches(link)
 
         # We make a hard assumption here that a given link, despite
         # potentially being associated with multiple url patterns, should

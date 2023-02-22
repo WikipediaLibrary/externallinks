@@ -29,7 +29,7 @@ class UserAggregateFactory(factory.django.DjangoModelFactory):
 
     organisation = factory.SubFactory(OrganisationFactory)
     collection = factory.SubFactory(CollectionFactory)
-    username = factory.Faker("name")
+    username = factory.Sequence(lambda n: 'user%d' % n)
     full_date = factory.Faker(
         "date_between_dates",
         date_start=datetime.date(2017, 1, 1),

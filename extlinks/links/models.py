@@ -1,9 +1,33 @@
 import hashlib
+import logging
 from datetime import date
 
+from django.core.cache import cache
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.functional import cached_property
 
+logger = logging.getLogger("django")
+
+class URLPatternManager(models.Manager):
+
+    def cached(self):
+        cached_patterns = cache.get('url_pattern_cache')
+        if not cached_patterns:
+            cached_patterns = self.all()
+            logger.info('set url_pattern_cache')
+            cache.set('url_pattern_cache', cached_patterns, None)
+        return cached_patterns
+
+    def matches(self, link):
+        # All URL patterns matching this link
+        tracked_urls = self.cached()
+        return [
+            pattern
+            for pattern in tracked_urls
+            if pattern.url in link or pattern.get_proxied_url in link
+        ]
 
 class URLPattern(models.Model):
     class Meta:
@@ -11,6 +35,7 @@ class URLPattern(models.Model):
         verbose_name = "URL pattern"
         verbose_name_plural = "URL patterns"
 
+    objects = URLPatternManager()
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
 
@@ -30,6 +55,11 @@ class URLPattern(models.Model):
         # for us to make a decision about whether we have a match.
         return self.url.replace(".", "-")
 
+
+@receiver(post_save, sender=URLPattern)
+def delete_url_pattern_cache(sender, instance, **kwargs):
+    if cache.delete('url_pattern_cache'):
+        logger.info('delete url_pattern_cache')
 
 class LinkSearchTotal(models.Model):
     class Meta:
