@@ -1,9 +1,31 @@
 import hashlib
+import logging
 from datetime import date
 
 from django.db import models
+from django.core.cache import cache
 from django.utils.functional import cached_property
 
+logger = logging.getLogger("django")
+
+class URLPatternManager(models.Manager):
+    cached_patterns = cache.get('url_pattern_cache')
+
+    def cached(self):
+        if not self.cached_patterns:
+            self.cached_patterns = self.all()
+            logger.info('set url_pattern_cache')
+            cache.set('url_pattern_cache', self.cached_patterns, None)
+        return self.cached_patterns
+
+    def matches(self, link):
+        # All URL patterns matching this link
+        tracked_urls = self.cached()
+        return [
+            pattern
+            for pattern in tracked_urls
+            if pattern.url in link or pattern.get_proxied_url in link
+        ]
 
 class URLPattern(models.Model):
     class Meta:
@@ -11,6 +33,7 @@ class URLPattern(models.Model):
         verbose_name = "URL pattern"
         verbose_name_plural = "URL patterns"
 
+    objects = URLPatternManager()
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
 
@@ -23,6 +46,10 @@ class URLPattern(models.Model):
 
     def __str__(self):
         return self.url
+
+    def save(self, *args, **kwargs):
+        cache.delete('url_pattern_cache')
+        super(URLPattern, self).save(*args, **kwargs)
 
     @cached_property
     def get_proxied_url(self):
