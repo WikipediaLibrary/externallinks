@@ -10,7 +10,6 @@ from sseclient import SSEClient as EventSource
 from urllib.parse import unquote
 
 from django.core.management.base import BaseCommand
-from django.core.cache import cache
 
 from extlinks.links.helpers import link_is_tracked
 from extlinks.links.models import LinkEvent, URLPattern

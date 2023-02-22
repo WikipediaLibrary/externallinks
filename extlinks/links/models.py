@@ -2,8 +2,10 @@ import hashlib
 import logging
 from datetime import date
 
-from django.db import models
 from django.core.cache import cache
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.functional import cached_property
 
 logger = logging.getLogger("django")
@@ -15,7 +17,7 @@ class URLPatternManager(models.Manager):
         if not self.cached_patterns:
             self.cached_patterns = self.all()
             logger.info('set url_pattern_cache')
-            cache.set('url_pattern_cache', self.cached_patterns, None)
+            cache.set('url_pattern_cache', self.cached_patterns, 60)
         return self.cached_patterns
 
     def matches(self, link):
@@ -47,16 +49,17 @@ class URLPattern(models.Model):
     def __str__(self):
         return self.url
 
-    def save(self, *args, **kwargs):
-        cache.delete('url_pattern_cache')
-        super(URLPattern, self).save(*args, **kwargs)
-
     @cached_property
     def get_proxied_url(self):
         # This isn't everything that happens, but it's good enough
         # for us to make a decision about whether we have a match.
         return self.url.replace(".", "-")
 
+
+@receiver(post_save, sender=URLPattern)
+def delete_url_pattern_cache(sender, instance, **kwargs):
+    if cache.delete('url_pattern_cache'):
+        logger.info('url_pattern_cache deleted')
 
 class LinkSearchTotal(models.Model):
     class Meta:
