@@ -1,5 +1,5 @@
 from datetime import datetime
-import glob, gzip, logging
+import glob, gzip, logging, math
 
 from django.core import serializers
 from django.core.management import BaseCommand
@@ -16,9 +16,9 @@ class Command(BaseCommand):
 
     def dump(self, year):
         if year < datetime.now().year:
-            for i in range(1, 13):
+            for m in range(1, 13):
                 # pad out month for clear filenames
-                month = f"{i:02}"
+                month = f"{m:02}"
                 yyyymm = str(year) + str(month)
                 linkevents = LinkEvent.objects.filter(
                     timestamp__year=year, timestamp__month=month
@@ -26,14 +26,18 @@ class Command(BaseCommand):
                 if linkevents.count() == 0:
                     logger.info("no events found for " + yyyymm)
                     continue
-                passes = (linkevents.count() + chunk // 2) // chunk
+                passes = math.ceil((linkevents.count()) / chunk)
                 logger.info("dumping " + yyyymm + " in " + str(passes) + " passes")
-                for i in range(passes):
+                for p in range(passes):
+                    offset = chunk * p
+                    limit = chunk * (p + 1)
+                    logger.info("query offset: " + str(offset))
+                    logger.info("query limit: " + str(limit))
                     filename = (
-                        "backup/links_linkevent_" + yyyymm + "." + str(i) + ".json.gz"
+                        "backup/links_linkevent_" + yyyymm + "." + str(p) + ".json.gz"
                     )
                     logger.info("dumping " + filename)
-                    linkevents_chunk = linkevents.all()[:chunk]
+                    linkevents_chunk = linkevents.all()[offset:limit]
                     with gzip.open(filename, "wt", encoding="utf-8") as archive:
                         archive.write(serializers.serialize("json", linkevents_chunk))
                 logger.info("deleting " + yyyymm + " events from ORM")
@@ -48,10 +52,7 @@ class Command(BaseCommand):
                     deserialized.object
                     for deserialized in serializers.deserialize("json", archive)
                 )
-                try:
-                    LinkEvent.objects.bulk_create(data, chunk)
-                except IntegrityError:
-                    logger.error("failed to load " + filename)
+                LinkEvent.objects.bulk_create(data, chunk)
 
     def add_arguments(self, parser):
         parser.add_argument("action", nargs=1, type=str)
