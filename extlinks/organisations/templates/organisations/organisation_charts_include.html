@@ -79,7 +79,7 @@
         {% endfor %}
       </table>
       <div style="text-align:right;">
-        <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
+        <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download {% now "Y" %} CSV</a>
       </div>
     </div>
   {% endfor %}
