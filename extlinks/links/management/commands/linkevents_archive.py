@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 timestamp__year=year, timestamp__month=month
             )
             if linkevents.count() == 0:
-                logger.info("no events found for " + yyyymm)
+                logger.info("no link events found for " + yyyymm)
                 continue
             # Determine the number of passes to make by dividng linkevent count by chunk size, rounding up.
             passes = math.ceil((linkevents.count()) / chunk)
@@ -61,6 +61,10 @@ class Command(BaseCommand):
         """
         # Glob matching the expected file names
         pathname = "backup/links_linkevent_" + str(year) + "??.?.json.gz"
+        filenames = sorted(glob.glob(pathname))
+        if not filenames:
+            logger.info("no link event archives found for " + str(year))
+            return
         for filename in sorted(glob.glob(pathname)):
             logger.info("loading " + filename)
             # Deserialize the records directly in the writer to conserve memory
