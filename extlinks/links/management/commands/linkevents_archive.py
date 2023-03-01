@@ -2,10 +2,10 @@ from datetime import datetime
 import glob, gzip, logging, math
 
 from django.core import serializers
-from django.core.management import BaseCommand
+from django.core.management import call_command, BaseCommand
 from django.db import IntegrityError
 
-from extlinks.links.models import LinkEvent
+from extlinks.links.models import LinkEvent, URLPattern
 
 logger = logging.getLogger("django")
 chunk = 100000
@@ -30,11 +30,11 @@ class Command(BaseCommand):
                 timestamp__year=year, timestamp__month=month
             )
             if linkevents.count() == 0:
-                logger.info("no link events found for " + yyyymm)
+                logger.info("No link events found for " + yyyymm)
                 continue
             # Determine the number of passes to make by dividng linkevent count by chunk size, rounding up.
             passes = math.ceil((linkevents.count()) / chunk)
-            logger.info("dumping " + yyyymm + " in " + str(passes) + " passes")
+            logger.info("Dumping " + yyyymm + " in " + str(passes) + " passes")
             for p in range(passes):
                 # Slice the queryset as needed for each pass
                 offset = chunk * p
@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 with gzip.open(filename, "wt", encoding="utf-8") as archive:
                     archive.write(serializers.serialize("json", linkevents_chunk))
             # Delete the objects from the database after all passes are complete
-            logger.info("deleting " + yyyymm + " events from ORM")
+            logger.info("Deleting " + yyyymm + " events from ORM")
             linkevents.delete()
 
     def load(self, year):
@@ -62,19 +62,14 @@ class Command(BaseCommand):
         # Glob matching the expected file names
         pathname = "backup/links_linkevent_" + str(year) + "??.?.json.gz"
         filenames = sorted(glob.glob(pathname))
+        ThroughModel = LinkEvent.url.through
         if not filenames:
-            logger.info("no link event archives found for " + str(year))
+            logger.info("No link event archives found for " + str(year))
             return
         for filename in sorted(glob.glob(pathname)):
-            logger.info("loading " + filename)
-            # Deserialize the records directly in the writer to conserve memory
-            with gzip.open(filename, "rt", encoding="utf-8") as archive:
-                data = (
-                    deserialized.object
-                    for deserialized in serializers.deserialize("json", archive)
-                )
-                # bulk_create is much, much faster than looping through the deserialized objects and save, which is what the django docs demonstrate.
-                LinkEvent.objects.bulk_create(data, chunk)
+            logger.info("Loading " + filename)
+            # loaddata supports gzipped fixtures and handles relationships properly
+            call_command("loaddata", filename)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -82,7 +77,7 @@ class Command(BaseCommand):
             nargs=1,
             type=str,
             choices=["dump", "load"],
-            help="dump: export LinkEvents to gzipped JSON files, then delete them from the database. load: import LinkEvents from gzipped JSON files.",
+            help="dump: Export LinkEvents to gzipped JSON files, then delete them from the database. load: Import LinkEvents from gzipped JSON files.",
         )
         parser.add_argument(
             "year",
@@ -96,7 +91,7 @@ class Command(BaseCommand):
         action = options["action"][0]
         for year in options["year"]:
             if year >= this_year:
-                logger.warning("skipping events for " + str(this_year))
+                logger.warning("Skipping events for " + str(this_year))
                 continue
             if action == "dump":
                 self.dump(year)
