@@ -47,7 +47,7 @@ class Command(BaseCommand):
         # Every time this script is started, find the latest entry in the
         # database, and start the eventstream from there. This ensures that in
         # the event of any downtime, we always maintain 100% data coverage (up
-        # to the ~30 days that the EventStream historical data is kept anyway).
+        # to the ~7 days that the EventStream historical data is kept anyway).
         if options["historical"]:
             all_events = LinkEvent.objects.all()
             if all_events.exists():
