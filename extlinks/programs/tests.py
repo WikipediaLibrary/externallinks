@@ -377,24 +377,6 @@ class ProgramDetailTest(TestCase):
         )
         self.assertEqual(csv_content, expected_output)
 
-    def test_latest_links_csv(self):
-        """
-        Test that the top users CSV returns the expected data
-        """
-        factory = RequestFactory()
-
-        csv_url = reverse("programs:csv_all_links", kwargs={"pk": self.program1.pk})
-
-        request = factory.get(csv_url)
-        response = CSVAllLinkEvents.as_view()(request, pk=self.program1.pk)
-
-        self.assertContains(response, self.linkevent1.link)
-        self.assertContains(response, self.linkevent2.link)
-        self.assertContains(response, self.linkevent3.link)
-        self.assertContains(response, self.linkevent4.link)
-
-        self.assertContains(response, self.linkevent1.username.username)
-
     def test_program_detail_bot_edits(self):
         """
         Test that the user list limiting form works on the program detail page.

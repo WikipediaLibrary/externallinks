@@ -180,10 +180,6 @@ class CSVAllLinkEvents(_CSVDownloadView):
             linkevents = LinkEvent.objects.filter(
                 Q(url__collection__organisation__pk=pk) & queryset_filter
             ).distinct()
-        else:
-            program = Program.objects.get(pk=pk)
-            linkevents = program.get_linkevents()
-            linkevents = linkevents.filter(queryset_filter)
 
         writer = csv.writer(response)
 
