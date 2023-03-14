@@ -45,13 +45,6 @@
     </div>
   </div>
   <div class="row" style="margin-top:40px;">
-    <h2>Get link events</h2>
-  </div>
-  <div class="row">
-    <div style="text-align:right;">
-      <a href="{% url 'programs:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download {% now "Y" %} CSV</a>
-    </div>
-  </div>
 </div>
 <script type="text/javascript">
     var form_data = {{ form_data|safe }};
