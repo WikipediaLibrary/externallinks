@@ -1,5 +1,5 @@
 Django>=3.2.22,<4.0.0
-django_cron==0.5.1
+django_cron==0.6.0
 factory_boy>=3.0.1
 faker==19.12.0
 mysqlclient==2.2.0

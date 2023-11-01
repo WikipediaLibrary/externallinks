@@ -62,7 +62,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "extlinks.wsgi.application"
 
 # Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
+# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
     "default": {
@@ -77,7 +77,7 @@ DATABASES = {
 }
 
 # Password validation
-# https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -104,7 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/2.2/topics/i18n/
+# https://docs.djangoproject.com/en/3.2/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
 
@@ -126,7 +126,7 @@ CACHES = {
 }
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.2/howto/static-files/
+# https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
@@ -138,6 +138,7 @@ CRON_CLASSES = [
     "extlinks.aggregates.cron.UserAggregatesCron",
     "extlinks.aggregates.cron.PageProjectAggregatesCron",
 ]
+DJANGO_CRON_DELETE_LOGS_OLDER_THAN = 365  # Leave only this year's logs
 
 # EMAIL CONFIGURATION
 # ------------------------------------------------------------------------------
@@ -147,3 +148,5 @@ EMAIL_PORT = 25
 EMAIL_HOST_USER = ""
 EMAIL_HOST_PASSWORD = ""
 EMAIL_USE_TLS = False
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
