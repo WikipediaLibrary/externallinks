@@ -5,6 +5,8 @@ from django_cron import CronJobBase, Schedule
 class BackupCron(CronJobBase):
     # 1440 is daily.
     schedule = Schedule(run_every_mins=1440)
+    RETRY_AFTER_FAILURE_MINS = 120
+    MIN_NUM_FAILURES = 2
     code = "common.backup"
 
     def do(self):

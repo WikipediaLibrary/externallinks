@@ -4,10 +4,10 @@ import hashlib
 from datetime import datetime
 import json
 import logging
-import pytz
 import sys
 from sseclient import SSEClient as EventSource
 from urllib.parse import unquote
+from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
 
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                     hash = hashlib.sha256()
                     hash.update(link_event_id.encode("utf-8"))
                     event_objects = LinkEvent.objects.filter(
-                        hash_link_event_id = hash.hexdigest()
+                        hash_link_event_id=hash.hexdigest()
                     )
 
                     # We skip the URL if the length is greater than 2083
@@ -192,7 +192,7 @@ class Command(BaseCommand):
 
         new_event = LinkEvent(
             link=link,
-            timestamp=pytz.utc.localize(datetime_object),
+            timestamp=datetime_object.replace(tzinfo=ZoneInfo("UTC")),
             domain=event_data["meta"]["domain"],
             username=username_object,
             rev_id=revision_id,

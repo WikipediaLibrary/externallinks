@@ -29,7 +29,7 @@ services:
           cpus: "0.25"
           memory: "384M"
   db:
-    image: quay.io/wikipedialibrary/mysql:5.7-updated
+    image: quay.io/wikipedialibrary/mariadb:10-updated
     env_file:
       - ".env"
     ports:
