@@ -4,10 +4,12 @@ from django.core.management import call_command
 
 
 class LinkAggregatesCron(CronJobBase):
-    # Will run daily at midnight UTC
-    schedule = Schedule(run_at_times=["00:00"])
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
+    # Will run daily at midnight UTC
+    schedule = Schedule(
+        run_at_times=["00:00"], retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS
+    )
     code = "aggregates.link_aggregates_cron"
 
     def do(self):
@@ -15,10 +17,12 @@ class LinkAggregatesCron(CronJobBase):
 
 
 class UserAggregatesCron(CronJobBase):
-    # Will run daily at 00:05 UTC
-    schedule = Schedule(run_at_times=["00:05"])
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
+    # Will run daily at 00:05 UTC
+    schedule = Schedule(
+        run_at_times=["00:05"], retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS
+    )
     code = "aggregates.user_aggregates_cron"
 
     def do(self):
@@ -26,10 +30,12 @@ class UserAggregatesCron(CronJobBase):
 
 
 class PageProjectAggregatesCron(CronJobBase):
-    # Will run daily at 00:45 UTC
-    schedule = Schedule(run_at_times=["00:45"])
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
+    # Will run daily at 00:45 UTC
+    schedule = Schedule(
+        run_at_times=["00:45"], retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS
+    )
     code = "aggregates.pageproject_aggregates_cron"
 
     def do(self):
