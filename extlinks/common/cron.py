@@ -1,7 +1,6 @@
 from subprocess import check_output
 from django_cron import CronJobBase, Schedule
 
-
 class BackupCron(CronJobBase):
     RETRY_AFTER_FAILURE_MINS = 120
     MIN_NUM_FAILURES = 2
@@ -15,4 +14,4 @@ class BackupCron(CronJobBase):
         # Using check_output here because we want to log STDOUT.
         # To avoid logging for commands with sensitive output, import and use
         # subprocess.call instead of subprocess.check_output.
-        return check_output("/app/bin/backup.sh")
+        return check_output("/app/bin/backup.sh", text=True)
