@@ -109,4 +109,4 @@ services:
       resources:
         reservations:
           cpus: "0.25"
-          memory: "32M"
+          memory: "64M"
