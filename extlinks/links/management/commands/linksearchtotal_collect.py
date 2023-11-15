@@ -26,7 +26,9 @@ class Command(BaseCommand):
         total_links_dictionary = {}
         for i, language in enumerate(wiki_list_data):
             db = MySQLdb.connect(
-                host="{lang}wiki.analytics.db.svc.wikimedia.cloud".format(lang=language),
+                host="{lang}wiki.analytics.db.svc.wikimedia.cloud".format(
+                    lang=language
+                ),
                 user=os.environ["REPLICA_DB_USER"],
                 passwd=os.environ["REPLICA_DB_PASSWORD"],
                 db="{lang}wiki_p".format(lang=language),
@@ -47,8 +49,8 @@ class Command(BaseCommand):
 
                     cur.execute(
                         """SELECT COUNT(*) FROM externallinks
-                                WHERE el_index LIKE '{url_start}'
-                                AND el_index LIKE '{url_end}'
+                                WHERE el_to_domain_index LIKE '{url_start}'
+                                AND el_to_domain_index LIKE '{url_end}'
                                 """.format(
                             url_start=url_pattern_start, url_end=url_pattern_end
                         )
