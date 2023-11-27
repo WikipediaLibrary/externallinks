@@ -64,14 +64,14 @@ class AggregatesCronHealthCheckView(View):
 @method_decorator(cache_page(60 * 1), name="dispatch")
 class CommonCronHealthCheckView(View):
     """
-    Healthcheck that passes only if the common jobs have all run successfully in the last 2 days
+    Healthcheck that passes only if the common jobs have all run successfully in the last 3 days
     """
     def get(self, request, *args, **kwargs):
         status_code = 500
         status_msg = "error"
         try:
             latest_common_backup_endtime = CronJobLog.objects.filter(code="common.backup", is_success=True).latest("end_time").end_time
-            cutoff_datetime = now() - timedelta(days=2)
+            cutoff_datetime = now() - timedelta(days=3)
             if latest_common_backup_endtime < cutoff_datetime:
                 status_msg = "out of date"
             else:
