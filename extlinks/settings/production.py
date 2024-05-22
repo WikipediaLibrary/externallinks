@@ -24,7 +24,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 DEFAULT_FROM_EMAIL = "Wikilink Production <noreply@wikilink.wmflabs.org>"
 
 sentry_sdk.init(
-    dsn="https://a33ceca60d69401998f52637fc69a754@glitchtip-wikilink.wmflabs.org/1",
+    dsn="https://cdabef0803434e3c97cb2c15f9a7da37@glitchtip-wikilink.wmflabs.org/1",
     integrations=[DjangoIntegration()],
     before_send=sentry_before_send,
 )
