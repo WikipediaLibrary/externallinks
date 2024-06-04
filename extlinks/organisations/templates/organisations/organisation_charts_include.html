@@ -146,6 +146,7 @@
     var collection_id = {{ collection.collection_id|safe }};
     getLinksCount(collection_id, form_data);
     getEditorCount(collection_id, form_data);
+    getProjectCount(collection_id, form_data);
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -220,4 +221,23 @@
      }
    });
   }
+
+  function getProjectCount(collection_id, form_data){
+    $.ajax({
+     url: "{% url 'organisations:project_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+     beforeSend: function() {
+       document.getElementById(collection_id + "-total-projects").innerHTML = "Loading...";
+     },
+     // on success
+     success: function(response) {
+       document.getElementById(collection_id + "-total-projects").innerHTML = response.project_count;
+     },
+     // on error
+     error: function(response) {
+         // alert the error if any error occured
+         console.log(response.responseJSON.errors)
+     }
+   });
+  }
+
 </script>

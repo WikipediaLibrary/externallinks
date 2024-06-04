@@ -150,7 +150,6 @@ class OrganisationDetailView(DetailView):
             queryset_filter = Q(collection=collection)
 
         context = self._fill_chart_context(collection, context, queryset_filter)
-        context = self._fill_statistics_table_context(context, queryset_filter)
         context = self._fill_totals_tables(context, queryset_filter)
         context = self._fill_latest_linkevents(collection, context, form_data)
 
@@ -227,32 +226,6 @@ class OrganisationDetailView(DetailView):
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
         context["eventstream_net_change"] = eventstream_net_change
-
-        return context
-
-    def _fill_statistics_table_context(self, context, queryset_filter):
-        """
-        This function adds the Statistics table information to the context
-        dictionary to display in OrganisationDetailView
-
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the collection that is part of
-            the organisation
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
-            project_count=Count("project_name", distinct=True)
-        )
-        context["total_projects"] = project_count["project_count"]
 
         return context
 
@@ -357,7 +330,17 @@ def get_editor_count(request):
 
 
 def get_project_count(request):
-    return
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+        project_count=Count("project_name", distinct=True)
+    )
+    response = {"project_count": project_count["project_count"]}
+
+    return JsonResponse(response)
 
 
 def get_links_count(request):
