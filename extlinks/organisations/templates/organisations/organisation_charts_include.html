@@ -139,6 +139,13 @@
         },
       },
     });
+
+    // Click all Link Events chart section TESTETETETETETETETET
+    document.getElementById('{{ collection_name }}_linkEvents_button').click();
+    var form_data = {{ form_data|safe }};
+    var collection_id = {{ collection.collection_id|safe }};
+    getLinksCount(collection_id, form_data);
+    getEditorCount(collection_id, form_data);
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -166,8 +173,51 @@
     evt.currentTarget.className += " active";
   }
 
-  // Click all Link Events buttons
-  {% for collection_name, collection in collections.items %}
-    document.getElementById('{{ collection_name }}_linkEvents_button').click();
-  {% endfor %}
+  function getLinksCount(collection_id, form_data){
+    $.ajax({
+      url: "{% url 'organisations:links_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+      beforeSend: function() {
+        document.getElementById(collection_id + "-links-added").innerHTML = "Loading...";
+        document.getElementById(collection_id + "-links-removed").innerHTML = "Loading...";
+        document.getElementById(collection_id + "-links-diff").innerHTML = "Loading...";
+      },
+      // on success
+      success: function(response) {
+        document.getElementById(collection_id + "-links-added").innerHTML = response.links_added;
+        document.getElementById(collection_id + "-links-removed").innerHTML = response.links_removed;
+
+        if (response.links_diff > 0) {
+         document.getElementById(collection_id + "-links-diff").innerHTML = "+" + response.links_diff;
+         document.getElementById(collection_id + "-links-diff").style.color = "green";
+       }
+       else{
+         document.getElementById("links-diff").innerHTML = response.links_diff;
+         document.getElementById("links-diff").style.color = "red";
+       }
+      },
+      // on error
+      error: function(response) {
+          // alert the error if any error occured
+          console.log(response.responseJSON.errors);
+      }
+    });
+  }
+
+  function getEditorCount(collection_id, form_data){
+    $.ajax({
+     url: "{% url 'organisations:editor_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+     beforeSend: function() {
+       document.getElementById(collection_id + "-total-editors").innerHTML = "Loading...";
+     },
+     // on success
+     success: function(response) {
+       document.getElementById(collection_id + "-total-editors").innerHTML = response.editor_count;
+     },
+     // on error
+     error: function(response) {
+         // alert the error if any error occured
+         console.log(response.responseJSON.errors)
+     }
+   });
+  }
 </script>

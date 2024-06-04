@@ -1,7 +1,9 @@
 from datetime import datetime, date, timedelta
+import json
 import re
 
 from django.db.models import Count, Sum, Q
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
@@ -33,7 +35,6 @@ class OrganisationListView(ListView):
         return queryset
 
 
-# @method_decorator(cache_page(60 * 60), name="dispatch")
 class OrganisationDetailView(DetailView):
     model = Organisation
     form_class = FilterForm
@@ -57,9 +58,9 @@ class OrganisationDetailView(DetailView):
         # each collection has its own dictionary of data.
         context["collections"] = {}
         for collection in organisation_collections:
-            this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
-                url__collection=collection
-            )
+            this_collection_linksearchtotals = LinkSearchTotal.objects.prefetch_related(
+                "url"
+            ).filter(url__collection=collection)
 
             form_data = None
             if form.is_valid():
@@ -67,6 +68,7 @@ class OrganisationDetailView(DetailView):
                 this_collection_linksearchtotals = filter_linksearchtotals(
                     this_collection_linksearchtotals, form_data
                 )
+                context["form_data"] = json.dumps(form_data, default=str)
 
             # Replace all special characters that might confuse JS with an
             # underscore.
@@ -74,12 +76,13 @@ class OrganisationDetailView(DetailView):
 
             context["collections"][collection_key] = {}
             context["collections"][collection_key]["object"] = collection
+            context["collections"][collection_key]["collection_id"] = collection.pk
             context["collections"][collection_key]["urls"] = collection.url.all()
 
-            context["collections"][
-                collection_key
-            ] = self._build_collection_context_dictionary(
-                collection, context["collections"][collection_key], form_data
+            context["collections"][collection_key] = (
+                self._build_collection_context_dictionary(
+                    collection, context["collections"][collection_key], form_data
+                )
             )
 
             # LinkSearchTotal chart data
@@ -246,20 +249,6 @@ class OrganisationDetailView(DetailView):
         -------
         dict : The context dictionary with the relevant statistics
         """
-        links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
-            links_added=Sum("total_links_added"),
-            links_removed=Sum("total_links_removed"),
-            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-        )
-        context["total_added"] = links_added_removed["links_added"]
-        context["total_removed"] = links_added_removed["links_removed"]
-        context["total_diff"] = links_added_removed["links_diff"]
-
-        editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
-            editor_count=Count("username", distinct=True)
-        )
-        context["total_editors"] = editor_count["editor_count"]
-
         project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
             project_count=Count("project_name", distinct=True)
         )
@@ -347,3 +336,61 @@ class OrganisationDetailView(DetailView):
         )
 
         return context
+
+
+def get_editor_count(request):
+    """
+    request : dict
+    Ajax request for editor count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+        editor_count=Count("username", distinct=True)
+    )
+    response = {"editor_count": editor_count["editor_count"]}
+
+    return JsonResponse(response)
+
+
+def get_project_count(request):
+    return
+
+
+def get_links_count(request):
+    """
+    request : dict
+    Ajax request for links count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+        links_added=Sum("total_links_added"),
+        links_removed=Sum("total_links_removed"),
+        links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+    )
+    response = {
+        "links_added": links_added_removed["links_added"],
+        "links_removed": links_added_removed["links_removed"],
+        "links_diff": links_added_removed["links_diff"],
+    }
+
+    return JsonResponse(response)
+
+
+def get_top_organisations(request):
+    return
+
+
+def get_top_projects(request):
+    return
+
+
+def get_top_users(request):
+    return

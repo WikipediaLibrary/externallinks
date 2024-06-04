@@ -6,22 +6,15 @@
       </tr>
       <tr>
           <td>Total added:</td>
-          <td style="text-align: right;">{{ collection.total_added }}</td>
+          <td id="{{ collection.collection_id }}-links-added" style="text-align: right;"></td>
       </tr>
       <tr>
           <td>Total removed:</td>
-          <td style="text-align: right;">{{ collection.total_removed }}</td>
+          <td id="{{ collection.collection_id }}-links-removed" style="text-align: right;"></td>
       </tr>
       <tr style="line-height:55px;">
           <td></td>
-          <td style="text-align: right; font-weight: bold;
-              {% if collection.total_diff > 0 %}
-                      color: green;">+
-              {% else %}
-                      color: red;">
-              {% endif %}
-              {{ collection.total_diff }}
-          </td>
+          <td id="{{ collection.collection_id }}-links-diff"></td>
       </tr>
       {% if collection.linksearch_total_start %}
         <tr class="stat-table-header">
@@ -52,7 +45,7 @@
       </tr>
       <tr>
         <td>Total editors:</td>
-        <td style="text-align: right;">{{ collection.total_editors }}</td>
+        <td id="{{ collection.collection_id }}-total-editors" style="text-align: right;"></td>
       </tr>
       <tr>
         <td>Total projects:</td>
