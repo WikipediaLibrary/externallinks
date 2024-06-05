@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 from django.core.management import call_command
 from django.test import TestCase, RequestFactory
@@ -131,82 +132,80 @@ class OrganisationDetailTest(TestCase):
         Test that we're counting the correct total number of added links
         for this organisation.
         """
-        factory = RequestFactory()
+        form_data = "{}"
+        collection_id = self.collection1.id
 
-        request = factory.get(self.url1)
-        response = OrganisationDetailView.as_view()(request, pk=self.organisation1.pk)
-
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_added"], 3
+        url = reverse("organisations:links_count")
+        url_with_params = "{url}?collection={collection}&form_data={form_data}".format(
+            url=url, collection=collection_id, form_data=form_data
         )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["links_added"], 3)
 
     def test_organisation_detail_links_removed(self):
         """
         Test that we're counting the correct total number of removed links
         for this organisation.
         """
-        factory = RequestFactory()
+        form_data = "{}"
+        collection_id = self.collection1.id
 
-        request = factory.get(self.url1)
-        response = OrganisationDetailView.as_view()(request, pk=self.organisation1.pk)
-
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_removed"],
-            1,
+        url = reverse("organisations:links_count")
+        url_with_params = "{url}?collection={collection}&form_data={form_data}".format(
+            url=url, collection=collection_id, form_data=form_data
         )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["links_removed"], 1)
 
     def test_organisation_detail_total_editors(self):
         """
         Test that we're counting the correct total number of editors
         for this organisation.
         """
-        factory = RequestFactory()
+        form_data = "{}"
+        collection_id = self.collection1.id
 
-        request = factory.get(self.url1)
-        response = OrganisationDetailView.as_view()(request, pk=self.organisation1.pk)
-
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_editors"],
-            3,
+        url = reverse("organisations:editor_count")
+        url_with_params = "{url}?collection={collection}&form_data={form_data}".format(
+            url=url, collection=collection_id, form_data=form_data
         )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["editor_count"], 3)
 
     def test_organisation_detail_date_form(self):
         """
         Test that the date limiting form works on the organisation detail page.
         """
-        factory = RequestFactory()
+        form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
+        collection_id = self.collection1.id
 
-        data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
-
-        request = factory.get(self.url1, data)
-        response = OrganisationDetailView.as_view()(request, pk=self.organisation1.pk)
-
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_added"], 2
+        url = reverse("organisations:links_count")
+        url_with_params = "{url}?collection={collection}&form_data={form_data}".format(
+            url=url, collection=collection_id, form_data=form_data
         )
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_removed"],
-            0,
-        )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["links_added"], 2)
+        self.assertEqual(json.loads(response.content)["links_removed"], 0)
 
     def test_organisation_detail_user_list_form(self):
         """
         Test that the user list limiting form works on the organisation detail page.
         """
-        factory = RequestFactory()
+        form_data = '{"limit_to_user_list": True}'
+        collection_id = self.collection1.id
 
-        data = {"limit_to_user_list": True}
-
-        request = factory.get(self.url1, data)
-        response = OrganisationDetailView.as_view()(request, pk=self.organisation1.pk)
-
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_added"], 1
+        url = reverse("organisations:links_count")
+        url_with_params = "{url}?collection={collection}&form_data={form_data}".format(
+            url=url, collection=collection_id, form_data=form_data
         )
-        self.assertEqual(
-            response.context_data["collections"][self.collection1_key]["total_removed"],
-            0,
-        )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["links_added"], 1)
+        self.assertEqual(json.loads(response.content)["links_removed"], 0)
 
     def test_organisation_detail_namespace_form(self):
         """
