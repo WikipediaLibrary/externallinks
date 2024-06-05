@@ -163,6 +163,7 @@
     getEditorCount(collection_id, form_data);
     getProjectCount(collection_id, form_data);
     getTopPages(collection_id, form_data);
+    getTopProjects(collection_id, form_data);
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -285,6 +286,43 @@
           tr.appendChild(tdPageName);
           tr.appendChild(tdLinks);
           document.getElementById(collection_id + "-top-pages-table").appendChild(tr);
+        }
+
+      },
+      // on error
+      error: function(response) {
+        // alert the error if any error occured
+        console.log(response.responseJSON.errors)
+      }
+    });
+  }
+
+  function getTopProjects(collection_id, form_data){
+    $.ajax({
+      url: "{% url 'organisations:top_projects' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+      beforeSend: function() {
+        // Show loading spinner
+        var loadingSpinner = document.createElement("div");
+        loadingSpinner.id = "loading-spinner-projects";
+        loadingSpinner.classList.add("spinner-border");
+        loadingSpinner.role = "status";
+        loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
+        document.getElementById(collection_id + "-top-projects-table").appendChild(loadingSpinner);
+      },
+      // on success
+      success: function(response) {
+        document.getElementById("loading-spinner-projects").style.display = "none";
+        // Building table data
+        projects = JSON.parse(response.top_projects)
+        for (var i = 0; i < projects.length; i++) {
+          var tr = document.createElement("tr");
+          var tdProjectName = document.createElement("td");
+          tdProjectName.appendChild(document.createTextNode(projects[i].project_name));
+          var tdLinks = document.createElement("td");
+          tdLinks.innerHTML = projects[i].links_diff;
+          tr.appendChild(tdProjectName);
+          tr.appendChild(tdLinks);
+          document.getElementById(collection_id + "-top-projects-table").appendChild(tr);
         }
 
       },
