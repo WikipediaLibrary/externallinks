@@ -31,3 +31,9 @@ if os.environ["REQUIREMENTS_FILE"] == "local.txt":
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
     }
+    # Dummy Cache
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
