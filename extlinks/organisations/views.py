@@ -150,7 +150,6 @@ class OrganisationDetailView(DetailView):
             queryset_filter = Q(collection=collection)
 
         context = self._fill_chart_context(collection, context, queryset_filter)
-        context = self._fill_totals_tables(context, queryset_filter)
         context = self._fill_latest_linkevents(collection, context, form_data)
 
         return context
@@ -226,54 +225,6 @@ class OrganisationDetailView(DetailView):
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
         context["eventstream_net_change"] = eventstream_net_change
-
-        return context
-
-    def _fill_totals_tables(self, context, queryset_filter):
-        """
-        This function adds the information for the Totals tables to the context
-        dictionary to display in OrganisationDetailView
-
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the collection that is part of
-            the organisation
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        context["top_projects"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_pages"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name", "page_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_users"] = (
-            UserAggregate.objects.filter(queryset_filter)
-            .values("username")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
 
         return context
 
@@ -367,13 +318,76 @@ def get_links_count(request):
     return JsonResponse(response)
 
 
-def get_top_organisations(request):
-    return
+def get_top_pages(request):
+    """
+    request : dict
+    Ajax request for the top pages table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_pages = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name", "page_name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_pages = json.dumps(list(top_pages))
+    response = {"top_pages": serialized_pages}
+
+    return JsonResponse(response)
 
 
 def get_top_projects(request):
-    return
+    """
+    request : dict
+    Ajax request for the top projects table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_projects = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_projects = json.dumps(list(top_projects))
+    response = {"top_projects": serialized_projects}
+
+    return JsonResponse(response)
 
 
 def get_top_users(request):
-    return
+    """
+    request : dict
+    Ajax request for the top users table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", None))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_users = (
+        UserAggregate.objects.filter(queryset_filter)
+        .values("username")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+        )
+        .order_by("-links_diff")
+    )[:5]
+
+    serialized_users = json.dumps(list(top_users))
+    response = {"top_users": serialized_users}
+
+    return JsonResponse(response)

@@ -8,7 +8,7 @@ from .views import (
     get_editor_count,
     get_project_count,
     get_links_count,
-    get_top_organisations,
+    get_top_pages,
     get_top_projects,
     get_top_users,
 )
@@ -19,7 +19,7 @@ urlpatterns = [
     path("editor_count/", get_editor_count, name="editor_count"),
     path("project_count/", get_project_count, name="project_count"),
     path("links_count/", get_links_count, name="links_count"),
-    path("top_organisations/", get_top_organisations, name="top_organisations"),
+    path("top_pages/", get_top_pages, name="top_pages"),
     path("top_projects/", get_top_projects, name="top_projects"),
     path("top_users/", get_top_users, name="top_users"),
     # CSV downloads

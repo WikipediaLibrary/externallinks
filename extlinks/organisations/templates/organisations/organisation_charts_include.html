@@ -36,19 +36,34 @@
     </div>
     <div class="row">
       <div class="col-4">
-        {% include "common/top_pages_table.html" %}
+        <table id="{{ collection.collection_id }}-top-pages-table" class="table">
+          <tr>
+            <th>Page</th>
+            <th>Added Links</th>
+          </tr>
+        </table>
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_page_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
-        {% include "common/top_projects_table.html" %}
+        <table id="{{ collection.collection_id }}-top-projects-table" class="table">
+          <tr>
+            <th>Project</th>
+            <th>Added Links</th>
+          </tr>
+        </table>
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_project_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
       </div>
       <div class="col-4">
-        {% include "common/top_users_table.html" %}
+        <table id="{{ collection.collection_id }}-top-users-table" class="table">
+          <tr>
+            <th>Username</th>
+            <th>Added Links</th>
+          </tr>
+        </table>
         <div style="text-align:right;">
           <a href="{% url 'organisations:csv_user_totals' pk=collection.object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download CSV</a>
         </div>
@@ -147,6 +162,7 @@
     getLinksCount(collection_id, form_data);
     getEditorCount(collection_id, form_data);
     getProjectCount(collection_id, form_data);
+    getTopPages(collection_id, form_data);
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -238,6 +254,46 @@
          console.log(response.responseJSON.errors)
      }
    });
+  }
+
+  function getTopPages(collection_id, form_data){
+    $.ajax({
+      url: "{% url 'organisations:top_pages' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+      beforeSend: function() {
+        // Show loading spinner
+        var loadingSpinner = document.createElement("div");
+        loadingSpinner.id = "loading-spinner-pages";
+        loadingSpinner.classList.add("spinner-border");
+        loadingSpinner.role = "status";
+        loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
+        document.getElementById(collection_id + "-top-pages-table").appendChild(loadingSpinner);
+      },
+      // on success
+      success: function(response) {
+        document.getElementById("loading-spinner-pages").style.display = "none";
+        // Building table data
+        pages = JSON.parse(response.top_pages)
+        for (var i = 0; i < pages.length; i++) {
+          var tr = document.createElement("tr");
+          var tdPageName = document.createElement("td");
+          var a = document.createElement("a");
+          a.href = "https://" + pages[i].project_name+"/wiki/" + pages[i].page_name;
+          a.appendChild(document.createTextNode(pages[i].page_name));
+          tdPageName.appendChild(a);
+          var tdLinks = document.createElement("td");
+          tdLinks.innerHTML = pages[i].links_diff;
+          tr.appendChild(tdPageName);
+          tr.appendChild(tdLinks);
+          document.getElementById(collection_id + "-top-pages-table").appendChild(tr);
+        }
+
+      },
+      // on error
+      error: function(response) {
+        // alert the error if any error occured
+        console.log(response.responseJSON.errors)
+      }
+    });
   }
 
 </script>
