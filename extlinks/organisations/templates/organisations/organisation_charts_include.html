@@ -164,6 +164,7 @@
     getProjectCount(collection_id, form_data);
     getTopPages(collection_id, form_data);
     getTopProjects(collection_id, form_data);
+    getTopUsers(collection_id, form_data);
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -334,4 +335,43 @@
     });
   }
 
+  function getTopUsers(collection_id, form_data){
+    $.ajax({
+      url: "{% url 'organisations:top_users' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
+      beforeSend: function() {
+        //Show loading spinner
+        var loadingSpinner = document.createElement("div");
+        loadingSpinner.id = "loading-spinner-users";
+        loadingSpinner.classList.add("spinner-border");
+        loadingSpinner.role = "status";
+        loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
+        document.getElementById(collection_id + "-top-users-table").appendChild(loadingSpinner);
+      },
+      // on success
+      success: function(response) {
+        document.getElementById("loading-spinner-users").style.display = "none";
+        // Building table data
+        users = JSON.parse(response.top_users)
+        for (var i = 0; i < users.length; i++) {
+          var tr = document.createElement("tr");
+          var tdUsername = document.createElement("td");
+          var a = document.createElement("a");
+          a.href = "https://meta.wikimedia.org/wiki/User:" + users[i].username;
+          a.appendChild(document.createTextNode(users[i].username));
+          tdUsername.appendChild(a);
+          var tdLinks = document.createElement("td");
+          tdLinks.innerHTML = users[i].links_diff;
+          tr.appendChild(tdUsername);
+          tr.appendChild(tdLinks);
+          document.getElementById(collection_id + "-top-users-table").appendChild(tr);
+        }
+
+      },
+      // on error
+      error: function(response) {
+        // alert the error if any error occured
+        console.log(response.responseJSON.errors)
+      }
+    });
+  }
 </script>
