@@ -195,7 +195,7 @@ class OrganisationDetailTest(TestCase):
         """
         Test that the user list limiting form works on the organisation detail page.
         """
-        form_data = '{"limit_to_user_list": True}'
+        form_data = '{"limit_to_user_list": true}'
         collection_id = self.collection1.id
 
         url = reverse("organisations:links_count")

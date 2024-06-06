@@ -267,7 +267,7 @@ def get_editor_count(request):
     request : dict
     Ajax request for editor count (found in the Statistics table)
     """
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
@@ -281,7 +281,7 @@ def get_editor_count(request):
 
 
 def get_project_count(request):
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
@@ -299,7 +299,7 @@ def get_links_count(request):
     request : dict
     Ajax request for links count (found in the Statistics table)
     """
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
@@ -323,7 +323,7 @@ def get_top_pages(request):
     request : dict
     Ajax request for the top pages table for a given collection
     """
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
@@ -348,7 +348,7 @@ def get_top_projects(request):
     request : dict
     Ajax request for the top projects table for a given collection
     """
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
@@ -373,7 +373,7 @@ def get_top_users(request):
     request : dict
     Ajax request for the top users table for a given collection
     """
-    form_data = json.loads(request.GET.get("form_data", None))
+    form_data = json.loads(request.GET.get("form_data", "{}"))
     collection_id = int(request.GET.get("collection", None))
     collection = Collection.objects.get(id=collection_id)
 
