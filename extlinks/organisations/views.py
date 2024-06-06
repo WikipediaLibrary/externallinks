@@ -2,7 +2,8 @@ from datetime import datetime, date, timedelta
 import json
 import re
 
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, Prefetch, CharField
+from django.db.models.functions import TruncDate, Cast
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
@@ -149,21 +150,17 @@ class OrganisationDetailView(DetailView):
         else:
             queryset_filter = Q(collection=collection)
 
-        context = self._fill_chart_context(collection, context, queryset_filter)
-        context = self._fill_latest_linkevents(collection, context, form_data)
+        context = self._fill_chart_context(context, queryset_filter)
 
         return context
 
-    def _fill_chart_context(self, collection, context, queryset_filter):
+    def _fill_chart_context(self, context, queryset_filter):
         """
         This function adds the chart information to the context
         dictionary to display in ProgramDetailView
 
         Parameters
         ----------
-        collection : Collection
-            A collection that the aggregate data will be filtered from
-
         context : dict
             The context dictionary that the function will be adding information to
 
@@ -225,39 +222,6 @@ class OrganisationDetailView(DetailView):
         # These stats are for filling the program net change chart
         context["eventstream_dates"] = eventstream_dates
         context["eventstream_net_change"] = eventstream_net_change
-
-        return context
-
-    def _fill_latest_linkevents(self, collection, context, form_data):
-        """
-        This function gets the latest linkevents
-
-        Parameters
-        ----------
-        collection : Collection
-            A collection that the aggregate data will be filtered from
-
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        form_data: dict|None
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the linkevents table by dates or by user list
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        linkevents = collection.get_linkevents()
-        if form_data:
-            linkevents_filter = build_queryset_filters(form_data, {"linkevents": ""})
-        context["latest_links"] = (
-            linkevents.prefetch_related(
-                "username", "url", "url__collection", "url__collection__organisation"
-            )
-            .filter(linkevents_filter)
-            .order_by("-timestamp")[:10]
-        )
 
         return context
 
@@ -389,5 +353,42 @@ def get_top_users(request):
 
     serialized_users = json.dumps(list(top_users))
     response = {"top_users": serialized_users}
+
+    return JsonResponse(response)
+
+
+def get_latest_link_events(request):
+    """
+    request : dict
+    Ajax request for the latest link events for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    linkevents = collection.get_linkevents()
+    if form_data:
+        linkevents_filter = build_queryset_filters(form_data, {"linkevents": ""})
+    latest_link_events = (
+        linkevents.select_related("username")
+        .prefetch_related(
+            "url",
+            Prefetch(
+                "url__collection",
+                queryset=Collection.objects.select_related("organisation").filter(
+                    id=collection.id
+                ),
+            ),
+        )
+        .filter(linkevents_filter)
+        .values(
+            "link", "domain", "page_title", "rev_id", "username__username", "change"
+        )
+        .annotate(date=Cast("timestamp", CharField()))
+        .order_by("-date")[:10]
+    )
+
+    serialized_latest_link_events = json.dumps(list(latest_link_events))
+    response = {"latest_link_events": serialized_latest_link_events}
 
     return JsonResponse(response)

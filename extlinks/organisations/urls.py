@@ -11,6 +11,7 @@ from .views import (
     get_top_pages,
     get_top_projects,
     get_top_users,
+    get_latest_link_events,
 )
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     path("top_pages/", get_top_pages, name="top_pages"),
     path("top_projects/", get_top_projects, name="top_projects"),
     path("top_users/", get_top_users, name="top_users"),
+    path("latest_link_events/", get_latest_link_events, name="latest_link_events"),
     # CSV downloads
     path("<int:pk>/csv/page_totals", CSVPageTotals.as_view(), name="csv_page_totals"),
 ]
