@@ -1,5 +1,6 @@
 from .base import *
 from .logging import *
+import sys
 
 DEBUG = True
 
@@ -14,14 +15,16 @@ DEFAULT_FROM_EMAIL = SERVER_EMAIL
 # so we can disable it by not passing a REQUIREMENTS_FILE variable when building
 # the docker containers
 if os.environ["REQUIREMENTS_FILE"] == "local.txt":
-    INSTALLED_APPS += [
-        "debug_toolbar",
-        "django_extensions",
-    ]
+    TESTING = "test" in sys.argv
+    if not TESTING:
+        INSTALLED_APPS += [
+            "debug_toolbar",
+            "django_extensions",
+        ]
 
-    MIDDLEWARE += [
-        "debug_toolbar.middleware.DebugToolbarMiddleware",
-    ]
+        MIDDLEWARE += [
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+        ]
 
     INTERNAL_IPS = ["127.0.0.1", "localhost", "0.0.0.0"]
 
