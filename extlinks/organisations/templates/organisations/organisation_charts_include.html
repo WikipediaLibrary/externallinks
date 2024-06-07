@@ -149,8 +149,8 @@
 
     // Click all Link Events chart section
     document.getElementById('{{ collection_name }}_linkEvents_button').click();
-    var form_data = {{ form_data|safe }};
-    var collection_id = {{ collection.collection_id|safe }};
+    const form_data = {{ form_data|safe }};
+    const collection_id = {{ collection.collection_id|safe }};
     getLinksCount(collection_id, form_data);
     getEditorCount(collection_id, form_data);
     getProjectCount(collection_id, form_data);
