@@ -147,11 +147,10 @@
       },
     });
 
-    // Click all Link Events chart section TESTETETETETETETETET
+    // Click all Link Events chart section
     document.getElementById('{{ collection_name }}_linkEvents_button').click();
     var form_data = {{ form_data|safe }};
     var collection_id = {{ collection.collection_id|safe }};
-    console.log("Loading information for collection " + collection_id);
     getLinksCount(collection_id, form_data);
     getEditorCount(collection_id, form_data);
     getProjectCount(collection_id, form_data);
@@ -205,14 +204,14 @@
          document.getElementById(collection_id + "-links-diff").style.color = "green";
        }
        else{
-         document.getElementById("links-diff").innerHTML = response.links_diff;
-         document.getElementById("links-diff").style.color = "red";
+         document.getElementById(collection_id + "-links-diff").innerHTML = response.links_diff;
+         document.getElementById(collection_id + "-links-diff").style.color = "red";
        }
       },
       // on error
       error: function(response) {
           // alert the error if any error occured
-          console.log(response.responseJSON.errors);
+          console.error(response.responseJSON.errors);
       }
     });
   }
@@ -230,7 +229,7 @@
      // on error
      error: function(response) {
          // alert the error if any error occured
-         console.log(response.responseJSON.errors)
+         console.error(response.responseJSON.errors)
      }
    });
   }
@@ -248,7 +247,7 @@
      // on error
      error: function(response) {
          // alert the error if any error occured
-         console.log(response.responseJSON.errors)
+         console.error(response.responseJSON.errors)
      }
    });
   }
@@ -288,7 +287,7 @@
       // on error
       error: function(response) {
         // alert the error if any error occured
-        console.log(response.responseJSON.errors)
+        console.error(response.responseJSON.errors)
       }
     });
   }
@@ -325,7 +324,7 @@
       // on error
       error: function(response) {
         // alert the error if any error occured
-        console.log(response.responseJSON.errors)
+        console.error(response.responseJSON.errors)
       }
     });
   }
@@ -364,7 +363,7 @@
       // on error
       error: function(response) {
         // alert the error if any error occured
-        console.log(response.responseJSON.errors)
+        console.error(response.responseJSON.errors)
       }
     });
   }
@@ -432,7 +431,7 @@
       // on error
       error: function(response) {
         // alert the error if any error occured
-        console.log(response.responseJSON.errors)
+        console.error(response.responseJSON.errors)
       }
     });
   }
