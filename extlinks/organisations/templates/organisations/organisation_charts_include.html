@@ -73,7 +73,9 @@
       <h3>Latest link events</h3>
       <table id="{{ collection.collection_id }}-link-events-table" class="table">
         <tr id="{{ collection.collection_id }}-link-events-button-container">
-          <td> <button id="{{ collection.collection_id }}-link-events-load-button" class="btn btn-outline-primary"> Load Latest Link Events</button> </td>
+          <td> <button id="{{ collection.collection_id }}-link-events-load-button" 
+              onclick='getLatestLinkEvents({{ collection.collection_id|safe }}, {{ form_data|safe }})' 
+              class="btn btn-outline-primary"> Load Latest Link Events</button> </td>
         </tr>
         <tr id="{{ collection.collection_id }}-link-events-table-header">
           <th>Link</th>
@@ -149,18 +151,15 @@
     document.getElementById('{{ collection_name }}_linkEvents_button').click();
     var form_data = {{ form_data|safe }};
     var collection_id = {{ collection.collection_id|safe }};
-    document.body.onload = function() {
-      getLinksCount(collection_id, form_data);
-      getEditorCount(collection_id, form_data);
-      getProjectCount(collection_id, form_data);
-      getTopPages(collection_id, form_data);
-      getTopProjects(collection_id, form_data);
-      getTopUsers(collection_id, form_data);
-      // Do not display table header because there is no data on load
-      document.getElementById(collection_id + "-link-events-table-header").style.display = "none";
-      document.getElementById(collection_id + "-loading-spinner-latest-link-events").style.display = "none";
-    }
-    document.getElementById(collection_id + "-link-events-load-button").addEventListener("click", getLatestLinkEvents(collection_id, form_data));
+    console.log("Loading information for collection " + collection_id);
+    getLinksCount(collection_id, form_data);
+    getEditorCount(collection_id, form_data);
+    getProjectCount(collection_id, form_data);
+    getTopPages(collection_id, form_data);
+    getTopProjects(collection_id, form_data);
+    getTopUsers(collection_id, form_data);
+    // Do not display table header because there is no data on load
+    document.getElementById(collection_id + "-link-events-table-header").style.display = "none";
   {% endfor %}
 
   function openGraph(evt, collection, graphName) {
@@ -260,7 +259,7 @@
       beforeSend: function() {
         // Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = "loading-spinner-pages";
+        loadingSpinner.id = collection_id + "-loading-spinner-pages";
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
@@ -268,7 +267,7 @@
       },
       // on success
       success: function(response) {
-        document.getElementById("loading-spinner-pages").style.display = "none";
+        document.getElementById(collection_id + "-loading-spinner-pages").style.display = "none";
         // Building table data
         pages = JSON.parse(response.top_pages)
         for (var i = 0; i < pages.length; i++) {
@@ -300,7 +299,7 @@
       beforeSend: function() {
         // Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = "loading-spinner-projects";
+        loadingSpinner.id = collection_id + "-loading-spinner-projects";
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
@@ -308,7 +307,7 @@
       },
       // on success
       success: function(response) {
-        document.getElementById("loading-spinner-projects").style.display = "none";
+        document.getElementById(collection_id + "-loading-spinner-projects").style.display = "none";
         // Building table data
         projects = JSON.parse(response.top_projects)
         for (var i = 0; i < projects.length; i++) {
@@ -337,7 +336,7 @@
       beforeSend: function() {
         //Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = "loading-spinner-users";
+        loadingSpinner.id = collection_id + "-loading-spinner-users";
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
@@ -345,7 +344,7 @@
       },
       // on success
       success: function(response) {
-        document.getElementById("loading-spinner-users").style.display = "none";
+        document.getElementById(collection_id + "-loading-spinner-users").style.display = "none";
         // Building table data
         users = JSON.parse(response.top_users)
         for (var i = 0; i < users.length; i++) {
@@ -388,7 +387,10 @@
         document.getElementById(collection_id + "-link-events-button-container").style.display = "none";
         document.getElementById(collection_id + "-link-events-table-header").style.display = "table-row";
         // Building table data
-        latest_link_events = JSON.parse(response.latest_link_events)
+        latest_link_events = JSON.parse(response.latest_link_events);
+        if(latest_link_events.length < 1){
+          document.getElementById(collection_id + "-link-events-table").appendChild(document.createTextNode("No data available"));
+        }
         for (var i = 0; i < latest_link_events.length; i++) {
           var tr = document.createElement("tr");
           if(latest_link_events[i].change === 1){
