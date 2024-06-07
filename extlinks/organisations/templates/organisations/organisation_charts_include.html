@@ -386,7 +386,7 @@
       success: function(response) {
         document.getElementById(collection_id + "-loading-spinner-latest-link-events").style.display = "none";
         document.getElementById(collection_id + "-link-events-button-container").style.display = "none";
-        document.getElementById(collection_id + "-link-events-table-header").style.display = "block";
+        document.getElementById(collection_id + "-link-events-table-header").style.display = "table-row";
         // Building table data
         latest_link_events = JSON.parse(response.latest_link_events)
         for (var i = 0; i < latest_link_events.length; i++) {
