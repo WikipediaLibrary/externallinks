@@ -187,25 +187,29 @@
   }
 
   function getLinksCount(collection_id, form_data){
+    const idLinksAdded = collection_id + "-links-added";
+    const idLinksRemoved = collection_id + "-links-removed";
+    const idLinksDiff = collection_id + "-links-diff";
+
     $.ajax({
       url: "{% url 'organisations:links_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
       beforeSend: function() {
-        document.getElementById(collection_id + "-links-added").innerHTML = "Loading...";
-        document.getElementById(collection_id + "-links-removed").innerHTML = "Loading...";
-        document.getElementById(collection_id + "-links-diff").innerHTML = "Loading...";
+        document.getElementById(idLinksAdded).innerHTML = "Loading...";
+        document.getElementById(idLinksRemoved).innerHTML = "Loading...";
+        document.getElementById(idLinksDiff).innerHTML = "Loading...";
       },
       // on success
       success: function(response) {
-        document.getElementById(collection_id + "-links-added").innerHTML = response.links_added;
-        document.getElementById(collection_id + "-links-removed").innerHTML = response.links_removed;
+        document.getElementById(idLinksAdded).innerHTML = response.links_added;
+        document.getElementById(idLinksRemoved).innerHTML = response.links_removed;
 
         if (response.links_diff > 0) {
-         document.getElementById(collection_id + "-links-diff").innerHTML = "+" + response.links_diff;
-         document.getElementById(collection_id + "-links-diff").style.color = "green";
+         document.getElementById(idLinksDiff).innerHTML = "+" + response.links_diff;
+         document.getElementById(idLinksDiff).style.color = "green";
        }
        else{
-         document.getElementById(collection_id + "-links-diff").innerHTML = response.links_diff;
-         document.getElementById(collection_id + "-links-diff").style.color = "red";
+         document.getElementById(idLinksDiff).innerHTML = response.links_diff;
+         document.getElementById(idLinksDiff).style.color = "red";
        }
       },
       // on error
@@ -217,14 +221,16 @@
   }
 
   function getEditorCount(collection_id, form_data){
+    const idTotalEditors = collection_id + "-total-editors";
+
     $.ajax({
      url: "{% url 'organisations:editor_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
      beforeSend: function() {
-       document.getElementById(collection_id + "-total-editors").innerHTML = "Loading...";
+       document.getElementById(idTotalEditors).innerHTML = "Loading...";
      },
      // on success
      success: function(response) {
-       document.getElementById(collection_id + "-total-editors").innerHTML = response.editor_count;
+       document.getElementById(idTotalEditors).innerHTML = response.editor_count;
      },
      // on error
      error: function(response) {
@@ -235,14 +241,16 @@
   }
 
   function getProjectCount(collection_id, form_data){
+    const idTotalProjects = collection_id + "-total-projects";
+
     $.ajax({
      url: "{% url 'organisations:project_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
      beforeSend: function() {
-       document.getElementById(collection_id + "-total-projects").innerHTML = "Loading...";
+       document.getElementById(idTotalProjects).innerHTML = "Loading...";
      },
      // on success
      success: function(response) {
-       document.getElementById(collection_id + "-total-projects").innerHTML = response.project_count;
+       document.getElementById(idTotalProjects).innerHTML = response.project_count;
      },
      // on error
      error: function(response) {
@@ -253,34 +261,37 @@
   }
 
   function getTopPages(collection_id, form_data){
+    const idSpinnerPages = collection_id + "-loading-spinner-pages";
+    const idTopPagesTable = collection_id + "-top-pages-table";
+
     $.ajax({
       url: "{% url 'organisations:top_pages' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
       beforeSend: function() {
         // Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = collection_id + "-loading-spinner-pages";
+        loadingSpinner.id = idSpinnerPages;
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
-        document.getElementById(collection_id + "-top-pages-table").appendChild(loadingSpinner);
+        document.getElementById(idTopPagesTable).appendChild(loadingSpinner);
       },
       // on success
       success: function(response) {
-        document.getElementById(collection_id + "-loading-spinner-pages").style.display = "none";
+        document.getElementById(idSpinnerPages).style.display = "none";
         // Building table data
         pages = JSON.parse(response.top_pages)
         for (var i = 0; i < pages.length; i++) {
           var tr = document.createElement("tr");
           var tdPageName = document.createElement("td");
           var a = document.createElement("a");
-          a.href = "https://" + pages[i].project_name+"/wiki/" + pages[i].page_name;
+          a.href = "https://" + pages[i].project_name + "/wiki/" + pages[i].page_name;
           a.appendChild(document.createTextNode(pages[i].page_name));
           tdPageName.appendChild(a);
           var tdLinks = document.createElement("td");
           tdLinks.innerHTML = pages[i].links_diff;
           tr.appendChild(tdPageName);
           tr.appendChild(tdLinks);
-          document.getElementById(collection_id + "-top-pages-table").appendChild(tr);
+          document.getElementById(idTopPagesTable).appendChild(tr);
         }
 
       },
@@ -293,20 +304,23 @@
   }
 
   function getTopProjects(collection_id, form_data){
+    const idSpinnerProjects = collection_id + "-loading-spinner-projects";
+    const idTopProjectsTable = collection_id + "-top-projects-table";
+
     $.ajax({
       url: "{% url 'organisations:top_projects' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
       beforeSend: function() {
         // Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = collection_id + "-loading-spinner-projects";
+        loadingSpinner.id = idSpinnerProjects;
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
-        document.getElementById(collection_id + "-top-projects-table").appendChild(loadingSpinner);
+        document.getElementById(idTopProjectsTable).appendChild(loadingSpinner);
       },
       // on success
       success: function(response) {
-        document.getElementById(collection_id + "-loading-spinner-projects").style.display = "none";
+        document.getElementById(idSpinnerProjects).style.display = "none";
         // Building table data
         projects = JSON.parse(response.top_projects)
         for (var i = 0; i < projects.length; i++) {
@@ -317,7 +331,7 @@
           tdLinks.innerHTML = projects[i].links_diff;
           tr.appendChild(tdProjectName);
           tr.appendChild(tdLinks);
-          document.getElementById(collection_id + "-top-projects-table").appendChild(tr);
+          document.getElementById(idTopProjectsTable).appendChild(tr);
         }
 
       },
@@ -330,20 +344,23 @@
   }
 
   function getTopUsers(collection_id, form_data){
+    const idSpinnerUsers = collection_id + "-loading-spinner-users";
+    const idTopUsersTable = collection_id + "-top-users-table";
+
     $.ajax({
       url: "{% url 'organisations:top_users' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
       beforeSend: function() {
         //Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = collection_id + "-loading-spinner-users";
+        loadingSpinner.id = idSpinnerUsers;
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
-        document.getElementById(collection_id + "-top-users-table").appendChild(loadingSpinner);
+        document.getElementById(idTopUsersTable).appendChild(loadingSpinner);
       },
       // on success
       success: function(response) {
-        document.getElementById(collection_id + "-loading-spinner-users").style.display = "none";
+        document.getElementById(idSpinnerUsers).style.display = "none";
         // Building table data
         users = JSON.parse(response.top_users)
         for (var i = 0; i < users.length; i++) {
@@ -357,7 +374,7 @@
           tdLinks.innerHTML = users[i].links_diff;
           tr.appendChild(tdUsername);
           tr.appendChild(tdLinks);
-          document.getElementById(collection_id + "-top-users-table").appendChild(tr);
+          document.getElementById(idTopUsersTable).appendChild(tr);
         }
       },
       // on error
@@ -369,26 +386,31 @@
   }
   
   function getLatestLinkEvents(collection_id, form_data){
+    const idSpinnerLinkEvents = collection_id + "-loading-spinner-latest-link-events";
+    const idLinkEventsTable = collection_id + "-link-events-table";
+    const idLinkEventsButtonContainer = collection_id + "-link-events-button-container";
+    const idLinkEventsTableHeader = collection_id + "-link-events-table-header";
+
     $.ajax({
       url: "{% url 'organisations:latest_link_events' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
       beforeSend: function() {
         //Show loading spinner
         var loadingSpinner = document.createElement("div");
-        loadingSpinner.id = collection_id + "-loading-spinner-latest-link-events";
+        loadingSpinner.id = idSpinnerLinkEvents;
         loadingSpinner.classList.add("spinner-border");
         loadingSpinner.role = "status";
         loadingSpinner.innerHTML = '<span class="sr-only">Loading...</span>';
-        document.getElementById(collection_id + "-link-events-table").appendChild(loadingSpinner);
+        document.getElementById(idLinkEventsTable).appendChild(loadingSpinner);
       },
       // on success
       success: function(response) {
-        document.getElementById(collection_id + "-loading-spinner-latest-link-events").style.display = "none";
-        document.getElementById(collection_id + "-link-events-button-container").style.display = "none";
-        document.getElementById(collection_id + "-link-events-table-header").style.display = "table-row";
+        document.getElementById(idSpinnerLinkEvents).style.display = "none";
+        document.getElementById(idLinkEventsButtonContainer).style.display = "none";
+        document.getElementById(idLinkEventsTableHeader).style.display = "table-row";
         // Building table data
         latest_link_events = JSON.parse(response.latest_link_events);
         if(latest_link_events.length < 1){
-          document.getElementById(collection_id + "-link-events-table").appendChild(document.createTextNode("No data available"));
+          document.getElementById(idLinkEventsTable).appendChild(document.createTextNode("No data available"));
         }
         for (var i = 0; i < latest_link_events.length; i++) {
           var tr = document.createElement("tr");
@@ -425,7 +447,7 @@
           tr.appendChild(tdPageTitle);
           tr.appendChild(tdDomain);
           tr.appendChild(tdRev);
-          document.getElementById(collection_id + "-link-events-table").appendChild(tr);
+          document.getElementById(idLinkEventsTable).appendChild(tr);
         }
       },
       // on error
