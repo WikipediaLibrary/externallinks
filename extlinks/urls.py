@@ -25,8 +25,9 @@ urlpatterns = [
 ]
 
 if settings.DEBUG and os.environ["REQUIREMENTS_FILE"] == "local.txt":
-    import debug_toolbar
+    if not settings.TESTING:
+        import debug_toolbar
 
-    urlpatterns += [
-        path("__debug__/", include(debug_toolbar.urls)),
-    ]
+        urlpatterns += [
+            path("__debug__/", include(debug_toolbar.urls)),
+        ]

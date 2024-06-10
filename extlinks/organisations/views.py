@@ -1,7 +1,10 @@
 from datetime import datetime, date, timedelta
+import json
 import re
 
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, Prefetch, CharField
+from django.db.models.functions import TruncDate, Cast
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
@@ -33,7 +36,6 @@ class OrganisationListView(ListView):
         return queryset
 
 
-# @method_decorator(cache_page(60 * 60), name="dispatch")
 class OrganisationDetailView(DetailView):
     model = Organisation
     form_class = FilterForm
@@ -57,9 +59,9 @@ class OrganisationDetailView(DetailView):
         # each collection has its own dictionary of data.
         context["collections"] = {}
         for collection in organisation_collections:
-            this_collection_linksearchtotals = LinkSearchTotal.objects.filter(
-                url__collection=collection
-            )
+            this_collection_linksearchtotals = LinkSearchTotal.objects.prefetch_related(
+                "url"
+            ).filter(url__collection=collection)
 
             form_data = None
             if form.is_valid():
@@ -67,6 +69,7 @@ class OrganisationDetailView(DetailView):
                 this_collection_linksearchtotals = filter_linksearchtotals(
                     this_collection_linksearchtotals, form_data
                 )
+                context["form_data"] = json.dumps(form_data, default=str)
 
             # Replace all special characters that might confuse JS with an
             # underscore.
@@ -74,12 +77,13 @@ class OrganisationDetailView(DetailView):
 
             context["collections"][collection_key] = {}
             context["collections"][collection_key]["object"] = collection
+            context["collections"][collection_key]["collection_id"] = collection.pk
             context["collections"][collection_key]["urls"] = collection.url.all()
 
-            context["collections"][
-                collection_key
-            ] = self._build_collection_context_dictionary(
-                collection, context["collections"][collection_key], form_data
+            context["collections"][collection_key] = (
+                self._build_collection_context_dictionary(
+                    collection, context["collections"][collection_key], form_data
+                )
             )
 
             # LinkSearchTotal chart data
@@ -146,23 +150,17 @@ class OrganisationDetailView(DetailView):
         else:
             queryset_filter = Q(collection=collection)
 
-        context = self._fill_chart_context(collection, context, queryset_filter)
-        context = self._fill_statistics_table_context(context, queryset_filter)
-        context = self._fill_totals_tables(context, queryset_filter)
-        context = self._fill_latest_linkevents(collection, context, form_data)
+        context = self._fill_chart_context(context, queryset_filter)
 
         return context
 
-    def _fill_chart_context(self, collection, context, queryset_filter):
+    def _fill_chart_context(self, context, queryset_filter):
         """
         This function adds the chart information to the context
         dictionary to display in ProgramDetailView
 
         Parameters
         ----------
-        collection : Collection
-            A collection that the aggregate data will be filtered from
-
         context : dict
             The context dictionary that the function will be adding information to
 
@@ -227,123 +225,170 @@ class OrganisationDetailView(DetailView):
 
         return context
 
-    def _fill_statistics_table_context(self, context, queryset_filter):
-        """
-        This function adds the Statistics table information to the context
-        dictionary to display in OrganisationDetailView
 
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
+def get_editor_count(request):
+    """
+    request : dict
+    Ajax request for editor count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
 
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the collection that is part of
-            the organisation
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+        editor_count=Count("username", distinct=True)
+    )
+    response = {"editor_count": editor_count["editor_count"]}
 
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
-            links_added=Sum("total_links_added"),
-            links_removed=Sum("total_links_removed"),
+    return JsonResponse(response)
+
+
+def get_project_count(request):
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+        project_count=Count("project_name", distinct=True)
+    )
+    response = {"project_count": project_count["project_count"]}
+
+    return JsonResponse(response)
+
+
+def get_links_count(request):
+    """
+    request : dict
+    Ajax request for links count (found in the Statistics table)
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+        links_added=Sum("total_links_added"),
+        links_removed=Sum("total_links_removed"),
+        links_diff=Sum("total_links_added") - Sum("total_links_removed"),
+    )
+    response = {
+        "links_added": links_added_removed["links_added"],
+        "links_removed": links_added_removed["links_removed"],
+        "links_diff": links_added_removed["links_diff"],
+    }
+
+    return JsonResponse(response)
+
+
+def get_top_pages(request):
+    """
+    request : dict
+    Ajax request for the top pages table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_pages = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name", "page_name")
+        .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_added"] = links_added_removed["links_added"]
-        context["total_removed"] = links_added_removed["links_removed"]
-        context["total_diff"] = links_added_removed["links_diff"]
+        .order_by("-links_diff")
+    )[:5]
 
-        editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
-            editor_count=Count("username", distinct=True)
+    serialized_pages = json.dumps(list(top_pages))
+    response = {"top_pages": serialized_pages}
+
+    return JsonResponse(response)
+
+
+def get_top_projects(request):
+    """
+    request : dict
+    Ajax request for the top projects table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_projects = (
+        PageProjectAggregate.objects.filter(queryset_filter)
+        .values("project_name")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_editors"] = editor_count["editor_count"]
+        .order_by("-links_diff")
+    )[:5]
 
-        project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
-            project_count=Count("project_name", distinct=True)
+    serialized_projects = json.dumps(list(top_projects))
+    response = {"top_projects": serialized_projects}
+
+    return JsonResponse(response)
+
+
+def get_top_users(request):
+    """
+    request : dict
+    Ajax request for the top users table for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
+
+    queryset_filter = build_queryset_filters(form_data, {"collection": collection})
+    top_users = (
+        UserAggregate.objects.filter(queryset_filter)
+        .values("username")
+        .annotate(
+            links_diff=Sum("total_links_added") - Sum("total_links_removed"),
         )
-        context["total_projects"] = project_count["project_count"]
+        .order_by("-links_diff")
+    )[:5]
 
-        return context
+    serialized_users = json.dumps(list(top_users))
+    response = {"top_users": serialized_users}
 
-    def _fill_totals_tables(self, context, queryset_filter):
-        """
-        This function adds the information for the Totals tables to the context
-        dictionary to display in OrganisationDetailView
+    return JsonResponse(response)
 
-        Parameters
-        ----------
-        context : dict
-            The context dictionary that the function will be adding information to
 
-        queryset_filter: Q
-            If the information is filtered, this set of filters will filter it.
-            The default is only filtering by the collection that is part of
-            the organisation
+def get_latest_link_events(request):
+    """
+    request : dict
+    Ajax request for the latest link events for a given collection
+    """
+    form_data = json.loads(request.GET.get("form_data", "{}"))
+    collection_id = int(request.GET.get("collection", None))
+    collection = Collection.objects.get(id=collection_id)
 
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        context["top_projects"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_pages"] = (
-            PageProjectAggregate.objects.filter(queryset_filter)
-            .values("project_name", "page_name")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        context["top_users"] = (
-            UserAggregate.objects.filter(queryset_filter)
-            .values("username")
-            .annotate(
-                links_diff=Sum("total_links_added") - Sum("total_links_removed"),
-            )
-            .order_by("-links_diff")
-        )[:5]
-
-        return context
-
-    def _fill_latest_linkevents(self, collection, context, form_data):
-        """
-        This function gets the latest linkevents
-
-        Parameters
-        ----------
-        collection : Collection
-            A collection that the aggregate data will be filtered from
-
-        context : dict
-            The context dictionary that the function will be adding information to
-
-        form_data: dict|None
-            If the filter form has valid filters, then there will be a dictionary
-            to filter the linkevents table by dates or by user list
-
-        Returns
-        -------
-        dict : The context dictionary with the relevant statistics
-        """
-        linkevents = collection.get_linkevents()
-        if form_data:
-            linkevents_filter = build_queryset_filters(form_data, {"linkevents": ""})
-        context["latest_links"] = (
-            linkevents.prefetch_related(
-                "username", "url", "url__collection", "url__collection__organisation"
-            )
-            .filter(linkevents_filter)
-            .order_by("-timestamp")[:10]
+    linkevents = collection.get_linkevents()
+    if form_data:
+        linkevents_filter = build_queryset_filters(form_data, {"linkevents": ""})
+    latest_link_events = (
+        linkevents.select_related("username")
+        .prefetch_related(
+            "url",
+            Prefetch(
+                "url__collection",
+                queryset=Collection.objects.select_related("organisation").filter(
+                    id=collection.id
+                ),
+            ),
         )
+        .filter(linkevents_filter)
+        .values(
+            "link", "domain", "page_title", "rev_id", "username__username", "change"
+        )
+        .annotate(date=Cast("timestamp", CharField()))
+        .order_by("-date")[:10]
+    )
 
-        return context
+    serialized_latest_link_events = json.dumps(list(latest_link_events))
+    response = {"latest_link_events": serialized_latest_link_events}
+
+    return JsonResponse(response)
