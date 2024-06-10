@@ -13,7 +13,7 @@ then
     mysql -h db -u root -p"${MYSQL_ROOT_PASSWORD}" -D "${MYSQL_DATABASE}" -e "DROP DATABASE ${MYSQL_DATABASE}; CREATE DATABASE ${MYSQL_DATABASE};" | :
 
     echo "Importing backup DB."
-    gunzip -c "${restore_file}" | mysql -h db -u root -p"${MYSQL_ROOT_PASSWORD}" -D "${MYSQL_DATABASE}"
+    nice -n 5 bash -c "gunzip -c ${restore_file} | mysql -h db -u root -p${MYSQL_ROOT_PASSWORD} -D ${MYSQL_DATABASE}"
 
     ## Run any necessary DB operations.
     python /app/manage.py migrate
