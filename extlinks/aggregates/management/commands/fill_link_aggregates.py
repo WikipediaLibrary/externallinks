@@ -1,13 +1,12 @@
 from datetime import date, timedelta, datetime
 
 from django.core.management.base import BaseCommand, CommandError
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 
 from ...models import LinkAggregate
-from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
 
 
@@ -31,9 +30,6 @@ class Command(BaseCommand):
                 )
                 if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
-                    self.stdout.write(
-                        self.style.ERROR(f"Error: Collection '{col_id}' does not exist")
-                    )
 
                 # Check if the organisation has been deleted
                 # If no organisation exists, we should move on
