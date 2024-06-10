@@ -16,6 +16,7 @@ from extlinks.organisations.factories import (
     OrganisationFactory,
     UserFactory,
 )
+from extlinks.organisations.models import Organisation
 
 
 class LinkAggregateCommandTest(TestCase):
@@ -159,6 +160,47 @@ class LinkAggregateCommandTest(TestCase):
         with self.assertRaises(CommandError):
             call_command("fill_link_aggregates", collections=[9999999])
 
+    def test_link_aggregate_with_argument_delete_org(self):
+        # Create a new collection and some LinkEvents associated with it
+        # Then delete the organisation
+        new_organisation = OrganisationFactory(name="Pixar")
+        new_collection = CollectionFactory(
+            name="Monsters Inc", organisation=new_organisation
+        )
+        url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
+
+        new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35))
+        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.save()
+
+        new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13))
+        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.save()
+
+        self.assertEqual(
+            LinkAggregate.objects.filter(collection=new_collection).count(), 0
+        )
+
+        call_command("fill_link_aggregates", collections=[new_collection.pk])
+
+        self.assertEqual(
+            LinkAggregate.objects.filter(collection=new_collection).count(), 2
+        )
+
+        new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13))
+        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.save()
+
+        # Delete the organisation
+        Organisation.objects.filter(pk=new_organisation.pk).delete()
+
+        call_command("fill_link_aggregates", collections=[new_collection.pk])
+
+        # All link events should be deleted
+        self.assertEqual(
+            LinkAggregate.objects.filter(collection=new_collection).count(), 0
+        )
+
 
 class UserAggregateCommandTest(TestCase):
     def setUp(self):
@@ -211,7 +253,7 @@ class UserAggregateCommandTest(TestCase):
         link_event_8.save()
 
     # Test when UserAggregate.table is empty
-    def test_page_aggregate_table_empty(self):
+    def test_user_aggregate_table_empty(self):
         self.assertEqual(UserAggregate.objects.count(), 0)
 
         call_command("fill_user_aggregates")
@@ -237,7 +279,7 @@ class UserAggregateCommandTest(TestCase):
         self.assertEqual(juan_aggregate_september.total_links_added, 3)
         self.assertEqual(jon_aggregate_september.total_links_added, 2)
 
-    def test_page_aggregate_table_with_data(self):
+    def test_user_aggregate_table_with_data(self):
         yesterday = datetime.today() - timedelta(days=1)
         self.assertEqual(UserAggregate.objects.count(), 0)
         # Add UserAggregate. NOTE: the last UserAggregate.date here needs to be
@@ -337,6 +379,47 @@ class UserAggregateCommandTest(TestCase):
         # Calling the command with a collection that doesn't exist
         with self.assertRaises(CommandError):
             call_command("fill_user_aggregates", collections=[9999999])
+
+    def test_user_aggregate_with_argument_delete_org(self):
+        # Create a new collection and some LinkEvents associated with it
+        # Then delete the organisation
+        new_organisation = OrganisationFactory(name="Pixar")
+        new_collection = CollectionFactory(
+            name="Monsters Inc", organisation=new_organisation
+        )
+        url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
+
+        new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35))
+        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.save()
+
+        new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13))
+        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.save()
+
+        self.assertEqual(
+            UserAggregate.objects.filter(collection=new_collection).count(), 0
+        )
+
+        call_command("fill_user_aggregates", collections=[new_collection.pk])
+
+        self.assertEqual(
+            UserAggregate.objects.filter(collection=new_collection).count(), 2
+        )
+
+        new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13))
+        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.save()
+
+        # Delete the organisation
+        Organisation.objects.filter(pk=new_organisation.pk).delete()
+
+        call_command("fill_user_aggregates", collections=[new_collection.pk])
+
+        # All link events should be deleted
+        self.assertEqual(
+            UserAggregate.objects.filter(collection=new_collection).count(), 0
+        )
 
 
 class PageProjectAggregateCommandTest(TestCase):
@@ -506,47 +589,84 @@ class PageProjectAggregateCommandTest(TestCase):
         self.assertEqual(updated_page_aggregate.total_links_added, 2)
         self.assertEqual(updated_page_aggregate.total_links_removed, 0)
 
-        def test_pageproject_aggregate_with_argument(self):
-            # Create a new collection and some LinkEvents associated with it
-            new_collection = CollectionFactory(name="Monsters Inc")
-            url_pattern = URLPatternFactory(
-                url="www.duckduckgo.com", collection=new_collection
-            )
-            # Creating a collection and LinkEvent that won't be run in the command
-            other_collection = CollectionFactory(name="Unused")
-            other_url_pattern = URLPatternFactory(
-                url="www.notusingthis.com", collection=other_collection
-            )
+    def test_pageproject_aggregate_with_argument(self):
+        # Create a new collection and some LinkEvents associated with it
+        new_collection = CollectionFactory(name="Monsters Inc")
+        url_pattern = URLPatternFactory(
+            url="www.duckduckgo.com", collection=new_collection
+        )
+        # Creating a collection and LinkEvent that won't be run in the command
+        other_collection = CollectionFactory(name="Unused")
+        other_url_pattern = URLPatternFactory(
+            url="www.notusingthis.com", collection=other_collection
+        )
 
-            new_link_event_1 = LinkEventFactory(
-                timestamp=datetime(2020, 1, 1, 15, 30, 35)
-            )
-            new_link_event_1.url.add(url_pattern)
-            new_link_event_1.save()
+        new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35))
+        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.save()
 
-            new_link_event_2 = LinkEventFactory(
-                timestamp=datetime(2020, 4, 23, 8, 50, 13)
-            )
-            new_link_event_2.url.add(url_pattern)
-            new_link_event_2.save()
+        new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13))
+        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.save()
 
-            other_link_event = LinkEventFactory()
-            other_link_event.url.add(other_url_pattern)
-            other_link_event.save()
+        other_link_event = LinkEventFactory()
+        other_link_event.url.add(other_url_pattern)
+        other_link_event.save()
 
-            self.assertEqual(
-                PageProjectAggregate.objects.filter(collection=new_collection).count(),
-                0,
-            )
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(collection=new_collection).count(),
+            0,
+        )
 
-            call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
+        call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
 
-            self.assertEqual(
-                PageProjectAggregate.objects.filter(collection=new_collection).count(),
-                2,
-            )
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(collection=new_collection).count(),
+            2,
+        )
 
-        def test_pageproject_aggregate_with_argument_error(self):
-            # Calling the command with a collection that doesn't exist
-            with self.assertRaises(CommandError):
-                call_command("fill_pageproject_aggregates", collections=[9999999])
+    def test_pageproject_aggregate_with_argument_error(self):
+        # Calling the command with a collection that doesn't exist
+        with self.assertRaises(CommandError):
+            call_command("fill_pageproject_aggregates", collections=[9999999])
+
+    def test_pageproject_aggregate_with_argument_delete_org(self):
+        # Create a new collection and some LinkEvents associated with it
+        # Then delete the organisation
+        new_organisation = OrganisationFactory(name="Pixar")
+        new_collection = CollectionFactory(
+            name="Monsters Inc", organisation=new_organisation
+        )
+        url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
+
+        new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35))
+        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.save()
+
+        new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13))
+        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.save()
+
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(collection=new_collection).count(), 0
+        )
+
+        call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
+
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(collection=new_collection).count(), 2
+        )
+
+        new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13))
+        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.save()
+
+        # Delete the organisation
+        Organisation.objects.filter(pk=new_organisation.pk).delete()
+
+        call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
+
+        # All link events should be deleted
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(collection=new_collection).count(), 0
+        )

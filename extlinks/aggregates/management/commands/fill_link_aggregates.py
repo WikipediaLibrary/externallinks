@@ -35,6 +35,11 @@ class Command(BaseCommand):
                         self.style.ERROR(f"Error: Collection '{col_id}' does not exist")
                     )
 
+                # Check if the organisation has been deleted
+                # If no organisation exists, we should move on
+                if not collection.organisation:
+                    continue
+
                 link_event_filter = self._get_linkevent_filter(collection)
                 self._process_single_collection(link_event_filter, collection)
         else:
@@ -43,6 +48,11 @@ class Command(BaseCommand):
             collections = Collection.objects.all().prefetch_related("url")
 
             for collection in collections:
+                # Check if the organisation has been deleted
+                # If no organisation exists, we should move on
+                if not collection.organisation:
+                    continue
+
                 self._process_single_collection(link_event_filter, collection)
 
     def _get_linkevent_filter(self, collection=None):

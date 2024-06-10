@@ -1,13 +1,12 @@
 from datetime import date, timedelta, datetime
 
-from django.core.management.base import BaseCommand
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Q, Prefetch
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 
 from ...models import PageProjectAggregate
-from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
 
 
@@ -32,6 +31,11 @@ class Command(BaseCommand):
                 if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
 
+                # Check if the organisation has been deleted
+                # If no organisation exists, we should move on
+                if not collection.organisation:
+                    continue
+
                 link_event_filter = self._get_linkevent_filter(collection)
                 self._process_single_collection(link_event_filter, collection)
         else:
@@ -40,6 +44,11 @@ class Command(BaseCommand):
             collections = Collection.objects.all().prefetch_related("url")
 
             for collection in collections:
+                # Check if the organisation has been deleted
+                # If no organisation exists, we should move on
+                if not collection.organisation:
+                    continue
+
                 self._process_single_collection(link_event_filter, collection)
 
     def _get_linkevent_filter(self, collection=None):
@@ -58,7 +67,6 @@ class Command(BaseCommand):
         Q object
         """
         today = date.today()
-        last_day_of_last_month = today.replace(day=1) - timedelta(days=1)
         yesterday = today - timedelta(days=1)
 
         if collection:
