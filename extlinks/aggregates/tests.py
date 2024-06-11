@@ -1,4 +1,3 @@
-import factory
 from datetime import datetime, date, timedelta
 
 from django.core.management import call_command, CommandError
@@ -194,12 +193,9 @@ class LinkAggregateCommandTest(TestCase):
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
 
-        call_command("fill_link_aggregates", collections=[new_collection.pk])
-
-        # All link events should be deleted
-        self.assertEqual(
-            LinkAggregate.objects.filter(collection=new_collection).count(), 0
-        )
+        with self.assertRaises(CommandError):
+            # No collection was returned
+            call_command("fill_link_aggregates", collections=[new_collection.pk])
 
 
 class UserAggregateCommandTest(TestCase):
@@ -414,12 +410,9 @@ class UserAggregateCommandTest(TestCase):
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
 
-        call_command("fill_user_aggregates", collections=[new_collection.pk])
-
-        # All link events should be deleted
-        self.assertEqual(
-            UserAggregate.objects.filter(collection=new_collection).count(), 0
-        )
+        with self.assertRaises(CommandError):
+            # No collection was returned
+            call_command("fill_user_aggregates", collections=[new_collection.pk])
 
 
 class PageProjectAggregateCommandTest(TestCase):
@@ -664,9 +657,6 @@ class PageProjectAggregateCommandTest(TestCase):
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
 
-        call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
-
-        # All link events should be deleted
-        self.assertEqual(
-            PageProjectAggregate.objects.filter(collection=new_collection).count(), 0
-        )
+        with self.assertRaises(CommandError):
+            # No collection was returned
+            call_command("fill_pageproject_aggregates", collections=[new_collection.pk])

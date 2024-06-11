@@ -26,7 +26,9 @@ class Command(BaseCommand):
         if options["collections"]:
             for col_id in options["collections"]:
                 collection = (
-                    Collection.objects.filter(pk=col_id).prefetch_related("url").first()
+                    Collection.objects.filter(pk=col_id, organisation__isnull=False)
+                    .prefetch_related("url")
+                    .first()
                 )
                 if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
@@ -41,7 +43,9 @@ class Command(BaseCommand):
         else:
             # Looping through all collections
             link_event_filter = self._get_linkevent_filter()
-            collections = Collection.objects.all().prefetch_related("url")
+            collections = Collection.objects.exclude(
+                organisation__isnull=True
+            ).prefetch_related("url")
 
             for collection in collections:
                 # Check if the organisation has been deleted
