@@ -74,10 +74,11 @@ class Command(BaseCommand):
         else:
             linkaggregate_filter = Q()
 
-        if PageProjectAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = PageProjectAggregate.objects.filter(
-                linkaggregate_filter
-            ).latest("full_date")
+        page_project_aggregate = PageProjectAggregate.objects.filter(
+            linkaggregate_filter
+        )
+        if page_project_aggregate.exists():
+            latest_aggregated_link_date = page_project_aggregate.latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
@@ -160,23 +161,17 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            if PageProjectAggregate.objects.filter(
+            page_projects_aggregate = PageProjectAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 page_name=link_event["page_title"],
                 project_name=link_event["domain"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).exists():
+            )
+            if page_projects_aggregate.exists():
                 # Query PageProjectAggregate for the existing field
-                existing_link_aggregate = PageProjectAggregate.objects.get(
-                    organisation=collection.organisation,
-                    collection=collection,
-                    page_name=link_event["page_title"],
-                    project_name=link_event["domain"],
-                    full_date=link_event["timestamp_date"],
-                    on_user_list=link_event["on_user_list"],
-                )
+                existing_link_aggregate = page_projects_aggregate.first()
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]

@@ -67,7 +67,6 @@ class Command(BaseCommand):
         Q object
         """
         today = date.today()
-        last_day_of_last_month = today.replace(day=1) - timedelta(days=1)
         yesterday = today - timedelta(days=1)
 
         if collection:
@@ -75,10 +74,10 @@ class Command(BaseCommand):
         else:
             linkaggregate_filter = Q()
 
-        if UserAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = UserAggregate.objects.filter(
-                linkaggregate_filter
-            ).latest("full_date")
+        user_aggregate = UserAggregate.objects.filter(linkaggregate_filter)
+
+        if user_aggregate.exists():
+            latest_aggregated_link_date = user_aggregate.latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
@@ -161,21 +160,16 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            if UserAggregate.objects.filter(
+            user_aggregate = UserAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 username=link_event["username__username"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).exists():
+            )
+            if user_aggregate.exists():
                 # Query UserAggregate for the existing field
-                existing_link_aggregate = UserAggregate.objects.get(
-                    organisation=collection.organisation,
-                    collection=collection,
-                    username=link_event["username__username"],
-                    full_date=link_event["timestamp_date"],
-                    on_user_list=link_event["on_user_list"],
-                )
+                existing_link_aggregate = user_aggregate.first()
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]
