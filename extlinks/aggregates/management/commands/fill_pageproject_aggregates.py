@@ -155,17 +155,15 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            page_projects_aggregate = PageProjectAggregate.objects.filter(
+            existing_link_aggregate = PageProjectAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 page_name=link_event["page_title"],
                 project_name=link_event["domain"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            )
-            if page_projects_aggregate.exists():
-                # Query PageProjectAggregate for the existing field
-                existing_link_aggregate = page_projects_aggregate.first()
+            ).first()
+            if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]

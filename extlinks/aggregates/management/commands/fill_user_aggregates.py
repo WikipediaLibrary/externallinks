@@ -154,16 +154,14 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            user_aggregate = UserAggregate.objects.filter(
+            existing_link_aggregate = UserAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 username=link_event["username__username"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            )
-            if user_aggregate.exists():
-                # Query UserAggregate for the existing field
-                existing_link_aggregate = user_aggregate.first()
+            ).first()
+            if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]
