@@ -1,13 +1,12 @@
 from datetime import date, timedelta, datetime
 
-from django.core.management.base import BaseCommand
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Q, Prefetch
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 
 from ...models import PageProjectAggregate
-from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
 
 
@@ -27,7 +26,9 @@ class Command(BaseCommand):
         if options["collections"]:
             for col_id in options["collections"]:
                 collection = (
-                    Collection.objects.filter(pk=col_id).prefetch_related("url").first()
+                    Collection.objects.filter(pk=col_id, organisation__isnull=False)
+                    .prefetch_related("url")
+                    .first()
                 )
                 if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
@@ -37,7 +38,9 @@ class Command(BaseCommand):
         else:
             # Looping through all collections
             link_event_filter = self._get_linkevent_filter()
-            collections = Collection.objects.all().prefetch_related("url")
+            collections = Collection.objects.exclude(
+                organisation__isnull=True
+            ).prefetch_related("url")
 
             for collection in collections:
                 self._process_single_collection(link_event_filter, collection)
@@ -58,7 +61,6 @@ class Command(BaseCommand):
         Q object
         """
         today = date.today()
-        last_day_of_last_month = today.replace(day=1) - timedelta(days=1)
         yesterday = today - timedelta(days=1)
 
         if collection:
@@ -66,10 +68,11 @@ class Command(BaseCommand):
         else:
             linkaggregate_filter = Q()
 
-        if PageProjectAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = PageProjectAggregate.objects.filter(
-                linkaggregate_filter
-            ).latest("full_date")
+        page_project_aggregate = PageProjectAggregate.objects.filter(
+            linkaggregate_filter
+        )
+        if page_project_aggregate.exists():
+            latest_aggregated_link_date = page_project_aggregate.latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
@@ -152,23 +155,15 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            if PageProjectAggregate.objects.filter(
+            existing_link_aggregate = PageProjectAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 page_name=link_event["page_title"],
                 project_name=link_event["domain"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).exists():
-                # Query PageProjectAggregate for the existing field
-                existing_link_aggregate = PageProjectAggregate.objects.get(
-                    organisation=collection.organisation,
-                    collection=collection,
-                    page_name=link_event["page_title"],
-                    project_name=link_event["domain"],
-                    full_date=link_event["timestamp_date"],
-                    on_user_list=link_event["on_user_list"],
-                )
+            ).first()
+            if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]

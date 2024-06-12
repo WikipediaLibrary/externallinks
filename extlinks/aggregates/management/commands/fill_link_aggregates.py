@@ -1,13 +1,12 @@
 from datetime import date, timedelta, datetime
 
 from django.core.management.base import BaseCommand, CommandError
-from django.core.exceptions import ValidationError
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 
 from ...models import LinkAggregate
-from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
 
 
@@ -27,20 +26,21 @@ class Command(BaseCommand):
         if options["collections"]:
             for col_id in options["collections"]:
                 collection = (
-                    Collection.objects.filter(pk=col_id).prefetch_related("url").first()
+                    Collection.objects.filter(pk=col_id, organisation__isnull=False)
+                    .prefetch_related("url")
+                    .first()
                 )
                 if not collection:
                     raise CommandError(f"Collection '{col_id}' does not exist")
-                    self.stdout.write(
-                        self.style.ERROR(f"Error: Collection '{col_id}' does not exist")
-                    )
 
                 link_event_filter = self._get_linkevent_filter(collection)
                 self._process_single_collection(link_event_filter, collection)
         else:
             # Looping through all collections
             link_event_filter = self._get_linkevent_filter()
-            collections = Collection.objects.all().prefetch_related("url")
+            collections = Collection.objects.exclude(
+                organisation__isnull=True
+            ).prefetch_related("url")
 
             for collection in collections:
                 self._process_single_collection(link_event_filter, collection)
@@ -61,7 +61,6 @@ class Command(BaseCommand):
         Q object
         """
         today = date.today()
-        last_day_of_last_month = today.replace(day=1) - timedelta(days=1)
         yesterday = today - timedelta(days=1)
 
         if collection:
@@ -69,10 +68,10 @@ class Command(BaseCommand):
         else:
             linkaggregate_filter = Q()
 
-        if LinkAggregate.objects.filter(linkaggregate_filter).exists():
-            latest_aggregated_link_date = LinkAggregate.objects.filter(
-                linkaggregate_filter
-            ).latest("full_date")
+        link_aggregate = LinkAggregate.objects.filter(linkaggregate_filter)
+
+        if link_aggregate.exists():
+            latest_aggregated_link_date = link_aggregate.latest("full_date")
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,
@@ -155,19 +154,13 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
-            if LinkAggregate.objects.filter(
+            existing_link_aggregate = LinkAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).exists():
-                # Query LinkAggregate for the existing field
-                existing_link_aggregate = LinkAggregate.objects.get(
-                    organisation=collection.organisation,
-                    collection=collection,
-                    full_date=link_event["timestamp_date"],
-                    on_user_list=link_event["on_user_list"],
-                )
+            ).first()
+            if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
                     != link_event["links_added"]
