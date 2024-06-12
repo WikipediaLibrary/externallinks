@@ -30,7 +30,7 @@ class Command(BaseCommand):
                     .prefetch_related("url")
                     .first()
                 )
-                if not collection:
+                if collection is None:
                     raise CommandError(f"Collection '{col_id}' does not exist")
 
                 link_event_filter = self._get_linkevent_filter(collection)
@@ -63,15 +63,14 @@ class Command(BaseCommand):
         today = date.today()
         yesterday = today - timedelta(days=1)
 
-        if collection:
+        if collection is not None:
             linkaggregate_filter = Q(collection=collection)
         else:
             linkaggregate_filter = Q()
 
-        link_aggregate = LinkAggregate.objects.filter(linkaggregate_filter)
+        latest_aggregated_link_date = LinkAggregate.objects.filter(linkaggregate_filter).order_by("full_date").last()
 
-        if link_aggregate.exists():
-            latest_aggregated_link_date = link_aggregate.latest("full_date")
+        if latest_aggregated_link_date is not None:
             latest_datetime = datetime(
                 latest_aggregated_link_date.full_date.year,
                 latest_aggregated_link_date.full_date.month,

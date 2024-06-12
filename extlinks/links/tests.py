@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -300,21 +300,21 @@ class EZProxyRemovalCommandTest(TestCase):
 
         self.linkevent_jstor1 = LinkEventFactory(
             link="www.jstor.org/dgsajdga",
-            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_jstor1.url.add(self.jstor_url_pattern)
         self.linkevent_jstor2 = LinkEventFactory(
             link="www.jstor.org/eiuqwyeiu445",
-            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_jstor2.url.add(self.jstor_url_pattern)
         self.linkevent_jstor_proxy = LinkEventFactory(
             link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
-            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
@@ -322,21 +322,21 @@ class EZProxyRemovalCommandTest(TestCase):
 
         self.linkevent_proquest1 = LinkEventFactory(
             link="www.proquest.com/vclmxvldfgf465",
-            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_proquest1.url.add(self.proquest_url_pattern)
         self.linkevent_proquest2 = LinkEventFactory(
             link="www.proquest.com/dkjsahdj2893",
-            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_proquest2.url.add(self.proquest_url_pattern)
         self.linkevent_proquest_proxy = LinkEventFactory(
             link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
-            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
@@ -405,7 +405,7 @@ class FixOnUserListCommandTest(TestCase):
 
         self.linkevent_jstor1 = LinkEventFactory(
             link="www.jstor.org/dgsajdga",
-            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=True,
@@ -413,7 +413,7 @@ class FixOnUserListCommandTest(TestCase):
         self.linkevent_jstor1.url.add(self.jstor_url_pattern)
         self.linkevent_jstor2 = LinkEventFactory(
             link="www.jstor.org/eiuqwyeiu445",
-            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=True,
@@ -421,7 +421,7 @@ class FixOnUserListCommandTest(TestCase):
         self.linkevent_jstor2.url.add(self.jstor_url_pattern)
         self.linkevent_jstor_proxy = LinkEventFactory(
             link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
-            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=False,
@@ -430,7 +430,7 @@ class FixOnUserListCommandTest(TestCase):
 
         self.linkevent_proquest1 = LinkEventFactory(
             link="www.proquest.com/vclmxvldfgf465",
-            timestamp=datetime(2021, 1, 1, 15, 30, 35),
+            timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=True,
@@ -438,7 +438,7 @@ class FixOnUserListCommandTest(TestCase):
         self.linkevent_proquest1.url.add(self.proquest_url_pattern)
         self.linkevent_proquest2 = LinkEventFactory(
             link="www.proquest.com/dkjsahdj2893",
-            timestamp=datetime(2021, 1, 1, 18, 30, 35),
+            timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=True,
@@ -446,7 +446,7 @@ class FixOnUserListCommandTest(TestCase):
         self.linkevent_proquest2.url.add(self.proquest_url_pattern)
         self.linkevent_proquest_proxy = LinkEventFactory(
             link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
-            timestamp=datetime(2021, 1, 1, 22, 30, 35),
+            timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
             on_user_list=False,

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from django.core.management import call_command
@@ -27,7 +27,7 @@ class OrganisationListTest(TestCase):
     def test_organisation_list_view(self):
         """
         Test that we can simply load the organisation list page successfully
-        """
+       """
         factory = RequestFactory()
 
         request = factory.get(reverse("organisations:list"))
@@ -72,7 +72,7 @@ class OrganisationDetailTest(TestCase):
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=user,
-            timestamp=datetime(2019, 1, 15),
+            timestamp=datetime(2019, 1, 15, tzinfo=timezone.utc),
             page_title="Event 1",
             user_is_bot=True,
         )
@@ -83,7 +83,7 @@ class OrganisationDetailTest(TestCase):
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=user,
-            timestamp=datetime(2019, 1, 10),
+            timestamp=datetime(2019, 1, 10, tzinfo=timezone.utc),
             page_title="Event 1",
         )
         self.linkevent2.url.add(urlpattern1)
@@ -93,7 +93,7 @@ class OrganisationDetailTest(TestCase):
             link=urlpattern1.url + "/test",
             change=LinkEvent.REMOVED,
             username=UserFactory(username="Bob"),
-            timestamp=datetime(2017, 5, 5),
+            timestamp=datetime(2017, 5, 5, tzinfo=timezone.utc),
             page_title="Event 2",
         )
         self.linkevent3.url.add(urlpattern1)
@@ -103,7 +103,7 @@ class OrganisationDetailTest(TestCase):
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=UserFactory(username="Mary"),
-            timestamp=datetime(2019, 3, 1),
+            timestamp=datetime(2019, 3, 1, tzinfo=timezone.utc),
             on_user_list=True,
             page_title="Event 2",
             page_namespace=1,

@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import factory
 import random
 
 from extlinks.organisations.factories import UserFactory, CollectionFactory
 from .models import LinkEvent, LinkSearchTotal, URLPattern
-
 
 class URLPatternFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -24,7 +23,7 @@ class LinkEventFactory(factory.django.DjangoModelFactory):
 
     # We don't define any automatically generated link here, because it
     # needs to directly correspond to the url field for this object too.
-    timestamp = datetime.now()
+    timestamp = datetime.now(timezone.utc)
     domain = "en.wikipedia.org"
     username = factory.SubFactory(UserFactory)
     rev_id = random.randint(10000000, 100000000)

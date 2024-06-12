@@ -1,4 +1,4 @@
-import datetime
+from datetime import date, datetime, timezone
 import time_machine
 from unittest import mock
 
@@ -13,12 +13,12 @@ class LinkSearchDataByTimeTest(TestCase):
     def setUp(self):
         url = URLPatternFactory(url="www.acme.org")
         # Adding LinkSearch data
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 1, 15))
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 2, 1))
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 2, 2))
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 2, 18))
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 3, 6))
-        LinkSearchTotalFactory(url=url, date=datetime.datetime(2020, 4, 16), total=0)
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 1, 15, tzinfo=timezone.utc))
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 2, 1, tzinfo=timezone.utc))
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 2, 2, tzinfo=timezone.utc))
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 2, 18, tzinfo=timezone.utc))
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 3, 6, tzinfo=timezone.utc))
+        LinkSearchTotalFactory(url=url, date=datetime(2020, 4, 16, tzinfo=timezone.utc), total=0)
 
     def test_linksearch_data_empty_queryset(self):
         linksearch_queryset = None
@@ -29,7 +29,7 @@ class LinkSearchDataByTimeTest(TestCase):
         self.assertEqual(0, len(linksearch_data))
 
     def test_linksearch_data(self):
-        with time_machine.travel(datetime.date(2020, 12, 31)):
+        with time_machine.travel(date(2020, 12, 31)):
             linksearch = LinkSearchTotal.objects.all()
 
             dates, linksearch_data = get_linksearchtotal_data_by_time(linksearch)
