@@ -17,7 +17,7 @@ flock -n ${lockfile}
     then
         echo "Backing up database."
         filename="/app/backup/${date}.sql.gz"
-        mysqldump -h db -u root -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}" | gzip > ${filename}
+        nice -n 5 bash -c "mysqldump -h db -u root -p${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} | gzip > ${filename}"
 
         ## Root only
         chmod 0600 ${filename}
