@@ -285,7 +285,7 @@
           var tdPageName = document.createElement("td");
           var a = document.createElement("a");
           a.href = "https://" + pages[i].project_name + "/wiki/" + pages[i].page_name;
-          a.appendChild(document.createTextNode(pages[i].page_name));
+          a.appendChild(document.createTextNode(truncateString(pages[i].page_name, 40)));
           tdPageName.appendChild(a);
           var tdLinks = document.createElement("td");
           tdLinks.innerHTML = pages[i].links_diff;
