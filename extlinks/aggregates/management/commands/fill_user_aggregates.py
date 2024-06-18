@@ -1,6 +1,7 @@
 from datetime import date, timedelta, datetime
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
@@ -68,7 +69,11 @@ class Command(BaseCommand):
         else:
             linkaggregate_filter = Q()
 
-        latest_aggregated_link_date = UserAggregate.objects.filter(linkaggregate_filter).order_by("full_date").last()
+        latest_aggregated_link_date = (
+            UserAggregate.objects.filter(linkaggregate_filter)
+            .order_by("full_date")
+            .last()
+        )
 
         if latest_aggregated_link_date is not None:
             latest_datetime = datetime(
@@ -177,12 +182,13 @@ class Command(BaseCommand):
                     existing_link_aggregate.save()
             else:
                 # Create a new link aggregate
-                UserAggregate.objects.create(
-                    organisation=collection.organisation,
-                    collection=collection,
-                    username=link_event["username__username"],
-                    full_date=link_event["timestamp_date"],
-                    total_links_added=link_event["links_added"],
-                    total_links_removed=link_event["links_removed"],
-                    on_user_list=link_event["on_user_list"],
-                )
+                with transaction.atomic():
+                    UserAggregate.objects.create(
+                        organisation=collection.organisation,
+                        collection=collection,
+                        username=link_event["username__username"],
+                        full_date=link_event["timestamp_date"],
+                        total_links_added=link_event["links_added"],
+                        total_links_removed=link_event["links_removed"],
+                        on_user_list=link_event["on_user_list"],
+                    )
