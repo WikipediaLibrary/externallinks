@@ -17,10 +17,11 @@ flock -n ${lockfile}
     then
         echo "Backing up database."
         filename="/app/backup/${date}.sql.gz"
-        nice -n 5 bash -c "mysqldump -h db -u root -p${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} | gzip > ${filename}"
+        nice -n 5 bash -c "mysqldump --skip-comments -h db -u root -p${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} | gzip > ${filename}"
 
-        ## Root only
-        chmod 0600 ${filename}
+        ## `root:wikidev` only; using IDs instead of names to avoid problems in localdev
+        chown 0:500 ${filename}
+        chmod 0640 ${filename}
 
         echo "Finished backup."
 
