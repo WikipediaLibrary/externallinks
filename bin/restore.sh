@@ -9,17 +9,14 @@ restore_file=${1}
 if /app/bin/django_wait_for_db.sh
 then
 
-    echo "This will drop the DB. Proceed [y/N]?"
-    read -p "This will drop the DB. Proceed [y/N]?" -n 1 -r
+    echo "This may drop the DB. Proceed [y/N]?"
+    read -p "This may drop the DB. Proceed [y/N]?" -n 1 -r
     echo ""
     if [[ ! $REPLY =~ ^[Yy]$ ]]
     then
         echo "Exiting..."
         exit
     fi
-
-    echo "Dropping existing DB"
-    mysql -h db -u root -p"${MYSQL_ROOT_PASSWORD}" -D "${MYSQL_DATABASE}" -e "DROP DATABASE ${MYSQL_DATABASE}; CREATE DATABASE ${MYSQL_DATABASE};" | :
 
     echo "Importing backup DB."
     nice -n 5 bash -c "gunzip -c ${restore_file} | mysql -h db -u root -p${MYSQL_ROOT_PASSWORD} -D ${MYSQL_DATABASE}"
