@@ -1,7 +1,7 @@
 Django>=4.2.7,<5.0.0
 django_cron==0.6.0
 factory_boy>=3.0.1
-faker==25.9.1
+faker==25.9.2
 mysqlclient==2.2.4
 pymemcache==4.0.0
 sentry-sdk==2.6.0
