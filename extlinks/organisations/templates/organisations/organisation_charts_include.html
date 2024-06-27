@@ -149,8 +149,8 @@
 
     // Click all Link Events chart section
     document.getElementById('{{ collection_name }}_linkEvents_button').click();
-    const form_data = {{ form_data|safe }};
-    const collection_id = {{ collection.collection_id|safe }};
+    var form_data = {{ form_data|safe }};
+    var collection_id = {{ collection.collection_id|safe }};
     getLinksCount(collection_id, form_data);
     getEditorCount(collection_id, form_data);
     getProjectCount(collection_id, form_data);
@@ -187,9 +187,9 @@
   }
 
   function getLinksCount(collection_id, form_data){
-    const idLinksAdded = collection_id + "-links-added";
-    const idLinksRemoved = collection_id + "-links-removed";
-    const idLinksDiff = collection_id + "-links-diff";
+    var idLinksAdded = collection_id + "-links-added";
+    var idLinksRemoved = collection_id + "-links-removed";
+    var idLinksDiff = collection_id + "-links-diff";
 
     $.ajax({
       url: "{% url 'organisations:links_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -221,7 +221,7 @@
   }
 
   function getEditorCount(collection_id, form_data){
-    const idTotalEditors = collection_id + "-total-editors";
+    var idTotalEditors = collection_id + "-total-editors";
 
     $.ajax({
      url: "{% url 'organisations:editor_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -241,7 +241,7 @@
   }
 
   function getProjectCount(collection_id, form_data){
-    const idTotalProjects = collection_id + "-total-projects";
+    var idTotalProjects = collection_id + "-total-projects";
 
     $.ajax({
      url: "{% url 'organisations:project_count' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -261,8 +261,8 @@
   }
 
   function getTopPages(collection_id, form_data){
-    const idSpinnerPages = collection_id + "-loading-spinner-pages";
-    const idTopPagesTable = collection_id + "-top-pages-table";
+    var idSpinnerPages = collection_id + "-loading-spinner-pages";
+    var idTopPagesTable = collection_id + "-top-pages-table";
 
     $.ajax({
       url: "{% url 'organisations:top_pages' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -304,8 +304,8 @@
   }
 
   function getTopProjects(collection_id, form_data){
-    const idSpinnerProjects = collection_id + "-loading-spinner-projects";
-    const idTopProjectsTable = collection_id + "-top-projects-table";
+    var idSpinnerProjects = collection_id + "-loading-spinner-projects";
+    var idTopProjectsTable = collection_id + "-top-projects-table";
 
     $.ajax({
       url: "{% url 'organisations:top_projects' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -344,8 +344,8 @@
   }
 
   function getTopUsers(collection_id, form_data){
-    const idSpinnerUsers = collection_id + "-loading-spinner-users";
-    const idTopUsersTable = collection_id + "-top-users-table";
+    var idSpinnerUsers = collection_id + "-loading-spinner-users";
+    var idTopUsersTable = collection_id + "-top-users-table";
 
     $.ajax({
       url: "{% url 'organisations:top_users' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
@@ -386,10 +386,10 @@
   }
   
   function getLatestLinkEvents(collection_id, form_data){
-    const idSpinnerLinkEvents = collection_id + "-loading-spinner-latest-link-events";
-    const idLinkEventsTable = collection_id + "-link-events-table";
-    const idLinkEventsButtonContainer = collection_id + "-link-events-button-container";
-    const idLinkEventsTableHeader = collection_id + "-link-events-table-header";
+    var idSpinnerLinkEvents = collection_id + "-loading-spinner-latest-link-events";
+    var idLinkEventsTable = collection_id + "-link-events-table";
+    var idLinkEventsButtonContainer = collection_id + "-link-events-button-container";
+    var idLinkEventsTableHeader = collection_id + "-link-events-table-header";
 
     $.ajax({
       url: "{% url 'organisations:latest_link_events' %}?collection=" + collection_id + "&form_data=" + JSON.stringify(form_data),
