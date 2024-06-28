@@ -158,27 +158,31 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
+            username = link_event["username__username"]
+            full_date = link_event["timestamp_date"]
+            on_user_list = link_event["on_user_list"]
+            links_added = link_event["links_added"]
+            links_removed = link_event["links_removed"]
+            if any(attr is None for attr in [username, full_date, on_user_list, links_added, links_removed]):
+                continue
+
             existing_link_aggregate = UserAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
-                username=link_event["username__username"],
-                full_date=link_event["timestamp_date"],
-                on_user_list=link_event["on_user_list"],
+                username=username,
+                full_date=full_date,
+                on_user_list=on_user_list,
             ).first()
             if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
-                    != link_event["links_added"]
+                    != links_added
                     or existing_link_aggregate.total_links_removed
-                    != link_event["links_removed"]
+                    != links_removed
                 ):
                     # Updating the total links added and removed
-                    existing_link_aggregate.total_links_added = link_event[
-                        "links_added"
-                    ]
-                    existing_link_aggregate.total_links_removed = link_event[
-                        "links_removed"
-                    ]
+                    existing_link_aggregate.total_links_added = links_added
+                    existing_link_aggregate.total_links_removed = links_removed
                     existing_link_aggregate.save()
             else:
                 # Create a new link aggregate
@@ -186,9 +190,9 @@ class Command(BaseCommand):
                     UserAggregate.objects.create(
                         organisation=collection.organisation,
                         collection=collection,
-                        username=link_event["username__username"],
-                        full_date=link_event["timestamp_date"],
-                        total_links_added=link_event["links_added"],
-                        total_links_removed=link_event["links_removed"],
-                        on_user_list=link_event["on_user_list"],
+                        username=username,
+                        full_date=full_date,
+                        total_links_added=links_added,
+                        total_links_removed=links_removed,
+                        on_user_list=on_user_list,
                     )
