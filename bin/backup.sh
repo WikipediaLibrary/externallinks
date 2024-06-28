@@ -17,10 +17,17 @@ flock -n ${lockfile}
     then
         echo "Backing up database."
         filename="/app/backup/${date}.sql.gz"
-        nice -n 5 bash -c "mysqldump -h db -u root -p${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} | gzip > ${filename}"
+        extra_opts=""
+        if [ "${1}" = "missing-only" ]
+        then
+            extra_opts="--insert-ignore --no-create-info --skip-opt"
+            filename="/app/backup/${date}.missing-only.sql.gz"
+        fi
+        nice -n 5 bash -c "mysqldump ${extra_opts} --skip-comments -h db -u root -p${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} | gzip > ${filename}"
 
-        ## Root only
-        chmod 0600 ${filename}
+        ## `root:wikidev` only; using IDs instead of names to avoid problems in localdev
+        chown 0:500 ${filename}
+        chmod 0640 ${filename}
 
         echo "Finished backup."
 

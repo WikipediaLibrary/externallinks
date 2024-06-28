@@ -31,6 +31,11 @@ INSTALLED_APPS = [
     "extlinks.aggregates",
 ]
 
+# Fixing django_cron migration warning
+MIGRATION_MODULES = {
+    "django_cron": "extlinks.django_cron_migrations",
+}
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
