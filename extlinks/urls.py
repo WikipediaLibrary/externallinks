@@ -23,7 +23,6 @@ urlpatterns = [
         "organisations/",
         include((organisations_urls, "organisations"), namespace="organisations"),
     ),
-    path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
 ]
 
 if settings.DEBUG and os.environ["REQUIREMENTS_FILE"] == "local.txt":
