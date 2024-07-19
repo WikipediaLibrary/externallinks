@@ -2,6 +2,7 @@ import os
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
+from django.views.generic import TemplateView
 
 from extlinks.healthcheck.urls import urlpatterns as healthcheck_urls
 from extlinks.programs.urls import urlpatterns as programs_urls
@@ -22,6 +23,7 @@ urlpatterns = [
         "organisations/",
         include((organisations_urls, "organisations"), namespace="organisations"),
     ),
+    path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
 ]
 
 if settings.DEBUG and os.environ["REQUIREMENTS_FILE"] == "local.txt":
