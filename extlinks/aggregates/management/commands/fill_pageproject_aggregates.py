@@ -1,4 +1,5 @@
 from datetime import date, timedelta, datetime
+import logging
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -9,7 +10,7 @@ from django.db.models.fields import DateField
 from ...models import PageProjectAggregate
 from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
-
+logger = logging.getLogger("django")
 
 class Command(BaseCommand):
     help = "Adds aggregated data into the PageProjectAggregate table"
@@ -183,7 +184,7 @@ class Command(BaseCommand):
             else:
                 # Create a new link aggregate
                 with transaction.atomic():
-                    PageProjectAggregate.objects.create(
+                    aggregate, created = PageProjectAggregate.objects.get_or_create(
                         organisation=collection.organisation,
                         collection=collection,
                         page_name=link_event["page_title"],
@@ -193,3 +194,6 @@ class Command(BaseCommand):
                         total_links_removed=link_event["links_removed"],
                         on_user_list=link_event["on_user_list"],
                     )
+                    if not created:
+                        logger.error("Aggregate already exists, skipping" + aggregate)
+                        continue
