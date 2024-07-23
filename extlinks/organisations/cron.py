@@ -4,7 +4,7 @@ from django.core.management import call_command
 
 
 class UserListsCron(CronJobBase):
-    RUN_EVERY_MINS = 60
+    RUN_EVERY_MINS = 65
     MIN_NUM_FAILURES = 3
     RETRY_AFTER_FAILURE_MINS = 10
     schedule = Schedule(
