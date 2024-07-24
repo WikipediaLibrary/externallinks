@@ -78,6 +78,8 @@ DATABASES = {
         "HOST": "db",
         "PORT": "3306",
         "OPTIONS": {"charset": "utf8mb4"},
+        "CONN_MAX_AGE": None,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 

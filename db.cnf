@@ -5,4 +5,5 @@ character-set-server = utf8mb4
 max_allowed_packet=512M
 connect_timeout = 60
 net_read_timeout = 180
+innodb_buffer_pool_size = 512M
 
