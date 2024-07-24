@@ -144,6 +144,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Cron config
+DJANGO_CRON_LOCK_BACKEND = "django_cron.backends.lock.database.DatabaseLock"
 CRON_CLASSES = [
     "extlinks.organisations.cron.UserListsCron",
     "extlinks.aggregates.cron.LinkAggregatesCron",
