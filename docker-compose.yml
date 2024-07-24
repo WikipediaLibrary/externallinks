@@ -28,6 +28,28 @@ services:
         reservations:
           cpus: "0.25"
           memory: "384M"
+  crons:
+    image: quay.io/wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
+    build:
+      context: .
+      target: externallinks
+    env_file:
+      - ".env"
+    depends_on:
+      - db
+    command: ["python", "manage.py", "cronloop"]
+    volumes:
+      - type: bind
+        source: ./
+        target: /app
+      - type: bind
+        source: ${HOST_BACKUP_DIR}
+        target: /app/backup
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: "384M"
   db:
     image: quay.io/wikipedialibrary/mariadb:10-updated
     env_file:
