@@ -83,6 +83,9 @@ services:
         source: ./nginx.conf
         target: /etc/nginx/conf.d/default.conf
       - type: bind
+        source: ./robots.txt
+        target: /app/robots.txt
+      - type: bind
         source: ./static
         target: /app/static
     ports:
