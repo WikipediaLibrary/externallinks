@@ -92,7 +92,13 @@ class LinkEvent(models.Model):
             models.Index(fields=["timestamp",]),
         ]
 
+    def url_patterns_default():
+        return {"id": []}
+
     url = models.ManyToManyField(URLPattern, related_name="linkevent")
+
+    # Contains a snapshot of matching URL patterns at ingest time
+    url_patterns = models.JSONField(default=url_patterns_default)
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)

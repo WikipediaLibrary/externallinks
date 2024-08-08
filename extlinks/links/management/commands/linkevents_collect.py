@@ -191,6 +191,7 @@ class Command(BaseCommand):
             user_id = None
 
         new_event = LinkEvent(
+            url_patterns = { "id": url_patterns.values_list("id", flat=True)},
             link=link,
             timestamp=datetime_object.replace(tzinfo=ZoneInfo("UTC")),
             domain=event_data["meta"]["domain"],
@@ -205,8 +206,3 @@ class Command(BaseCommand):
             user_is_bot=event_data["performer"]["user_is_bot"],
         )
         new_event.save()
-
-        # LinkEvent.url is a ManyToMany field, so we need to link these
-        # objects in a different way.
-        for pattern in url_patterns:
-            new_event.url.add(pattern)
