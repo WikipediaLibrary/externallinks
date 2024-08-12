@@ -20,10 +20,10 @@ jobs:
       - name: Build and Start Images
         run: |
           cp template.env .env
-          docker-compose up -d --build
+          docker compose up -d --build
       - name: Run tests
         run: |
-          docker-compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py test
+          docker compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py test
 
   # Push images to quay.io/wikipedialibrary.
   push:
@@ -41,7 +41,7 @@ jobs:
       - name: Build Images
         run: |
           cp template.env .env
-          docker-compose build
+          docker compose build
 
       - name: Set branch tag
         id: branch
