@@ -26,35 +26,35 @@ class LinkAggregateCommandTest(TestCase):
         self.url = URLPatternFactory(url="www.google.com", collection=self.collection)
         # Adding LinkEvents so that the command has information to parse.
         link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        link_event_1.url.add(self.url)
+        link_event_1.url_add(self.url)
         link_event_1.save()
 
         link_event_2 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc))
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.save()
 
         link_event_3 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc))
-        link_event_3.url.add(self.url)
+        link_event_3.url_add(self.url)
         link_event_3.save()
 
         link_event_4 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc))
-        link_event_4.url.add(self.url)
+        link_event_4.url_add(self.url)
         link_event_4.save()
 
         link_event_5 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc))
-        link_event_5.url.add(self.url)
+        link_event_5.url_add(self.url)
         link_event_5.save()
 
         link_event_6 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc))
-        link_event_6.url.add(self.url)
+        link_event_6.url_add(self.url)
         link_event_6.save()
 
         link_event_7 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc))
-        link_event_7.url.add(self.url)
+        link_event_7.url_add(self.url)
         link_event_7.save()
 
         link_event_8 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc))
-        link_event_8.url.add(self.url)
+        link_event_8.url_add(self.url)
         link_event_8.save()
 
     # Test when LinkAggregate table is empty
@@ -93,7 +93,7 @@ class LinkAggregateCommandTest(TestCase):
             yesterday.year, yesterday.month, yesterday.day, 9, 18, 47, tzinfo=timezone.utc
         )
         link_event = LinkEventFactory(timestamp=yesterday_datetime)
-        link_event.url.add(self.url)
+        link_event.url_add(self.url)
         link_event.save()
 
         call_command("fill_link_aggregates")
@@ -113,7 +113,7 @@ class LinkAggregateCommandTest(TestCase):
             yesterday.year, yesterday.month, yesterday.day, 12, 30, 56, tzinfo=timezone.utc
         )
         link_event_2 = LinkEventFactory(timestamp=yesterday_late_datetime)
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.save()
 
         # That should be picked up by the command and add the new count
@@ -137,11 +137,11 @@ class LinkAggregateCommandTest(TestCase):
         )
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         self.assertEqual(
@@ -169,11 +169,11 @@ class LinkAggregateCommandTest(TestCase):
         url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         self.assertEqual(
@@ -187,7 +187,7 @@ class LinkAggregateCommandTest(TestCase):
         )
 
         new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.url_add(url_pattern)
         new_link_event_3.save()
 
         # Delete the organisation
@@ -209,42 +209,42 @@ class UserAggregateCommandTest(TestCase):
 
         # Adding LinkEvents so that the command has information to parse.
         link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        link_event_1.url.add(self.url)
+        link_event_1.url_add(self.url)
         link_event_1.username = self.user
         link_event_1.save()
 
         link_event_2 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc))
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.username = self.user2
         link_event_2.save()
 
         link_event_3 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc))
-        link_event_3.url.add(self.url)
+        link_event_3.url_add(self.url)
         link_event_3.username = self.user
         link_event_3.save()
 
         link_event_4 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc))
-        link_event_4.url.add(self.url)
+        link_event_4.url_add(self.url)
         link_event_4.username = self.user2
         link_event_4.save()
 
         link_event_5 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc))
-        link_event_5.url.add(self.url)
+        link_event_5.url_add(self.url)
         link_event_5.username = self.user
         link_event_5.save()
 
         link_event_6 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc))
-        link_event_6.url.add(self.url)
+        link_event_6.url_add(self.url)
         link_event_6.username = self.user
         link_event_6.save()
 
         link_event_7 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc))
-        link_event_7.url.add(self.url)
+        link_event_7.url_add(self.url)
         link_event_7.username = self.user
         link_event_7.save()
 
         link_event_8 = LinkEventFactory(timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc))
-        link_event_8.url.add(self.url)
+        link_event_8.url_add(self.url)
         link_event_8.username = self.user2
         link_event_8.save()
 
@@ -295,7 +295,7 @@ class UserAggregateCommandTest(TestCase):
             yesterday.year, yesterday.month, yesterday.day, 9, 18, 47, tzinfo=timezone.utc
         )
         link_event = LinkEventFactory(timestamp=yesterday_datetime, username=self.user)
-        link_event.url.add(self.url)
+        link_event.url_add(self.url)
         link_event.save()
 
         call_command("fill_user_aggregates")
@@ -318,7 +318,7 @@ class UserAggregateCommandTest(TestCase):
         link_event_2 = LinkEventFactory(
             timestamp=yesterday_late_datetime, username=self.user
         )
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.save()
 
         # That should be picked up by the command and add the new count
@@ -348,15 +348,15 @@ class UserAggregateCommandTest(TestCase):
         )
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         other_link_event = LinkEventFactory()
-        other_link_event.url.add(other_url_pattern)
+        other_link_event.url_add(other_url_pattern)
         other_link_event.save()
 
         self.assertEqual(
@@ -386,11 +386,11 @@ class UserAggregateCommandTest(TestCase):
         url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         self.assertEqual(
@@ -404,7 +404,7 @@ class UserAggregateCommandTest(TestCase):
         )
 
         new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.url_add(url_pattern)
         new_link_event_3.save()
 
         # Delete the organisation
@@ -428,7 +428,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page1",
             timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
         )
-        link_event_1.url.add(self.url)
+        link_event_1.url_add(self.url)
         link_event_1.save()
 
         link_event_2 = LinkEventFactory(
@@ -436,7 +436,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page1",
             timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc),
         )
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.save()
 
         link_event_3 = LinkEventFactory(
@@ -444,7 +444,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page1",
             timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc),
         )
-        link_event_3.url.add(self.url)
+        link_event_3.url_add(self.url)
         link_event_3.save()
 
         link_event_4 = LinkEventFactory(
@@ -452,7 +452,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page2",
             timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc),
         )
-        link_event_4.url.add(self.url)
+        link_event_4.url_add(self.url)
         link_event_4.save()
 
         link_event_5 = LinkEventFactory(
@@ -460,7 +460,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page1",
             timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc),
         )
-        link_event_5.url.add(self.url)
+        link_event_5.url_add(self.url)
         link_event_5.save()
 
         link_event_6 = LinkEventFactory(
@@ -468,7 +468,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page2",
             timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc),
         )
-        link_event_6.url.add(self.url)
+        link_event_6.url_add(self.url)
         link_event_6.save()
 
         link_event_7 = LinkEventFactory(
@@ -476,7 +476,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page1",
             timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc),
         )
-        link_event_7.url.add(self.url)
+        link_event_7.url_add(self.url)
         link_event_7.save()
 
         link_event_8 = LinkEventFactory(
@@ -484,7 +484,7 @@ class PageProjectAggregateCommandTest(TestCase):
             page_title="Page2",
             timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc),
         )
-        link_event_8.url.add(self.url)
+        link_event_8.url_add(self.url)
         link_event_8.save()
 
     # Test when PageProjectAggregate table is empty
@@ -540,7 +540,7 @@ class PageProjectAggregateCommandTest(TestCase):
         link_event = LinkEventFactory(
             timestamp=yesterday_datetime, domain="en.wiki.org", page_title="Page1"
         )
-        link_event.url.add(self.url)
+        link_event.url_add(self.url)
         link_event.save()
 
         call_command("fill_pageproject_aggregates")
@@ -564,7 +564,7 @@ class PageProjectAggregateCommandTest(TestCase):
         link_event_2 = LinkEventFactory(
             timestamp=yesterday_late_datetime, domain="en.wiki.org", page_title="Page1"
         )
-        link_event_2.url.add(self.url)
+        link_event_2.url_add(self.url)
         link_event_2.save()
 
         # That should be picked up by the command and add the new count
@@ -595,15 +595,15 @@ class PageProjectAggregateCommandTest(TestCase):
         )
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         other_link_event = LinkEventFactory()
-        other_link_event.url.add(other_url_pattern)
+        other_link_event.url_add(other_url_pattern)
         other_link_event.save()
 
         self.assertEqual(
@@ -633,11 +633,11 @@ class PageProjectAggregateCommandTest(TestCase):
         url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
 
         new_link_event_1 = LinkEventFactory(timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        new_link_event_1.url.add(url_pattern)
+        new_link_event_1.url_add(url_pattern)
         new_link_event_1.save()
 
         new_link_event_2 = LinkEventFactory(timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_2.url.add(url_pattern)
+        new_link_event_2.url_add(url_pattern)
         new_link_event_2.save()
 
         self.assertEqual(
@@ -651,7 +651,7 @@ class PageProjectAggregateCommandTest(TestCase):
         )
 
         new_link_event_3 = LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
-        new_link_event_3.url.add(url_pattern)
+        new_link_event_3.url_add(url_pattern)
         new_link_event_3.save()
 
         # Delete the organisation

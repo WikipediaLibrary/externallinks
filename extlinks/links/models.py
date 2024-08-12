@@ -1,7 +1,9 @@
 import hashlib
 import logging
 from datetime import date
+from json import loads
 
+from django.apps import apps
 from django.core.cache import cache
 from django.db import models
 from django.db.models.signals import post_save
@@ -15,19 +17,26 @@ class URLPatternManager(models.Manager):
     def cached(self):
         cached_patterns = cache.get("url_pattern_cache")
         if not cached_patterns:
-            cached_patterns = self.all()
+            cached_patterns = (
+                self.all()
+                .select_related("collection")
+                .annotate(
+                    organisation=models.F("collection__organisation"),
+                )
+            )
             logger.info("set url_pattern_cache")
             cache.set("url_pattern_cache", cached_patterns, None)
         return cached_patterns
 
     def matches(self, link):
-        # All URL patterns matching this link
+        # Queryset of all URL patterns matching this link
         tracked_urls = self.cached()
-        return [
-            pattern
-            for pattern in tracked_urls
-            if pattern.url in link or pattern.get_proxied_url in link
-        ]
+        excluded_ids = []
+        for pattern in tracked_urls:
+            if pattern.url not in link and pattern.get_proxied_url not in link:
+                excluded_ids.add(pattern.id)
+        url_patterns = tracked_urls.exclude(id__in=excluded_ids)
+        return url_patterns
 
 
 class URLPattern(models.Model):
@@ -48,6 +57,7 @@ class URLPattern(models.Model):
     )
 
     @property
+    # @TODO: This is both slow and broken
     def linkevent(self):
         return LinkEvent.objects.filter(url_patterns__id__contains=self.id)
 
@@ -107,7 +117,10 @@ class LinkEvent(models.Model):
         ]
 
     def url_patterns_default():
-        return {"id": []}
+        """
+        JSONField requires a callable wrapper for default value
+        """
+        return []
 
     url = models.ManyToManyField(URLPattern, related_name="linkevent")
 
@@ -147,27 +160,45 @@ class LinkEvent(models.Model):
     # organisation tracking its URL.
     on_user_list = models.BooleanField(default=False)
 
+    def url_add(self, instance):
+        match = False
+        for url_pattern in self.url_patterns:
+            if url_pattern.get("id") == instance.id:
+                match = True
+                break
+        url_pattern = URLPattern.objects.filter(id=instance.id).values().first()
+        if url_pattern is None:
+            # @TODO: raise a not found error here
+            return
+        self.url_patterns.append(url_pattern)
+        self.save()
+
     @property
     def get_url_patterns(self):
-        return URLPattern.objects.filter(pk__in=self.url_patterns["id"])
+        id_list = [url_pattern.get("id") for url_pattern in self.url_patterns]
+        return URLPattern.objects.filter(pk__in=id_list)
 
-    def url_add(self, url_pattern):
-        id_list = self.url_patterns["id"]
-        instance_id = url_pattern.id
-        for id in id_list:
-            if instance_id not in id_list:
-                id_list.append(instance_id)
-        if set(id_list) != set(self.url_patterns["id"]):
-            self.url_patterns["id"] = id_list
-            self.save()
+    @property
+    def get_collection(self):
+        url_pattern = loads(self.url_patterns)[0]
+        if url_pattern is None:
+            return None
+        id = url.get("collection")
+        if id is None:
+            return None
+        Collection = apps.get_model("organisations", "collection")
+        return Collection.objects.filter(id=id).first()
 
     @property
     def get_organisation(self):
-        url = self.get_url_patterns.first()
-        if url is None:
+        url_pattern = self.url_patterns[0]
+        if url_pattern is None:
             return None
-        else:
-            return url.collection.organisation
+        id = url_pattern.get("organisation")
+        if id is None:
+            return None
+        Organisation = apps.get_model("organisations", "organisation")
+        return Organisation.objects.filter(id=id).first()
 
     def save(self, **kwargs):
         link_event_id = self.link + self.event_id

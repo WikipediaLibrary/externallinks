@@ -190,9 +190,8 @@ class Command(BaseCommand):
             # IPs have no user_id
             user_id = None
 
-        url_ids=[url.id for url in url_patterns]
         new_event = LinkEvent(
-            url_patterns = { "id": url_ids},
+            url_patterns=(list(url_patterns.values())),
             link=link,
             timestamp=datetime_object.replace(tzinfo=ZoneInfo("UTC")),
             domain=event_data["meta"]["domain"],

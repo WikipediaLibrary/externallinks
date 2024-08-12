@@ -85,7 +85,7 @@ class ProgramDetailTest(TestCase):
             page_title="Event 1",
             user_is_bot=True,
         )
-        self.linkevent1.url.add(urlpattern1)
+        self.linkevent1.url_add(urlpattern1)
         self.linkevent1.save()
 
         self.linkevent2 = LinkEventFactory(
@@ -95,7 +95,7 @@ class ProgramDetailTest(TestCase):
             timestamp=datetime(2019, 1, 10, tzinfo=timezone.utc),
             page_title="Event 1",
         )
-        self.linkevent2.url.add(urlpattern1)
+        self.linkevent2.url_add(urlpattern1)
         self.linkevent2.save()
 
         self.linkevent3 = LinkEventFactory(
@@ -105,7 +105,7 @@ class ProgramDetailTest(TestCase):
             timestamp=datetime(2017, 5, 5, tzinfo=timezone.utc),
             page_title="Event 2",
         )
-        self.linkevent3.url.add(urlpattern1)
+        self.linkevent3.url_add(urlpattern1)
         self.linkevent3.save()
 
         self.linkevent4 = LinkEventFactory(
@@ -117,7 +117,7 @@ class ProgramDetailTest(TestCase):
             page_title="Event 2",
             page_namespace=1,
         )
-        self.linkevent4.url.add(urlpattern1)
+        self.linkevent4.url_add(urlpattern1)
         self.linkevent4.save()
 
         # Running the tables aggregates commands to fill aggregate tables

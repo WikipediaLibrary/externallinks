@@ -2,6 +2,7 @@
 
 from django.core.paginator import Paginator
 from django.db import migrations
+from django.db.models import F
 
 
 def copy_urls(apps, schema_editor):
@@ -9,13 +10,19 @@ def copy_urls(apps, schema_editor):
     chunk = 100000
     LinkEvent = apps.get_model("links", "LinkEvent")
     paginator = Paginator(
-        LinkEvent.objects.filter(url_patterns__id="[]").order_by("id"), chunk
+        LinkEvent.objects.prefetch_related("url").all().order_by("id"), chunk
     )
     for page_num in paginator.page_range:
         link_events = paginator.page(page_num).object_list
         for link_event in link_events:
-            url_ids = list(link_event.url.values_list("id", flat=True))
-            link_event.url_patterns = {"id": url_ids}
+            link_event.url_patterns = list(
+                link_event.url.select_related("organisation").values(
+                    "id",
+                    "url",
+                    "collection",
+                    organisation=F("collection__organisation"),
+                )
+            )
             link_event.save()
 
 
