@@ -190,7 +190,7 @@ class Command(BaseCommand):
             # IPs have no user_id
             user_id = None
 
-        url_ids = list(url_patterns.values_list("id", flat=True))
+        url_ids=[url.id for url in url_patterns]
         new_event = LinkEvent(
             url_patterns = { "id": url_ids},
             link=link,

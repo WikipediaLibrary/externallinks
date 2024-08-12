@@ -10,14 +10,14 @@ from django.utils.functional import cached_property
 
 logger = logging.getLogger("django")
 
-class URLPatternManager(models.Manager):
 
+class URLPatternManager(models.Manager):
     def cached(self):
-        cached_patterns = cache.get('url_pattern_cache')
+        cached_patterns = cache.get("url_pattern_cache")
         if not cached_patterns:
             cached_patterns = self.all()
-            logger.info('set url_pattern_cache')
-            cache.set('url_pattern_cache', cached_patterns, None)
+            logger.info("set url_pattern_cache")
+            cache.set("url_pattern_cache", cached_patterns, None)
         return cached_patterns
 
     def matches(self, link):
@@ -28,6 +28,7 @@ class URLPatternManager(models.Manager):
             for pattern in tracked_urls
             if pattern.url in link or pattern.get_proxied_url in link
         ]
+
 
 class URLPattern(models.Model):
     class Meta:
@@ -46,6 +47,10 @@ class URLPattern(models.Model):
         related_name="url",
     )
 
+    @property
+    def linkevent(self):
+        return LinkEvent.objects.filter(url_patterns__id__contains=self.id)
+
     def __str__(self):
         return self.url
 
@@ -58,8 +63,9 @@ class URLPattern(models.Model):
 
 @receiver(post_save, sender=URLPattern)
 def delete_url_pattern_cache(sender, instance, **kwargs):
-    if cache.delete('url_pattern_cache'):
-        logger.info('delete url_pattern_cache')
+    if cache.delete("url_pattern_cache"):
+        logger.info("delete url_pattern_cache")
+
 
 class LinkSearchTotal(models.Model):
     class Meta:
@@ -88,8 +94,16 @@ class LinkEvent(models.Model):
         app_label = "links"
         get_latest_by = "timestamp"
         indexes = [
-            models.Index(fields=["hash_link_event_id",]),
-            models.Index(fields=["timestamp",]),
+            models.Index(
+                fields=[
+                    "hash_link_event_id",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "timestamp",
+                ]
+            ),
         ]
 
     def url_patterns_default():
@@ -134,9 +148,26 @@ class LinkEvent(models.Model):
     on_user_list = models.BooleanField(default=False)
 
     @property
+    def get_url_patterns(self):
+        return URLPattern.objects.filter(pk__in=self.url_patterns["id"])
+
+    def url_add(self, url_pattern):
+        id_list = self.url_patterns["id"]
+        instance_id = url_pattern.id
+        for id in id_list:
+            if instance_id not in id_list:
+                id_list.append(instance_id)
+        if set(id_list) != set(self.url_patterns["id"]):
+            self.url_patterns["id"] = id_list
+            self.save()
+
+    @property
     def get_organisation(self):
-        url_patterns = self.url.all()
-        return url_patterns[0].collection.organisation
+        url = self.get_url_patterns.first()
+        if url is None:
+            return None
+        else:
+            return url.collection.organisation
 
     def save(self, **kwargs):
         link_event_id = self.link + self.event_id

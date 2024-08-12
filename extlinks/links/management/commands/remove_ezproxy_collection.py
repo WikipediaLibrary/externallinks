@@ -140,7 +140,7 @@ class Command(BaseCommand):
                 for linkevent in linkevents:
                     proxy_url = url_pattern.url.replace(".", "-")
                     if url_pattern.url in linkevent.link or proxy_url in linkevent.link:
-                        linkevent.url.add(url_pattern)
+                        linkevent.url_add(url_pattern)
                         linkevents_changed += 1
             if linkevents_changed > 0:
                 # There have been changes to this collection, so we must delete

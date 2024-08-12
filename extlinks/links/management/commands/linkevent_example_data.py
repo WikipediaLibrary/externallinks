@@ -64,4 +64,4 @@ class Command(BaseCommand):
             )
             new_event.save()
 
-            new_event.url.add(urlpattern)
+            new_event.url_add(urlpattern)
