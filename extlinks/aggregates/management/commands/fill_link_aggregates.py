@@ -115,14 +115,13 @@ class Command(BaseCommand):
         """
         url_patterns = collection.url.all()
         for url_pattern in url_patterns:
-            link_events_with_annotated_timestamp = url_pattern.linkevent.annotate(
+            link_events_with_annotated_timestamp = LinkEvent.objects.filter(link_event_filter).annotate(
                 timestamp_date=Cast("timestamp", DateField())
-            )
+            ).filter(url_patterns__contains={"url": url_pattern.url}).distinct()
             link_events = (
                 link_events_with_annotated_timestamp.values(
                     "timestamp_date", "on_user_list"
                 )
-                .filter(link_event_filter)
                 .annotate(
                     links_added=Count(
                         "pk",

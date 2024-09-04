@@ -72,9 +72,6 @@ class ProgramDetailTest(TestCase):
         self.collection3 = CollectionFactory(organisation=self.organisation2)
 
         urlpattern1 = URLPatternFactory(collection=self.collection1)
-        urlpattern2 = URLPatternFactory(collection=self.collection2)
-        urlpattern3 = URLPatternFactory(collection=self.collection3)
-
         user = UserFactory(username="Jim")
 
         self.linkevent1 = LinkEventFactory(

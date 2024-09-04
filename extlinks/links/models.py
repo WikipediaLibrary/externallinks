@@ -34,7 +34,7 @@ class URLPatternManager(models.Manager):
         excluded_ids = []
         for pattern in tracked_urls:
             if pattern.url not in link and pattern.get_proxied_url not in link:
-                excluded_ids.add(pattern.id)
+                excluded_ids.append(pattern.id)
         url_patterns = tracked_urls.exclude(id__in=excluded_ids)
         return url_patterns
 

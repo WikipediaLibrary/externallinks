@@ -10,8 +10,8 @@ from extlinks.aggregates.models import (
     UserAggregate,
 )
 from extlinks.common.helpers import build_queryset_filters
-from extlinks.links.models import LinkEvent
-from extlinks.organisations.models import Organisation, Collection
+from extlinks.links.models import LinkEvent, URLPattern
+from extlinks.organisations.models import Collection
 from extlinks.programs.models import Program
 
 
@@ -177,10 +177,12 @@ class CSVAllLinkEvents(_CSVDownloadView):
         queryset_filter = build_queryset_filters(self.request.GET, {"linkevents": ""})
         # If we came from an organisation page:
         if "/organisation" in self.request.build_absolute_uri():
-            linkevents = LinkEvent.objects.filter(
-                Q(url_patterns__organisation=pk) & queryset_filter
-            ).distinct()
-
+            link_events_queries = []
+            collections = Collection.objects.filter(organisation=pk).distinct()
+            url_patterns = URLPattern.objects.filter(collection__in=collections).distinct()
+            for url_pattern in url_patterns:
+                link_events_queries.append(Q(url_patterns__contains=[{"url": url_pattern.url}]))
+            linkevents = LinkEvent.objects.filter(*link_events_queries)
         writer = csv.writer(response)
 
         writer.writerow(

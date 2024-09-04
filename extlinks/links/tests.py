@@ -376,13 +376,16 @@ class EZProxyRemovalCommandTest(TestCase):
         # Assert the correct number of LinkEvents before deleting the proxy url
         # and collection
         self.assertEqual(
-            self.jstor_url_pattern.linkevent.count(), 2
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).count(), 2
         )
         self.assertEqual(
-            self.proquest_url_pattern.linkevent.count(), 2
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).count(), 2
         )
         self.assertEqual(
-            self.proxy_url_pattern.linkevent.count(), 2
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.proxy_url_pattern.url}]).count(), 2
         )
 
         # Assert the correct number of aggregates before deleting the proxy url
@@ -394,10 +397,11 @@ class EZProxyRemovalCommandTest(TestCase):
         call_command("remove_ezproxy_collection")
 
         self.assertEqual(
-            LinkEvent.objects.filter(url=self.jstor_url_pattern).count(), 3
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).count(), 3
         )
-        self.assertEqual(
-            LinkEvent.objects.filter(url=self.proquest_url_pattern).count(), 3
+        self.assertEqual( LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).count(), 3
         )
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
@@ -487,25 +491,29 @@ class FixOnUserListCommandTest(TestCase):
         # Assert the correct number of LinkEvents before running the command to
         # fix the user list
         self.assertEqual(
-            self.jstor_url_pattern.linkevent.filter(
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).filter(
                 on_user_list=True
             ).count(),
             2,
         )
         self.assertEqual(
-            self.jstor_url_pattern.linkevent.filter(
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).filter(
                 on_user_list=False
             ).count(),
             1,
         )
         self.assertEqual(
-            self.proquest_url_pattern.linkevent.filter(
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).filter(
                 on_user_list=True
             ).count(),
             2,
         )
         self.assertEqual(
-            self.proquest_url_pattern.linkevent.filter(
+            LinkEvent.objects.filter(
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).filter(
                 on_user_list=False
             ).count(),
             1,
@@ -520,26 +528,26 @@ class FixOnUserListCommandTest(TestCase):
 
         self.assertEqual(
             LinkEvent.objects.filter(
-                url=self.jstor_url_pattern, on_user_list=True
-            ).count(),
+                on_user_list=True,
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).count(),
             3,
         )
         self.assertEqual(
             LinkEvent.objects.filter(
-                url=self.proquest_url_pattern, on_user_list=True
-            ).count(),
+                on_user_list=True,
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).count(),
             3,
         )
         self.assertEqual(
             LinkEvent.objects.filter(
-                url=self.jstor_url_pattern, on_user_list=False
-            ).count(),
+                on_user_list=False,
+                url_patterns__contains=[{"url": self.jstor_url_pattern.url}]).count(),
             0,
         )
         self.assertEqual(
             LinkEvent.objects.filter(
-                url=self.proquest_url_pattern, on_user_list=False
-            ).count(),
+                on_user_list=False,
+                url_patterns__contains=[{"url": self.proquest_url_pattern.url}]).count(),
             0,
         )
         self.assertEqual(LinkAggregate.objects.count(), 2)
