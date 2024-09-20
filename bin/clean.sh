@@ -6,7 +6,6 @@ PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/app/bin:$PATH
 
 if /app/bin/django_wait_for_db.sh
 then
-
     echo "This will drop all tables in ${MYSQL_DATABASE}. Proceed [y/N]?"
     read -p "This will drop all tables in ${MYSQL_DATABASE}. Proceed [y/N]?" -n 1 -r
     echo ""
