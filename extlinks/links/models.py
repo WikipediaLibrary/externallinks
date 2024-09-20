@@ -31,7 +31,7 @@ class URLPatternManager(models.Manager):
         # Queryset of all URL patterns matching this link
         url_patterns = tracked_urls.exclude(id__in=excluded_ids)
         # Return the longest (i.e. most specific) URL pattern
-        return url_patterns.order_by("-url__length").first()
+        return url_patterns.order_by("-url__length")
 
 class URLPattern(models.Model):
     class Meta:
@@ -99,19 +99,7 @@ class LinkEvent(models.Model):
         indexes = [
             models.Index(fields=["hash_link_event_id",]),
             models.Index(fields=["timestamp",]),
-            # models.Index(
-            #     fields=[
-            #         "link",
-            #         "rc_id",
-            #         ]
-            # ),
         ]
-        # We only want one record for each URL on any particular date
-        #constraints = [
-            #models.UniqueConstraint(fields=["link", "rc_id"], name="unique_link_rc")
-        #]
-
-    url = models.ManyToManyField(URLPattern, related_name="linkevent")
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
@@ -131,9 +119,6 @@ class LinkEvent(models.Model):
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
     rev_id = models.PositiveIntegerField(null=True)
-    # rc_id is always present upstream, but we haven't always recorded it
-    # so, null=True
-    #rc_id = models.PositiveIntegerField(null=True)
     # IPs have no user_id, so this can be blank too.
     user_id = models.PositiveIntegerField(null=True)
     page_title = models.CharField(max_length=255)
@@ -159,12 +144,11 @@ class LinkEvent(models.Model):
 
     @property
     def get_organisation(self):
-        url_patterns = self.url.all()
-        return url_patterns[0].collection.organisation
+        return self.urlpattern.collection.organisation
 
-#    def save(self, **kwargs):
-#        link_event_id = self.link + self.event_id
-#        hash = hashlib.sha256()
-#        hash.update(link_event_id.encode("utf-8"))
-#        self.hash_link_event_id = hash.hexdigest()
-#        super().save(**kwargs)
+    def save(self, **kwargs):
+        link_event_id = self.link + self.event_id
+        hash = hashlib.sha256()
+        hash.update(link_event_id.encode("utf-8"))
+        self.hash_link_event_id = hash.hexdigest()
+        super().save(**kwargs)

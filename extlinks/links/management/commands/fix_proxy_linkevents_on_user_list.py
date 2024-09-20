@@ -24,10 +24,10 @@ class Command(BaseCommand):
             collection_list = set()
             for linkevent in proxy_not_on_user_list_linkevents:
                 # Get URLPatterns associated with the linkevent
-                urls = linkevent.url.all()
+                url = linkevent.urlpattern
                 # Get the organisation from the first url
-                if urls:
-                    collection = urls[0].collection
+                if url:
+                    collection = url.collection
                     collection_list.add(collection.id)
                     organisation = collection.organisation
                     username_list = organisation.username_list
