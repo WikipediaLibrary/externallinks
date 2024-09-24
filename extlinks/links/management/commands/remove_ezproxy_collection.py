@@ -24,10 +24,9 @@ class Command(BaseCommand):
             )
 
         # Get LinkEvents that have no URLPatterns associated
-        linkevents = LinkEvent.objects.filter(urlpattern__isnull=True)
         collections = Collection.objects.all()
-
-        self._process_linkevents_collections(linkevents, collections)
+        self._process_linkevents_collections(url_patterns.link_events.all(), collections)
+        url_patterns.delete()
 
     def _get_ezproxy_organisation(self):
         """
@@ -109,8 +108,6 @@ class Command(BaseCommand):
         UserAggregate.objects.filter(
             organisation=ezproxy_org, collection=ezproxy_collection
         ).delete()
-
-        url_patterns.delete()
         ezproxy_collection.delete()
         ezproxy_org.delete()
 
@@ -139,8 +136,8 @@ class Command(BaseCommand):
                 for linkevent in linkevents:
                     proxy_url = url_pattern.url.replace(".", "-")
                     if url_pattern.url in linkevent.link or proxy_url in linkevent.link:
-                        linkevent.urlpattern = url_pattern
-                        linkevent.save()
+                        url_pattern.link_events.add(linkevent)
+                        url_pattern.save()
                         linkevents_changed += 1
             if linkevents_changed > 0:
                 # There have been changes to this collection, so we must delete

@@ -66,7 +66,7 @@ class LinksHelpersTest(TestCase):
         URLPatternFactory()
         url_pattern = URLPatternFactory(collection=collection2)
 
-        new_link = LinkEventFactory(urlpattern=url_pattern)
+        new_link = LinkEventFactory(content_object=url_pattern)
 
         self.assertEqual(new_link.get_organisation, organisation2)
 
@@ -159,7 +159,10 @@ class LinkEventsCollectCommandTest(TestCase):
         self.collection1 = CollectionFactory(
             name="JSTOR", organisation=self.organisation1
         )
-        self.url = URLPatternFactory(url="www.jstor.org", collection=self.collection1)
+        self.url = URLPatternFactory(url="www.jstor.org")
+        self.url.collections.add(self.collection1)
+        self.url.save()
+
         self.event_data1 = {
             "$schema": "/mediawiki/page/links-change/1.0.0",
             "meta": {
@@ -295,7 +298,7 @@ class EZProxyRemovalCommandTest(TestCase):
         )
 
         self.linkevent_jstor1 = LinkEventFactory(
-            urlpattern=self.jstor_url_pattern,
+            content_object=self.jstor_url_pattern,
             link="www.jstor.org/dgsajdga",
             timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
@@ -303,7 +306,7 @@ class EZProxyRemovalCommandTest(TestCase):
         )
 
         self.linkevent_jstor2 = LinkEventFactory(
-            urlpattern=self.jstor_url_pattern,
+            content_object=self.jstor_url_pattern,
             link="www.jstor.org/eiuqwyeiu445",
             timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
@@ -311,7 +314,7 @@ class EZProxyRemovalCommandTest(TestCase):
         )
 
         self.linkevent_jstor_proxy = LinkEventFactory(
-            urlpattern=self.proxy_url_pattern,
+            content_object=self.proxy_url_pattern,
             link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
             timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
@@ -320,21 +323,21 @@ class EZProxyRemovalCommandTest(TestCase):
 
         self.linkevent_proquest1 = LinkEventFactory(
             link="www.proquest.com/vclmxvldfgf465",
-            urlpattern=self.proquest_url_pattern,
+            content_object=self.proquest_url_pattern,
             timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_proquest2 = LinkEventFactory(
             link="www.proquest.com/dkjsahdj2893",
-            urlpattern=self.proquest_url_pattern,
+            content_object=self.proquest_url_pattern,
             timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
         )
         self.linkevent_proquest_proxy = LinkEventFactory(
             link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
-            urlpattern=self.proxy_url_pattern,
+            content_object=self.proxy_url_pattern,
             timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user,
@@ -349,13 +352,13 @@ class EZProxyRemovalCommandTest(TestCase):
         # Assert the correct number of LinkEvents before deleting the proxy url
         # and collection
         self.assertEqual(
-            LinkEvent.objects.filter(urlpattern=self.jstor_url_pattern).count(), 2
+            self.jstor_url_pattern.link_events.count(), 2
         )
         self.assertEqual(
-            LinkEvent.objects.filter(urlpattern=self.proquest_url_pattern).count(), 2
+            self.proquest_url_pattern.link_events.count(), 2
         )
         self.assertEqual(
-            LinkEvent.objects.filter(urlpattern=self.proxy_url_pattern).count(), 2
+            self.proxy_url_pattern.link_events.count(), 2
         )
 
         # Assert the correct number of aggregates before deleting the proxy url
@@ -367,10 +370,10 @@ class EZProxyRemovalCommandTest(TestCase):
         call_command("remove_ezproxy_collection")
 
         self.assertEqual(
-            LinkEvent.objects.filter(urlpattern=self.jstor_url_pattern).count(), 3
+            self.jstor_url_pattern.link_events.count(), 3
         )
         self.assertEqual(
-            LinkEvent.objects.filter(urlpattern=self.proquest_url_pattern).count(), 3
+           self.proquest_url_pattern.link_events.count(), 3
         )
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
@@ -402,7 +405,7 @@ class FixOnUserListCommandTest(TestCase):
         )
 
         self.linkevent_jstor1 = LinkEventFactory(
-            urlpattern=self.jstor_url_pattern,
+            content_object=self.jstor_url_pattern,
             link="www.jstor.org/dgsajdga",
             timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
@@ -411,7 +414,7 @@ class FixOnUserListCommandTest(TestCase):
         )
         self.linkevent_jstor2 = LinkEventFactory(
             link="www.jstor.org/eiuqwyeiu445",
-            urlpattern=self.jstor_url_pattern,
+            content_object=self.jstor_url_pattern,
             timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
@@ -419,7 +422,7 @@ class FixOnUserListCommandTest(TestCase):
         )
         self.linkevent_jstor_proxy = LinkEventFactory(
             link="www-jstor-org.wikipedialibrary.idm.oclc/eiuqwyeiu445",
-            urlpattern=self.jstor_url_pattern,
+            content_object=self.jstor_url_pattern,
             timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
@@ -427,7 +430,7 @@ class FixOnUserListCommandTest(TestCase):
         )
         self.linkevent_proquest1 = LinkEventFactory(
             link="www.proquest.com/vclmxvldfgf465",
-            urlpattern=self.proquest_url_pattern,
+            content_object=self.proquest_url_pattern,
             timestamp=datetime(2021, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
@@ -435,7 +438,7 @@ class FixOnUserListCommandTest(TestCase):
         )
         self.linkevent_proquest2 = LinkEventFactory(
             link="www.proquest.com/dkjsahdj2893",
-            urlpattern=self.proquest_url_pattern,
+            content_object=self.proquest_url_pattern,
             timestamp=datetime(2021, 1, 1, 18, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
@@ -443,7 +446,7 @@ class FixOnUserListCommandTest(TestCase):
         )
         self.linkevent_proquest_proxy = LinkEventFactory(
             link="www-proquest-com.wikipedialibrary.idm.oclc/dhsauiydiuq8273",
-            urlpattern=self.proquest_url_pattern,
+            content_object=self.proquest_url_pattern,
             timestamp=datetime(2021, 1, 1, 22, 30, 35, tzinfo=timezone.utc),
             page_title="Page1",
             username=self.user1,
@@ -459,27 +462,19 @@ class FixOnUserListCommandTest(TestCase):
         # Assert the correct number of LinkEvents before running the command to
         # fix the user list
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.jstor_url_pattern, on_user_list=True
-            ).count(),
+            self.jstor_url_pattern.link_events.filter(on_user_list=True).count(),
             2,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.jstor_url_pattern, on_user_list=False
-            ).count(),
+            self.jstor_url_pattern.link_events.filter(on_user_list=False).count(),
             1,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.proquest_url_pattern, on_user_list=True
-            ).count(),
+            self.proquest_url_pattern.link_events.filter(on_user_list=True).count(),
             2,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.proquest_url_pattern, on_user_list=False
-            ).count(),
+            self.proquest_url_pattern.link_events.filter(on_user_list=False).count(),
             1,
         )
 
@@ -491,27 +486,19 @@ class FixOnUserListCommandTest(TestCase):
         call_command("fix_proxy_linkevents_on_user_list")
 
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.jstor_url_pattern, on_user_list=True
-            ).count(),
+            self.jstor_url_pattern.link_events.filter(on_user_list=True).count(),
             3,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.proquest_url_pattern, on_user_list=True
-            ).count(),
+            self.proquest_url_pattern.link_events.filter(on_user_list=True).count(),
             3,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.jstor_url_pattern, on_user_list=False
-            ).count(),
+            self.jstor_url_pattern.link_events.filter(on_user_list=False).count(),
             0,
         )
         self.assertEqual(
-            LinkEvent.objects.filter(
-                urlpattern=self.proquest_url_pattern, on_user_list=False
-            ).count(),
+            self.proquest_url_pattern.link_events.filter(on_user_list=False).count(),
             0,
         )
         self.assertEqual(LinkAggregate.objects.count(), 2)

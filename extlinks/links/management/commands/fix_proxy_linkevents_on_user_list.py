@@ -24,7 +24,7 @@ class Command(BaseCommand):
             collection_list = set()
             for linkevent in proxy_not_on_user_list_linkevents:
                 # Get URLPatterns associated with the linkevent
-                url = linkevent.urlpattern
+                url = linkevent.content_object
                 # Get the organisation from the first url
                 if url:
                     collection = url.collection

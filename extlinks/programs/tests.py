@@ -76,7 +76,7 @@ class ProgramDetailTest(TestCase):
         user = UserFactory(username="Jim")
 
         self.linkevent1 = LinkEventFactory(
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
             username=user,
@@ -87,7 +87,7 @@ class ProgramDetailTest(TestCase):
 
         self.linkevent2 = LinkEventFactory(
             link=urlpattern1.url + "/test",
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 10, tzinfo=timezone.utc),
@@ -97,7 +97,7 @@ class ProgramDetailTest(TestCase):
         self.linkevent3 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.REMOVED,
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             username=UserFactory(username="Bob"),
             timestamp=datetime(2017, 5, 5, tzinfo=timezone.utc),
             page_title="Event 2",
@@ -106,7 +106,7 @@ class ProgramDetailTest(TestCase):
         self.linkevent4 = LinkEventFactory(
             link=urlpattern1.url + "/test",
             change=LinkEvent.ADDED,
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             username=UserFactory(username="Mary"),
             timestamp=datetime(2019, 3, 1, tzinfo=timezone.utc),
             on_user_list=True,

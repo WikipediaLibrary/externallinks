@@ -70,7 +70,7 @@ class OrganisationDetailTest(TestCase):
 
         self.linkevent1 = LinkEventFactory(
             link=urlpattern1.url + "/test",
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15, tzinfo=timezone.utc),
@@ -80,7 +80,7 @@ class OrganisationDetailTest(TestCase):
 
         self.linkevent2 = LinkEventFactory(
             link=urlpattern1.url + "/test",
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 10, tzinfo=timezone.utc),
@@ -89,7 +89,7 @@ class OrganisationDetailTest(TestCase):
 
         self.linkevent3 = LinkEventFactory(
             link=urlpattern1.url + "/test",
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             change=LinkEvent.REMOVED,
             username=UserFactory(username="Bob"),
             timestamp=datetime(2017, 5, 5, tzinfo=timezone.utc),
@@ -98,7 +98,7 @@ class OrganisationDetailTest(TestCase):
 
         self.linkevent4 = LinkEventFactory(
             link=urlpattern1.url + "/test",
-            urlpattern=urlpattern1,
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=UserFactory(username="Mary"),
             timestamp=datetime(2019, 3, 1, tzinfo=timezone.utc),

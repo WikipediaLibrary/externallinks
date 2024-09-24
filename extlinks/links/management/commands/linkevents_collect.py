@@ -190,7 +190,7 @@ class Command(BaseCommand):
             # IPs have no user_id
             user_id = None
 
-        LinkEvent.objects.create(
+        link_event = LinkEvent.objects.create(
             link=link,
             timestamp=datetime_object.replace(tzinfo=ZoneInfo("UTC")),
             domain=event_data["meta"]["domain"],
@@ -202,5 +202,7 @@ class Command(BaseCommand):
             event_id=event_data["meta"]["id"],
             change=change,
             on_user_list=on_user_list,
-            user_is_bot=event_data["performer"]["user_is_bot"],
-            urlpattern=url_patterns.first())
+            user_is_bot=event_data["performer"]["user_is_bot"])
+        for url_pattern in url_patterns:
+            url_pattern.link_events.add(link_event)
+            url_pattern.save()

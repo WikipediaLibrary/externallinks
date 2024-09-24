@@ -13,8 +13,6 @@ class URLPatternFactory(factory.django.DjangoModelFactory):
     # factory.Faker returns a Faker object by default, rather than str
     url = str(factory.Faker("url", schemes=["https"]))[8:-1]
 
-    collection = factory.SubFactory(CollectionFactory)
-
 
 class LinkEventFactory(factory.django.DjangoModelFactory):
     class Meta:

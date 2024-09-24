@@ -48,4 +48,4 @@ class Collection(models.Model):
         return self.name
 
     def get_linkevents(self):
-        return LinkEvent.objects.filter(urlpattern__collection=self).distinct()
+        return LinkEvent.objects.filter(content_type__pk__collection=self).distinct()
