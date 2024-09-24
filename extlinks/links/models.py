@@ -15,7 +15,7 @@ logger = logging.getLogger("django")
 
 
 class URLPatternManager(models.Manager):
-
+    models.CharField.register_lookup(models.functions.Length)
     def cached(self):
         cached_patterns = cache.get('url_pattern_cache')
         if not cached_patterns:

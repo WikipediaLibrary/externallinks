@@ -34,7 +34,7 @@ class Command(BaseCommand):
 
         for _ in range(num_events):
             urlpattern = random.choice(urlpatterns)
-            organisation = urlpattern.collection.organisation
+            organisation = urlpattern.collections.first().organisation
             random_user = random.choice(users)
 
             # If this org limits by user, choose either a random user who

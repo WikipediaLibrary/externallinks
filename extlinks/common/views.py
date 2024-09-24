@@ -1,5 +1,6 @@
 import csv
 
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.views.generic import View
@@ -10,7 +11,7 @@ from extlinks.aggregates.models import (
     UserAggregate,
 )
 from extlinks.common.helpers import build_queryset_filters
-from extlinks.links.models import URLPattern
+from extlinks.links.models import URLPattern, LinkEvent
 from extlinks.organisations.models import Collection
 from extlinks.programs.models import Program
 
@@ -174,13 +175,11 @@ class CSVUserTotals(_CSVDownloadView):
 class CSVAllLinkEvents(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        queryset_filter = build_queryset_filters(self.request.GET, {"linkevents": ""})
         # If we came from an organisation page:
         if "/organisation" in self.request.build_absolute_uri():
-            linkevents = URLPattern.objects.get(collection__organisation__pk=pk).link_events.all().filter(
-              queryset_filter
-            ).distinct()
-
+            url_patterns = URLPattern.objects.filter(collections__organisation_id=pk)
+            url_pattern_type = ContentType.objects.get_for_model(URLPattern)
+            linkevents = LinkEvent.objects.filter(content_type__pk=url_pattern_type.id, object_id__in=url_patterns)
         writer = csv.writer(response)
 
         writer.writerow(

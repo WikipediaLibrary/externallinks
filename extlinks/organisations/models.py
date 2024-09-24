@@ -1,6 +1,8 @@
+
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
-from extlinks.links.models import LinkEvent
+from extlinks.links.models import LinkEvent, URLPattern
 
 
 class User(models.Model):
@@ -48,4 +50,9 @@ class Collection(models.Model):
         return self.name
 
     def get_linkevents(self):
-        return LinkEvent.objects.filter(content_type__pk__collection=self).distinct()
+        url_patterns = URLPattern.objects.filter(collections__name__contains=self.name)
+        url_pattern_type = ContentType.objects.get_for_model(URLPattern)
+        return LinkEvent.objects.filter(content_type__pk=url_pattern_type.id, object_id__in=url_patterns)
+
+    def get_url_patterns(self):
+        return URLPattern.objects.filter(collections__name__contains=self.name)

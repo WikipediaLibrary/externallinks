@@ -3,11 +3,9 @@ import json
 import re
 
 from django.db.models import Count, Sum, Q, Prefetch, CharField
-from django.db.models.functions import TruncDate, Cast
+from django.db.models.functions import Cast
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -78,7 +76,7 @@ class OrganisationDetailView(DetailView):
             context["collections"][collection_key] = {}
             context["collections"][collection_key]["object"] = collection
             context["collections"][collection_key]["collection_id"] = collection.pk
-            context["collections"][collection_key]["urls"] = collection.url.all()
+            context["collections"][collection_key]["urls"] = collection.get_url_patterns()
 
             context["collections"][collection_key] = (
                 self._build_collection_context_dictionary(
