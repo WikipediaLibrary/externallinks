@@ -171,10 +171,9 @@ class UserAggregateCommandTest(TestCase):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
-        url_pattern = URLPatternFactory(url="www.google.com")
-        url_pattern.collections.add(self.collection)
-        url_pattern.save()
-        self.url = url_pattern
+        self.url = URLPatternFactory(url="www.google.com")
+        self.url.collections.add(self.collection)
+        self.url.save()
         self.user = UserFactory(username="juannieve")
         self.user2 = UserFactory(username="jonsnow")
 

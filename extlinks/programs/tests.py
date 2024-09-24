@@ -5,16 +5,10 @@ from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from django.core.management import call_command
 
-from extlinks.aggregates.factories import (
-    LinkAggregateFactory,
-    PageProjectAggregateFactory,
-    UserAggregateFactory,
-)
 from extlinks.common.views import (
     CSVOrgTotals,
     CSVProjectTotals,
     CSVUserTotals,
-    CSVAllLinkEvents,
 )
 from extlinks.links.factories import LinkEventFactory, URLPatternFactory
 from extlinks.links.models import LinkEvent
