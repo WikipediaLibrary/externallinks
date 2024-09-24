@@ -276,16 +276,20 @@ class EZProxyRemovalCommandTest(TestCase):
             name="JSTOR", organisation=self.jstor_organisation
         )
         self.jstor_url_pattern = URLPatternFactory(
-            url="www.jstor.org", collection=self.jstor_collection
+            url="www.jstor.org"
         )
+        self.jstor_url_pattern.collections.add(self.jstor_collection)
+        self.jstor_url_pattern.save()
 
         self.proquest_organisation = OrganisationFactory(name="ProQuest")
         self.proquest_collection = CollectionFactory(
             name="ProQuest", organisation=self.proquest_organisation
         )
         self.proquest_url_pattern = URLPatternFactory(
-            url="www.proquest.com", collection=self.proquest_collection
+            url="www.proquest.com",
         )
+        self.proquest_url_pattern.collections.add(self.proquest_collection)
+        self.proquest_url_pattern.save()
 
         self.proxy_organisation = OrganisationFactory(
             name="Wikipedia Library OCLC EZProxy"
@@ -294,8 +298,10 @@ class EZProxyRemovalCommandTest(TestCase):
             name="EZProxy", organisation=self.proxy_organisation
         )
         self.proxy_url_pattern = URLPatternFactory(
-            url="wikipedialibrary.idm.oclc", collection=self.proxy_collection
+            url="wikipedialibrary.idm.oclc",
         )
+        self.proxy_url_pattern.collections.add(self.proxy_collection)
+        self.proxy_url_pattern.save()
 
         self.linkevent_jstor1 = LinkEventFactory(
             content_object=self.jstor_url_pattern,
@@ -393,6 +399,7 @@ class FixOnUserListCommandTest(TestCase):
         self.jstor_url_pattern = URLPatternFactory(
             url="www.jstor.org", collection=self.jstor_collection
         )
+        self.jstor_url_pattern.collections.set([self.jstor_collection])
 
         self.proquest_organisation = OrganisationFactory(name="ProQuest")
         self.proquest_organisation.username_list.add(self.user1)
@@ -401,8 +408,9 @@ class FixOnUserListCommandTest(TestCase):
             name="ProQuest", organisation=self.proquest_organisation
         )
         self.proquest_url_pattern = URLPatternFactory(
-            url="www.proquest.com", collection=self.proquest_collection
+            url="www.proquest.com"
         )
+        self.proquest_url_pattern.collections.set([self.proquest_collection])
 
         self.linkevent_jstor1 = LinkEventFactory(
             content_object=self.jstor_url_pattern,

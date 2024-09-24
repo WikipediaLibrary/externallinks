@@ -71,7 +71,9 @@ class ProgramDetailTest(TestCase):
         self.collection2 = CollectionFactory(organisation=self.organisation2)
         self.collection3 = CollectionFactory(organisation=self.organisation2)
 
-        urlpattern1 = URLPatternFactory(collection=self.collection1)
+        urlpattern1 = URLPatternFactory()
+        urlpattern1.collections.add(self.collection1)
+        urlpattern1.save()
 
         user = UserFactory(username="Jim")
 

@@ -59,7 +59,7 @@ class OrganisationDetailView(DetailView):
         for collection in organisation_collections:
             this_collection_linksearchtotals = LinkSearchTotal.objects.prefetch_related(
                 "url"
-            ).filter(url__collection=collection)
+            ).filter(url__collections__name__contains=collection)
 
             form_data = None
             if form.is_valid():

@@ -64,7 +64,9 @@ class OrganisationDetailTest(TestCase):
         self.collection1 = CollectionFactory(organisation=self.organisation1)
         self.collection1_key = self.collection1.name
 
-        urlpattern1 = URLPatternFactory(collection=self.collection1)
+        urlpattern1 = URLPatternFactory()
+        urlpattern1.collections.add(self.collection1)
+        urlpattern1.save()
 
         user = UserFactory(username="Jim")
 
@@ -365,7 +367,6 @@ class OrganisationDetailTest(TestCase):
 
         request = factory.get(csv_url)
         response = CSVAllLinkEvents.as_view()(request, pk=self.organisation1.pk)
-
         self.assertContains(response, self.linkevent1.link)
         self.assertContains(response, self.linkevent2.link)
         self.assertContains(response, self.linkevent3.link)

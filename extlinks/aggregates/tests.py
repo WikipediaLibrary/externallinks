@@ -24,7 +24,7 @@ class LinkAggregateCommandTest(TestCase):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
         self.url = URLPatternFactory(url="www.google.com")
-        self.url.collection = self.collection
+        self.url.collections.add(self.collection)
         self.url.save()
         # Adding LinkEvents so that the command has information to parse.
         LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
@@ -111,7 +111,7 @@ class LinkAggregateCommandTest(TestCase):
         url_pattern = URLPatternFactory(
             url="www.duckduckgo.com",
         )
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
         url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
@@ -140,7 +140,7 @@ class LinkAggregateCommandTest(TestCase):
             name="Monsters Inc", organisation=new_organisation
         )
         url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
         url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
@@ -171,9 +171,10 @@ class UserAggregateCommandTest(TestCase):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
-        self.url = URLPatternFactory(url="www.google.com")
-        self.url.collection = self.collection
-        self.url.save()
+        url_pattern = URLPatternFactory(url="www.google.com")
+        url_pattern.collections.add(self.collection)
+        url_pattern.save()
+        self.url = url_pattern
         self.user = UserFactory(username="juannieve")
         self.user2 = UserFactory(username="jonsnow")
 
@@ -285,14 +286,14 @@ class UserAggregateCommandTest(TestCase):
         url_pattern = URLPatternFactory(
             url="www.duckduckgo.com", collection=new_collection
         )
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
         url_pattern.save()
         # Creating a collection and LinkEvent that won't be run in the command
         other_collection = CollectionFactory(name="Unused")
         other_url_pattern = URLPatternFactory(
             url="www.notusingthis.com", collection=other_collection
         )
-        other_url_pattern.collection = other_collection
+        other_url_pattern.collections.add(other_collection)
         other_url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
@@ -326,7 +327,7 @@ class UserAggregateCommandTest(TestCase):
             name="Monsters Inc", organisation=new_organisation
         )
         url_pattern = URLPatternFactory(url="www.pixar.com", collection=new_collection)
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
         url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
@@ -359,7 +360,7 @@ class PageProjectAggregateCommandTest(TestCase):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
         self.url = URLPatternFactory(url="www.google.com")
-        self.url.collection = self.collection
+        self.url.collections.add(self.collection)
         self.url.save()
         # Adding LinkEvents so that the command has information to parse.
         LinkEventFactory(
@@ -515,15 +516,17 @@ class PageProjectAggregateCommandTest(TestCase):
         # Create a new collection and some LinkEvents associated with it
         new_collection = CollectionFactory(name="Monsters Inc")
         url_pattern = URLPatternFactory(
-            url="www.duckduckgo.com", collection=new_collection
+            url="www.duckduckgo.com"
         )
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
+        url_pattern.save()
         # Creating a collection and LinkEvent that won't be run in the command
         other_collection = CollectionFactory(name="Unused")
         other_url_pattern = URLPatternFactory(
-            url="www.notusingthis.com", collection=other_collection
+            url="www.notusingthis.com"
         )
-        url_pattern.collection = other_collection
+        other_url_pattern.collections.add(other_collection)
+        other_url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
 
@@ -556,7 +559,7 @@ class PageProjectAggregateCommandTest(TestCase):
             name="Monsters Inc", organisation=new_organisation
         )
         url_pattern = URLPatternFactory(url="www.pixar.com")
-        url_pattern.collection = new_collection
+        url_pattern.collections.add(new_collection)
         url_pattern.save()
 
         LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
