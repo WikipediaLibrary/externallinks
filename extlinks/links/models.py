@@ -12,83 +12,6 @@ from django.utils.functional import cached_property
 
 logger = logging.getLogger("django")
 
-class LinkEvent(models.Model):
-    """
-    Stores data from the page-links-change EventStream
-
-    https://stream.wikimedia.org/?doc#!/Streams/get_v2_stream_page_links_change
-    """
-
-    class Meta:
-        app_label = "links"
-        get_latest_by = "timestamp"
-        indexes = [
-            models.Index(
-                fields=[
-                    "hash_link_event_id",
-                ]
-            ),
-            models.Index(
-                fields=[
-                    "timestamp",
-                ]
-            ),
-            models.Index(fields=["content_type", "object_id"]),
-        ]
-
-    # URLs should have a max length of 2083
-    link = models.CharField(max_length=2083)
-    timestamp = models.DateTimeField()
-    domain = models.CharField(max_length=32, db_index=True)
-    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, related_name="content_type", null=True)
-    object_id = models.PositiveIntegerField(null=True)
-    content_object = GenericForeignKey("content_type", "object_id")
-
-    username = models.ForeignKey(
-        "organisations.User",
-        null=True,
-        on_delete=models.SET_NULL,
-    )
-    # rev_id has null=True because some tracked revisions don't have a
-    # revision ID, like page moves.
-    rev_id = models.PositiveIntegerField(null=True)
-    # IPs have no user_id, so this can be blank too.
-    user_id = models.PositiveIntegerField(null=True)
-    page_title = models.CharField(max_length=255)
-    page_namespace = models.IntegerField()
-    event_id = models.CharField(max_length=36)
-    user_is_bot = models.BooleanField(default=False)
-    hash_link_event_id = models.CharField(max_length=256, blank=True)
-
-    # Were links added or removed?
-    REMOVED = 0
-    ADDED = 1
-
-    CHANGE_CHOICES = (
-        (REMOVED, "Removed"),
-        (ADDED, "Added"),
-    )
-
-    change = models.IntegerField(choices=CHANGE_CHOICES, db_index=True)
-
-    # Flags whether this event was from a user on the user list for the
-    # organisation tracking its URL.
-    on_user_list = models.BooleanField(default=False)
-
-    @property
-    def get_organisation(self):
-        url_pattern = URLPattern.objects.all()
-        for url_pattern in url_pattern:
-            link_events = url_pattern.link_events.all()
-            if self in link_events:
-                return url_pattern.collection.organisation
-
-    def save(self, **kwargs):
-        link_event_id = self.link + self.event_id
-        hash = hashlib.sha256()
-        hash.update(link_event_id.encode("utf-8"))
-        self.hash_link_event_id = hash.hexdigest()
-        super().save(**kwargs)
 
 
 class URLPatternManager(models.Manager):
@@ -167,3 +90,80 @@ class LinkSearchTotal(models.Model):
     total = models.PositiveIntegerField()
 
 
+class LinkEvent(models.Model):
+    """
+    Stores data from the page-links-change EventStream
+
+    https://stream.wikimedia.org/?doc#!/Streams/get_v2_stream_page_links_change
+    """
+
+    class Meta:
+        app_label = "links"
+        get_latest_by = "timestamp"
+        indexes = [
+            models.Index(
+                fields=[
+                    "hash_link_event_id",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "timestamp",
+                ]
+            ),
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+    url = models.ManyToManyField(URLPattern, related_name="linkevent")
+    # URLs should have a max length of 2083
+    link = models.CharField(max_length=2083)
+    timestamp = models.DateTimeField()
+    domain = models.CharField(max_length=32, db_index=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, related_name="content_type", null=True)
+    object_id = models.PositiveIntegerField(null=True)
+    content_object = GenericForeignKey("content_type", "object_id")
+
+    username = models.ForeignKey(
+        "organisations.User",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    # rev_id has null=True because some tracked revisions don't have a
+    # revision ID, like page moves.
+    rev_id = models.PositiveIntegerField(null=True)
+    # IPs have no user_id, so this can be blank too.
+    user_id = models.PositiveIntegerField(null=True)
+    page_title = models.CharField(max_length=255)
+    page_namespace = models.IntegerField()
+    event_id = models.CharField(max_length=36)
+    user_is_bot = models.BooleanField(default=False)
+    hash_link_event_id = models.CharField(max_length=256, blank=True)
+
+    # Were links added or removed?
+    REMOVED = 0
+    ADDED = 1
+
+    CHANGE_CHOICES = (
+        (REMOVED, "Removed"),
+        (ADDED, "Added"),
+    )
+
+    change = models.IntegerField(choices=CHANGE_CHOICES, db_index=True)
+
+    # Flags whether this event was from a user on the user list for the
+    # organisation tracking its URL.
+    on_user_list = models.BooleanField(default=False)
+
+    @property
+    def get_organisation(self):
+        url_pattern = URLPattern.objects.all()
+        for url_pattern in url_pattern:
+            link_events = url_pattern.link_events.all()
+            if self in link_events:
+                return url_pattern.collection.organisation
+
+    def save(self, **kwargs):
+        link_event_id = self.link + self.event_id
+        hash = hashlib.sha256()
+        hash.update(link_event_id.encode("utf-8"))
+        self.hash_link_event_id = hash.hexdigest()
+        super().save(**kwargs)
