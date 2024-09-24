@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 if random_user in username_list:
                     on_user_list = True
 
-            new_event = LinkEvent(
+            LinkEvent.objects.create(
                 link=urlpattern.url + "/" + fake.word(),
                 timestamp=fake.date_time_between(
                     start_date=datetime.now() - timedelta(days=365),
@@ -62,6 +62,4 @@ class Command(BaseCommand):
                 change=random.choice(change_choices),
                 on_user_list=on_user_list,
             )
-            new_event.save()
 
-            new_event.url.add(urlpattern)

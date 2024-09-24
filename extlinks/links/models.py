@@ -11,23 +11,27 @@ from django.utils.functional import cached_property
 logger = logging.getLogger("django")
 
 class URLPatternManager(models.Manager):
+    models.CharField.register_lookup(models.functions.Length)
 
     def cached(self):
-        cached_patterns = cache.get('url_pattern_cache')
+        cached_patterns = cache.get("url_pattern_cache")
         if not cached_patterns:
             cached_patterns = self.all()
-            logger.info('set url_pattern_cache')
-            cache.set('url_pattern_cache', cached_patterns, None)
+            logger.info("set url_pattern_cache")
+            cache.set("url_pattern_cache", cached_patterns, None)
         return cached_patterns
 
     def matches(self, link):
-        # All URL patterns matching this link
         tracked_urls = self.cached()
-        return [
-            pattern
-            for pattern in tracked_urls
-            if pattern.url in link or pattern.get_proxied_url in link
-        ]
+        excluded_ids = []
+        # Build a list of non-matching patterns
+        for pattern in tracked_urls:
+            if pattern.url not in link and pattern.get_proxied_url not in link:
+                excluded_ids.add(pattern.id)
+        # Queryset of all URL patterns matching this link
+        url_patterns = tracked_urls.exclude(id__in=excluded_ids)
+        # Return the longest (i.e. most specific) URL pattern
+        return url_patterns.order_by("-url__length")
 
 class URLPattern(models.Model):
     class Meta:
@@ -45,6 +49,10 @@ class URLPattern(models.Model):
         on_delete=models.SET_NULL,
         related_name="url",
     )
+    collections = models.ManyToManyField(
+        "organisations.Collection",
+        related_name="urlpatterns"
+    )
 
     def __str__(self):
         return self.url
@@ -58,8 +66,9 @@ class URLPattern(models.Model):
 
 @receiver(post_save, sender=URLPattern)
 def delete_url_pattern_cache(sender, instance, **kwargs):
-    if cache.delete('url_pattern_cache'):
-        logger.info('delete url_pattern_cache')
+    if cache.delete("url_pattern_cache"):
+        logger.info("delete url_pattern_cache")
+
 
 class LinkSearchTotal(models.Model):
     class Meta:
@@ -92,14 +101,20 @@ class LinkEvent(models.Model):
             models.Index(fields=["timestamp",]),
         ]
 
-    url = models.ManyToManyField(URLPattern, related_name="linkevent")
-
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32, db_index=True)
+    urlpattern = models.ForeignKey(
+        "links.URLPattern",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="linkevents",
+    )
     username = models.ForeignKey(
-        "organisations.User", null=True, on_delete=models.SET_NULL
+        "organisations.User",
+        null=True,
+        on_delete=models.SET_NULL,
     )
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
@@ -129,8 +144,7 @@ class LinkEvent(models.Model):
 
     @property
     def get_organisation(self):
-        url_patterns = self.url.all()
-        return url_patterns[0].collection.organisation
+        return self.urlpattern.collection.organisation
 
     def save(self, **kwargs):
         link_event_id = self.link + self.event_id

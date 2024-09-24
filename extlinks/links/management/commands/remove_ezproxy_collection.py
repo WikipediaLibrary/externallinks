@@ -24,8 +24,7 @@ class Command(BaseCommand):
             )
 
         # Get LinkEvents that have no URLPatterns associated
-        linkevents = LinkEvent.objects.filter(url__isnull=True)
-
+        linkevents = LinkEvent.objects.filter(urlpattern__isnull=True)
         collections = Collection.objects.all()
 
         self._process_linkevents_collections(linkevents, collections)
@@ -140,7 +139,8 @@ class Command(BaseCommand):
                 for linkevent in linkevents:
                     proxy_url = url_pattern.url.replace(".", "-")
                     if url_pattern.url in linkevent.link or proxy_url in linkevent.link:
-                        linkevent.url.add(url_pattern)
+                        linkevent.urlpattern = url_pattern
+                        linkevent.save()
                         linkevents_changed += 1
             if linkevents_changed > 0:
                 # There have been changes to this collection, so we must delete
