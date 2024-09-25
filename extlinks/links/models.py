@@ -2,6 +2,8 @@ import hashlib
 import logging
 from datetime import date
 
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import models
 from django.db.models.signals import post_save
@@ -9,6 +11,7 @@ from django.dispatch import receiver
 from django.utils.functional import cached_property
 
 logger = logging.getLogger("django")
+
 
 class URLPatternManager(models.Manager):
     models.CharField.register_lookup(models.functions.Length)
@@ -33,6 +36,7 @@ class URLPatternManager(models.Manager):
         # Return the longest (i.e. most specific) URL pattern
         return url_patterns.order_by("-url__length")
 
+
 class URLPattern(models.Model):
     class Meta:
         app_label = "links"
@@ -42,16 +46,10 @@ class URLPattern(models.Model):
     objects = URLPatternManager()
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
+    link_event = GenericRelation("links.LinkEvent")
 
-    collection = models.ForeignKey(
-        "organisations.Collection",
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name="url",
-    )
     collections = models.ManyToManyField(
-        "organisations.Collection",
-        related_name="urlpatterns"
+        "organisations.Collection", related_name="urlpatterns"
     )
 
     def __str__(self):
@@ -97,20 +95,30 @@ class LinkEvent(models.Model):
         app_label = "links"
         get_latest_by = "timestamp"
         indexes = [
-            models.Index(fields=["hash_link_event_id",]),
-            models.Index(fields=["timestamp",]),
+            models.Index(
+                fields=[
+                    "hash_link_event_id",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "timestamp",
+                ]
+            ),
         ]
 
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32, db_index=True)
-    urlpattern = models.ForeignKey(
-        "links.URLPattern",
+    content_type = models.ForeignKey(
+        ContentType,
         null=True,
         on_delete=models.SET_NULL,
         related_name="linkevents",
     )
+    object_id = models.PositiveIntegerField(null=True)
+    content_object = GenericForeignKey()
     username = models.ForeignKey(
         "organisations.User",
         null=True,
@@ -144,7 +152,7 @@ class LinkEvent(models.Model):
 
     @property
     def get_organisation(self):
-        return self.urlpattern.collection.organisation
+        return self.related.collections.first().organisation
 
     def save(self, **kwargs):
         link_event_id = self.link + self.event_id
