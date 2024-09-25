@@ -372,9 +372,9 @@ def get_latest_link_events(request):
     latest_link_events = (
         linkevents.select_related("username")
         .prefetch_related(
-            "url",
+            "urlpattern",
             Prefetch(
-                "url__collection",
+                "urlpattern__collection",
                 queryset=Collection.objects.select_related("organisation").filter(
                     id=collection.id
                 ),

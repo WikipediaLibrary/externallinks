@@ -178,7 +178,7 @@ class CSVAllLinkEvents(_CSVDownloadView):
         # If we came from an organisation page:
         if "/organisation" in self.request.build_absolute_uri():
             linkevents = LinkEvent.objects.filter(
-                Q(url__collection__organisation__pk=pk) & queryset_filter
+                Q(urlpattern__collection__organisation__pk=pk) & queryset_filter
             ).distinct()
 
         writer = csv.writer(response)
