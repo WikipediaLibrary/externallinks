@@ -2,6 +2,8 @@ import hashlib
 import logging
 from datetime import date
 
+from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import models
 from django.db.models.signals import post_save
@@ -10,8 +12,10 @@ from django.utils.functional import cached_property
 
 logger = logging.getLogger("django")
 
-class URLPatternManager(models.Manager):
 
+
+class URLPatternManager(models.Manager):
+    models.CharField.register_lookup(models.functions.Length)
     def cached(self):
         cached_patterns = cache.get('url_pattern_cache')
         if not cached_patterns:
@@ -38,12 +42,20 @@ class URLPattern(models.Model):
     objects = URLPatternManager()
     # This doesn't have to look like a 'real' URL so we'll use a CharField.
     url = models.CharField(max_length=150)
-
+    link_events = GenericRelation("LinkEvent",
+                                  null=True,
+                                  blank=True,
+                                  default=None,
+                                  related_query_name="url_pattern",
+                                  on_delete=models.SET_NULL)
     collection = models.ForeignKey(
         "organisations.Collection",
         null=True,
         on_delete=models.SET_NULL,
         related_name="url",
+    )
+    collections = models.ManyToManyField(
+        "organisations.Collection", related_name="urlpatterns"
     )
 
     def __str__(self):
@@ -58,8 +70,9 @@ class URLPattern(models.Model):
 
 @receiver(post_save, sender=URLPattern)
 def delete_url_pattern_cache(sender, instance, **kwargs):
-    if cache.delete('url_pattern_cache'):
-        logger.info('delete url_pattern_cache')
+    if cache.delete("url_pattern_cache"):
+        logger.info("delete url_pattern_cache")
+
 
 class LinkSearchTotal(models.Model):
     class Meta:
@@ -88,18 +101,31 @@ class LinkEvent(models.Model):
         app_label = "links"
         get_latest_by = "timestamp"
         indexes = [
-            models.Index(fields=["hash_link_event_id",]),
-            models.Index(fields=["timestamp",]),
+            models.Index(
+                fields=[
+                    "hash_link_event_id",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "timestamp",
+                ]
+            ),
+            models.Index(fields=["content_type", "object_id"]),
         ]
-
     url = models.ManyToManyField(URLPattern, related_name="linkevent")
-
     # URLs should have a max length of 2083
     link = models.CharField(max_length=2083)
     timestamp = models.DateTimeField()
     domain = models.CharField(max_length=32, db_index=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, related_name="content_type", null=True)
+    object_id = models.PositiveIntegerField(null=True)
+    content_object = GenericForeignKey("content_type", "object_id")
+
     username = models.ForeignKey(
-        "organisations.User", null=True, on_delete=models.SET_NULL
+        "organisations.User",
+        null=True,
+        on_delete=models.SET_NULL,
     )
     # rev_id has null=True because some tracked revisions don't have a
     # revision ID, like page moves.
@@ -129,8 +155,11 @@ class LinkEvent(models.Model):
 
     @property
     def get_organisation(self):
-        url_patterns = self.url.all()
-        return url_patterns[0].collection.organisation
+        url_pattern = URLPattern.objects.all()
+        for url_pattern in url_pattern:
+            link_events = url_pattern.link_events.all()
+            if self in link_events:
+                return url_pattern.collection.organisation
 
     def save(self, **kwargs):
         link_event_id = self.link + self.event_id

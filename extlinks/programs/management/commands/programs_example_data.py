@@ -52,6 +52,7 @@ class Command(BaseCommand):
                         new_urlpattern = URLPattern(
                             # Strip https:// and /
                             url=fake.url(schemes=["https"])[8:-1],
-                            collection=new_collection,
                         )
+                        new_urlpattern.save()
+                        new_urlpattern.collections.add(new_collection)
                         new_urlpattern.save()

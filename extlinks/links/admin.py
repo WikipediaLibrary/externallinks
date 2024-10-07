@@ -4,7 +4,7 @@ from .models import URLPattern, LinkSearchTotal, LinkEvent
 
 
 class URLPatternAdmin(admin.ModelAdmin):
-    list_display = ("url", "collection")
+    list_display = ("url",)
 
 
 admin.site.register(URLPattern, URLPatternAdmin)

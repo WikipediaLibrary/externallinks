@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 
@@ -16,19 +17,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         ezproxy_org = self._get_ezproxy_organisation()
         ezproxy_collection = self._get_ezproxy_collection()
-        url_patterns = self._get_ezproxy_url_patterns(ezproxy_collection)
+        url_patterns = ezproxy_collection.get_url_patterns().all()
 
-        if ezproxy_org and ezproxy_collection and url_patterns:
-            self._delete_aggregates_ezproxy(
-                ezproxy_org, ezproxy_collection, url_patterns
-            )
-
-        # Get LinkEvents that have no URLPatterns associated
-        linkevents = LinkEvent.objects.filter(url__isnull=True)
-
+        linkevents = LinkEvent.objects.get_queryset()
+        for url_pattern in url_patterns:
+            linkevents.filter(object_id=url_pattern.id)
         collections = Collection.objects.all()
-
         self._process_linkevents_collections(linkevents, collections)
+        self._delete_aggregates_ezproxy(
+            ezproxy_org, ezproxy_collection, url_patterns
+        )
 
     def _get_ezproxy_organisation(self):
         """
@@ -135,12 +133,13 @@ class Command(BaseCommand):
         """
         for collection in collections:
             linkevents_changed = 0
-            collection_urls = collection.url.all()
+            collection_urls = collection.get_url_patterns()
             for url_pattern in collection_urls:
                 for linkevent in linkevents:
                     proxy_url = url_pattern.url.replace(".", "-")
                     if url_pattern.url in linkevent.link or proxy_url in linkevent.link:
-                        linkevent.url.add(url_pattern)
+                        url_pattern.link_events.add(linkevent)
+                        url_pattern.save()
                         linkevents_changed += 1
             if linkevents_changed > 0:
                 # There have been changes to this collection, so we must delete

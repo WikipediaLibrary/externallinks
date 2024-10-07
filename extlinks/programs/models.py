@@ -18,7 +18,7 @@ class Program(models.Model):
 
     def get_linkevents(self):
         return LinkEvent.objects.filter(
-            url__collection__organisation__program=self
+            urlpattern__collection__organisation__program=self
         ).distinct()
 
     @property

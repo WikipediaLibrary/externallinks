@@ -113,11 +113,10 @@ class Command(BaseCommand):
         -------
         None
         """
-        url_patterns = collection.url.all()
+        url_patterns = collection.get_url_patterns()
         for url_pattern in url_patterns:
-            link_events_with_annotated_timestamp = url_pattern.linkevent.annotate(
-                timestamp_date=Cast("timestamp", DateField())
-            )
+            link_events_with_annotated_timestamp = url_pattern.link_events.annotate(
+                timestamp_date=Cast("timestamp", DateField())).distinct()
             link_events = (
                 link_events_with_annotated_timestamp.values(
                     "timestamp_date", "on_user_list"
