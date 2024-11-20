@@ -64,43 +64,43 @@ class OrganisationDetailTest(TestCase):
         self.collection1 = CollectionFactory(organisation=self.organisation1)
         self.collection1_key = self.collection1.name
 
-        urlpattern1 = URLPatternFactory(collection=self.collection1)
+        urlpattern1 = URLPatternFactory()
+        urlpattern1.collections.add(self.collection1)
+        urlpattern1.save()
 
         user = UserFactory(username="Jim")
 
         self.linkevent1 = LinkEventFactory(
             link=urlpattern1.url + "/test",
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 15, tzinfo=timezone.utc),
             page_title="Event 1",
             user_is_bot=True,
         )
-        self.linkevent1.url.add(urlpattern1)
-        self.linkevent1.save()
 
         self.linkevent2 = LinkEventFactory(
             link=urlpattern1.url + "/test",
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=user,
             timestamp=datetime(2019, 1, 10, tzinfo=timezone.utc),
             page_title="Event 1",
         )
-        self.linkevent2.url.add(urlpattern1)
-        self.linkevent2.save()
 
         self.linkevent3 = LinkEventFactory(
             link=urlpattern1.url + "/test",
+            content_object=urlpattern1,
             change=LinkEvent.REMOVED,
             username=UserFactory(username="Bob"),
             timestamp=datetime(2017, 5, 5, tzinfo=timezone.utc),
             page_title="Event 2",
         )
-        self.linkevent3.url.add(urlpattern1)
-        self.linkevent3.save()
 
         self.linkevent4 = LinkEventFactory(
             link=urlpattern1.url + "/test",
+            content_object=urlpattern1,
             change=LinkEvent.ADDED,
             username=UserFactory(username="Mary"),
             timestamp=datetime(2019, 3, 1, tzinfo=timezone.utc),
@@ -108,8 +108,6 @@ class OrganisationDetailTest(TestCase):
             page_title="Event 2",
             page_namespace=1,
         )
-        self.linkevent4.url.add(urlpattern1)
-        self.linkevent4.save()
 
         # Running the tables aggregates commands to fill aggregate tables
         call_command("fill_link_aggregates")
@@ -369,7 +367,6 @@ class OrganisationDetailTest(TestCase):
 
         request = factory.get(csv_url)
         response = CSVAllLinkEvents.as_view()(request, pk=self.organisation1.pk)
-
         self.assertContains(response, self.linkevent1.link)
         self.assertContains(response, self.linkevent2.link)
         self.assertContains(response, self.linkevent3.link)

@@ -24,17 +24,18 @@ class Command(BaseCommand):
             collection_list = set()
             for linkevent in proxy_not_on_user_list_linkevents:
                 # Get URLPatterns associated with the linkevent
-                urls = linkevent.url.all()
+                url = linkevent.content_object
                 # Get the organisation from the first url
-                if urls:
-                    collection = urls[0].collection
-                    collection_list.add(collection.id)
-                    organisation = collection.organisation
-                    username_list = organisation.username_list
-                    if username_list:
-                        if linkevent.username in username_list.all():
-                            linkevent.on_user_list = True
-                            linkevent.save()
+                if url:
+                    collections = url.collections.all()
+                    for collection in collections:
+                        collection_list.add(collection.id)
+                        organisation = collection.organisation
+                        username_list = organisation.username_list
+                        if username_list:
+                            if linkevent.username in username_list.all():
+                                linkevent.on_user_list = True
+                                linkevent.save()
 
             if collection_list:
                 LinkAggregate.objects.filter(

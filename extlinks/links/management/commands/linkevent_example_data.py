@@ -34,7 +34,7 @@ class Command(BaseCommand):
 
         for _ in range(num_events):
             urlpattern = random.choice(urlpatterns)
-            organisation = urlpattern.collection.organisation
+            organisation = urlpattern.collections.first().organisation
             random_user = random.choice(users)
 
             # If this org limits by user, choose either a random user who
@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 if random_user in username_list:
                     on_user_list = True
 
-            new_event = LinkEvent(
+            link_event = LinkEvent.objects.create(
                 link=urlpattern.url + "/" + fake.word(),
                 timestamp=fake.date_time_between(
                     start_date=datetime.now() - timedelta(days=365),
@@ -62,6 +62,5 @@ class Command(BaseCommand):
                 change=random.choice(change_choices),
                 on_user_list=on_user_list,
             )
-            new_event.save()
-
-            new_event.url.add(urlpattern)
+            urlpattern.link_events.add(link_event)
+            urlpattern.save()
