@@ -44,7 +44,7 @@ def wait_for_migrations(args):
         sleep(1)
         wait += 1
 
-        if wait > 30:
+        if wait > 60:
             raise Exception("Migration timeout")
 
     # All migrations have been applied.
