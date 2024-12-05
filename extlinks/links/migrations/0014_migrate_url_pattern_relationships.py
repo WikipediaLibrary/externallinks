@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.core.serializers import deserialize
 from django.db import migrations
+from extlinks.organisations.models import Collection
 
 import logging
 
@@ -16,7 +17,9 @@ def import_url_collection_json():
         logger.info("\timporting urlpatterns ...")
         url_pattern_data = deserialize("json", f)
         for url_pattern in url_pattern_data:
-            url_pattern.save()
+            # ensuring the related collection exists before attempting to save url pattern
+            if Collection.objects.filter(pk=url_pattern.object.collection_id).first():
+                url_pattern.save()
 
 
 def process_link_event(link_event):
