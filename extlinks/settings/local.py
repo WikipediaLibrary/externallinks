@@ -19,7 +19,6 @@ if os.environ["REQUIREMENTS_FILE"] == "local.txt":
     if not TESTING:
         INSTALLED_APPS += [
             "debug_toolbar",
-            "django_extensions",
         ]
 
         MIDDLEWARE += [
