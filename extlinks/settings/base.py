@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "extlinks.programs",
     "django_cron",
     "extlinks.aggregates",
+    "django_extensions"
 ]
 
 # Fixing django_cron migration warning
