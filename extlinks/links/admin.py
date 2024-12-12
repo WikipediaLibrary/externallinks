@@ -7,14 +7,26 @@ from .models import URLPattern, LinkSearchTotal, LinkEvent
 class LinkEventURLPatternAdminInline(GenericTabularInline):
     model = LinkEvent
     show_change_link = True
-    exclude = ['user_id', 'url']
-    readonly_fields = ['link', 'timestamp', 'domain', 'rev_id',
-                       'page_title', 'page_namespace', 'event_id', 'user_is_bot',
-                       'hash_link_event_id', 'change', 'username', 'on_user_list']
+    exclude = ["user_id", "url"]
+    readonly_fields = [
+        "link",
+        "timestamp",
+        "domain",
+        "rev_id",
+        "page_title",
+        "page_namespace",
+        "event_id",
+        "user_is_bot",
+        "hash_link_event_id",
+        "change",
+        "username",
+        "on_user_list",
+    ]
 
 
 class URLPatternAdmin(admin.ModelAdmin):
     list_display = ("url",)
+    exclude = ["collections"]
     inlines = [
         LinkEventURLPatternAdminInline,
     ]
