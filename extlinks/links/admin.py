@@ -32,7 +32,7 @@ class LinkEventAdmin(admin.ModelAdmin):
     list_display = ("link", "timestamp", "domain", "username", "change")
     list_select_related = ["username", "content_type"]
     readonly_fields = ["url_pattern_display"]
-    exclude = ["content_type", "object_id"]
+    exclude = ["content_type", "object_id", "url"]
 
     @admin.display(description="URLPattern")
     def url_pattern_display(self, instance):
