@@ -13,6 +13,7 @@ class LinkAggregateAdmin(admin.ModelAdmin):
         "on_user_list",
     )
     list_filter = ("organisation", "collection", "month", "year", "on_user_list")
+    list_select_related = ["organisation", "collection"]
 
 
 admin.site.register(LinkAggregate, LinkAggregateAdmin)
@@ -29,7 +30,7 @@ class UserAggregateAdmin(admin.ModelAdmin):
         "on_user_list",
     )
     list_filter = ("organisation", "collection", "month", "year", "on_user_list")
-
+    list_select_related = ["organisation", "collection"]
 
 admin.site.register(UserAggregate, UserAggregateAdmin)
 
@@ -46,6 +47,6 @@ class PageProjectAggregateAdmin(admin.ModelAdmin):
         "on_user_list",
     )
     list_filter = ("organisation", "collection", "month", "year", "on_user_list")
-
+    list_select_related = ["organisation", "collection"]
 
 admin.site.register(PageProjectAggregate, PageProjectAggregateAdmin)
