@@ -27,6 +27,7 @@ class LinkEventURLPatternAdminInline(GenericTabularInline):
 class URLPatternAdmin(admin.ModelAdmin):
     list_display = ("url",)
     exclude = ["collections"]
+    autocomplete_fields = ["collection"]
     inlines = [
         LinkEventURLPatternAdminInline,
     ]

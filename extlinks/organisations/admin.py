@@ -23,6 +23,7 @@ class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name", "organisation")
     list_filter = ("name", "organisation")
     list_select_related = ["organisation"]
+    search_fields = ["name"]
 
 
 admin.site.register(Collection, CollectionAdmin)
