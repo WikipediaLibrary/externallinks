@@ -6,7 +6,8 @@ from .models import URLPattern, LinkSearchTotal, LinkEvent
 
 class LinkEventURLPatternAdminInline(GenericTabularInline):
     model = LinkEvent
-    show_change_link = True
+    # Although not ideal, changing this to False has improved performance
+    show_change_link = False
     exclude = ["user_id", "url"]
     readonly_fields = [
         "link",
