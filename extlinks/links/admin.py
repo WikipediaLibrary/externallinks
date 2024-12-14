@@ -23,6 +23,11 @@ class LinkEventURLPatternAdminInline(GenericTabularInline):
         "on_user_list",
     ]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+
+        return qs.select_related("username")
+
 
 class URLPatternAdmin(admin.ModelAdmin):
     list_display = ("url",)
