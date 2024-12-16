@@ -44,6 +44,7 @@ admin.site.register(URLPattern, URLPatternAdmin)
 
 class LinkSearchTotalAdmin(admin.ModelAdmin):
     list_display = ("url", "date", "total")
+    list_select_related = ["url"]
 
 
 admin.site.register(LinkSearchTotal, LinkSearchTotalAdmin)
