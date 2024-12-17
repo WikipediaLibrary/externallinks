@@ -6,7 +6,8 @@ from .models import URLPattern, LinkSearchTotal, LinkEvent
 
 class LinkEventURLPatternAdminInline(GenericTabularInline):
     model = LinkEvent
-    show_change_link = True
+    # Although not ideal, changing this to False has improved performance
+    show_change_link = False
     exclude = ["user_id", "url"]
     readonly_fields = [
         "link",
@@ -23,10 +24,16 @@ class LinkEventURLPatternAdminInline(GenericTabularInline):
         "on_user_list",
     ]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+
+        return qs.select_related("username")
+
 
 class URLPatternAdmin(admin.ModelAdmin):
     list_display = ("url",)
     exclude = ["collections"]
+    autocomplete_fields = ["collection"]
     inlines = [
         LinkEventURLPatternAdminInline,
     ]
@@ -37,6 +44,7 @@ admin.site.register(URLPattern, URLPatternAdmin)
 
 class LinkSearchTotalAdmin(admin.ModelAdmin):
     list_display = ("url", "date", "total")
+    list_select_related = ["url"]
 
 
 admin.site.register(LinkSearchTotal, LinkSearchTotalAdmin)
