@@ -166,13 +166,16 @@ class Command(BaseCommand):
             if any(attr is None for attr in [username, full_date, on_user_list, links_added, links_removed]):
                 continue
 
+            # Granulation level for the daily aggregation.
+            # Changing this filter should also impact the monthly
+            # aggregation in `fill_monthly_user_aggregates.py`
             existing_link_aggregate = UserAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 username=username,
                 full_date=full_date,
                 on_user_list=on_user_list,
-            ).first()
+            ).exclude(day=0).first()
             if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
