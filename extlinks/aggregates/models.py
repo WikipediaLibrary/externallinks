@@ -11,6 +11,7 @@ class LinkAggregate(models.Model):
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
+            models.Index(fields=["organisation_id", "collection_id", "on_user_list"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -28,7 +29,8 @@ class LinkAggregate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        self.day = self.full_date.day
+        if self.day is None or self.day != 0:
+            self.day = self.full_date.day
         self.month = self.full_date.month
         self.year = self.full_date.year
         if self.pk is None:
@@ -43,6 +45,7 @@ class LinkAggregate(models.Model):
             collection=self.collection,
             full_date=self.full_date,
             on_user_list=self.on_user_list,
+            day=self.day, # day can be 0 if the aggregation is a monthly one
         ).exists():
             raise ValidationError(
                 message="LinkAggregate with this combination (organisation, collection, full_date, on_user_list) already exists.",

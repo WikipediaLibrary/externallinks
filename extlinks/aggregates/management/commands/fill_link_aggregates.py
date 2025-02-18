@@ -157,12 +157,15 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
+            # Granulation level for the daily aggregation.
+            # Changing this filter should also impact the monthly
+            # aggregation in `fill_monthly_link_aggregates.py`
             existing_link_aggregate = LinkAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).first()
+            ).exclude(day=0).first()
             if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
