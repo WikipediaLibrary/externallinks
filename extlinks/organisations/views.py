@@ -17,6 +17,7 @@ from extlinks.common.helpers import (
     get_linksearchtotal_data_by_time,
     filter_linksearchtotals,
     build_queryset_filters,
+    get_normalized_date_for_display,
 )
 from extlinks.links.models import LinkSearchTotal
 from .models import Organisation, Collection
@@ -48,7 +49,16 @@ class OrganisationDetailView(DetailView):
     # As such, most context gathering is split out to a helper.
     def get_context_data(self, **kwargs):
         context = super(OrganisationDetailView, self).get_context_data(**kwargs)
-        form = self.form_class(self.request.GET)
+
+        # Users may have old urls bookmarked with filters using full date
+        # for start and end dates.
+        # Let's normalize those to the new format (month type)
+        request_get = self.request.GET.copy()
+        for field in ["start_date", "end_date"]:
+            if field in request_get:
+                request_get[field] = get_normalized_date_for_display(request_get[field])
+
+        form = self.form_class(request_get)
         context["form"] = form
 
         organisation_collections = self.object.collection_set.all()
@@ -76,7 +86,9 @@ class OrganisationDetailView(DetailView):
             context["collections"][collection_key] = {}
             context["collections"][collection_key]["object"] = collection
             context["collections"][collection_key]["collection_id"] = collection.pk
-            context["collections"][collection_key]["urls"] = collection.get_url_patterns()
+            context["collections"][collection_key][
+                "urls"
+            ] = collection.get_url_patterns()
 
             context["collections"][collection_key] = (
                 self._build_collection_context_dictionary(

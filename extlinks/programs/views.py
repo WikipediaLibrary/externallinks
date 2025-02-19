@@ -13,7 +13,10 @@ from extlinks.aggregates.models import (
     UserAggregate,
 )
 from extlinks.common.forms import FilterForm
-from extlinks.common.helpers import build_queryset_filters
+from extlinks.common.helpers import (
+    build_queryset_filters,
+    get_normalized_date_for_display,
+)
 from extlinks.organisations.models import Organisation
 from .models import Program
 
@@ -46,7 +49,16 @@ class ProgramDetailView(DetailView):
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
         context["orgs_values"] = [org.pk for org in this_program_organisations]
-        form = self.form_class(self.request.GET)
+
+        # Users may have old urls bookmarked with filters using full date
+        # for start and end dates.
+        # Let's normalize those to the new format (month type)
+        request_get = self.request.GET.copy()
+        for field in ["start_date", "end_date"]:
+            if field in request_get:
+                request_get[field] = get_normalized_date_for_display(request_get[field])
+
+        form = self.form_class(request_get)
         context["form"] = form
 
         form_data = None

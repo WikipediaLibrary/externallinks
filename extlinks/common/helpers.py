@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import re
 
 from django.db.models import Avg, Q
 from django.db.models.functions import TruncMonth
@@ -152,3 +153,19 @@ def build_queryset_filters(form_data, collection_or_organisations):
         & start_date_filter
         & end_date_filter
     )
+
+
+def get_normalized_date_for_display(value):
+    """
+    This function converts YYYY-MM-DD into YYYY-MM so it's compatible
+    with the `<input type="month" />`.
+    """
+    match_full_date = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", value)
+    match_year_month = re.fullmatch(r"(\d{4})-(\d{2})", value)
+
+    if match_full_date:
+        return f"{match_full_date.group(1)}-{match_full_date.group(2)}"
+    elif match_year_month:
+        return value
+
+    return ""

@@ -1,23 +1,40 @@
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+
 from django import forms
+from django.core.exceptions import ValidationError
 
 
-class DateInput(forms.DateInput):
-    # Creating a custom widget because default DateInput doesn't use
-    # input type="date"
-    input_type = "date"
+class MonthInput(forms.DateInput):
+    input_type = "month"
+
+
+class YearMonthField(forms.DateField):
+    def to_python(self, value):
+        """
+        This is automatically called by Django before validation (clean() method).
+        """
+        if not value:
+            return None
+
+        try:
+            year, month = map(int, value.split("-")[:2])
+            return date(year, month, 1)
+        except ValueError:
+            raise ValidationError("Enter a valid year-month")
 
 
 class FilterForm(forms.Form):
 
-    start_date = forms.DateField(
+    start_date = YearMonthField(
         required=False,
         label="Start date:",
-        widget=DateInput(attrs={"class": "form-control"}),
+        widget=MonthInput(attrs={"class": "form-control"}),
     )
-    end_date = forms.DateField(
+    end_date = YearMonthField(
         required=False,
         label="End date:",
-        widget=DateInput(attrs={"class": "form-control"}),
+        widget=MonthInput(attrs={"class": "form-control"}),
     )
 
     limit_to_user_list = forms.BooleanField(required=False)
@@ -31,3 +48,18 @@ class FilterForm(forms.Form):
     )
 
     exclude_bots = forms.BooleanField(required=False)
+
+    def clean_end_date(self):
+        """
+        This is automatically called by Django when validating this field.
+
+        Modify the end date to return the last day of its month.
+        """
+        end_date = self.cleaned_data.get("end_date")
+        
+        if not end_date:
+            return None
+        
+        next_month = end_date.replace(day=1) + relativedelta(months=1)
+
+        return next_month - timedelta(days=1)
