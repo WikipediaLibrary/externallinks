@@ -27,15 +27,38 @@ class LinkAggregateCommandTest(TestCase):
         self.url.collections.add(self.collection)
         self.url.save()
         # Adding LinkEvents so that the command has information to parse.
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=self.url, timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc))
-
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=self.url,
+            timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc),
+        )
 
     # Test when LinkAggregate table is empty
     def test_link_aggregate_table_empty(self):
@@ -70,7 +93,13 @@ class LinkAggregateCommandTest(TestCase):
         # Add a LinkEvent from yesterday, a LinkAggregate with this date does not
         # exist yet
         yesterday_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 9, 18, 47, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            9,
+            18,
+            47,
+            tzinfo=timezone.utc,
         )
         LinkEventFactory(content_object=self.url, timestamp=yesterday_datetime)
 
@@ -88,7 +117,13 @@ class LinkAggregateCommandTest(TestCase):
         # The eventstream container crashed and a LinkEvent was not added to
         # yesterday's aggregate
         yesterday_late_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 12, 30, 56, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            12,
+            30,
+            56,
+            tzinfo=timezone.utc,
         )
         LinkEventFactory(content_object=self.url, timestamp=yesterday_late_datetime)
 
@@ -114,8 +149,14 @@ class LinkAggregateCommandTest(TestCase):
         url_pattern.collections.add(new_collection)
         url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         self.assertEqual(
             LinkAggregate.objects.filter(collection=new_collection).count(), 0
@@ -143,8 +184,14 @@ class LinkAggregateCommandTest(TestCase):
         url_pattern.collections.add(new_collection)
         url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         self.assertEqual(
             LinkAggregate.objects.filter(collection=new_collection).count(), 0
@@ -156,7 +203,10 @@ class LinkAggregateCommandTest(TestCase):
             LinkAggregate.objects.filter(collection=new_collection).count(), 2
         )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
@@ -178,22 +228,53 @@ class UserAggregateCommandTest(TestCase):
         self.user2 = UserFactory(username="jonsnow")
 
         # Adding LinkEvents so that the command has information to parse.
-        LinkEventFactory(content_object=self.url, username=self.user, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user2, timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user2,
+            timestamp=datetime(2020, 1, 1, 17, 40, 55, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user, timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user,
+            timestamp=datetime(2020, 1, 1, 19, 5, 42, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user2, timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user2,
+            timestamp=datetime(2020, 9, 10, 12, 9, 14, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user, timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user,
+            timestamp=datetime(2020, 9, 10, 12, 40, 50, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user, timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user,
+            timestamp=datetime(2020, 9, 10, 16, 52, 49, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user, timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user,
+            timestamp=datetime(2020, 9, 10, 17, 16, 30, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=self.url, username=self.user2, timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc))
-
+        LinkEventFactory(
+            content_object=self.url,
+            username=self.user2,
+            timestamp=datetime(2020, 9, 10, 22, 36, 15, tzinfo=timezone.utc),
+        )
 
     # Test when UserAggregate.table is empty
     def test_user_aggregate_table_empty(self):
@@ -239,9 +320,17 @@ class UserAggregateCommandTest(TestCase):
         # Add a LinkEvent from yesterday, a UserAggregate.with this date does not
         # exist yet
         yesterday_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 9, 18, 47, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            9,
+            18,
+            47,
+            tzinfo=timezone.utc,
         )
-        LinkEventFactory(content_object=self.url, timestamp=yesterday_datetime, username=self.user)
+        LinkEventFactory(
+            content_object=self.url, timestamp=yesterday_datetime, username=self.user
+        )
 
         call_command("fill_user_aggregates")
 
@@ -258,11 +347,18 @@ class UserAggregateCommandTest(TestCase):
         # The eventstream container crashed and a LinkEvent was not added to
         # yesterday's aggregate
         yesterday_late_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 12, 30, 56, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            12,
+            30,
+            56,
+            tzinfo=timezone.utc,
         )
         LinkEventFactory(
             content_object=self.url,
-            timestamp=yesterday_late_datetime, username=self.user
+            timestamp=yesterday_late_datetime,
+            username=self.user,
         )
 
         # That should be picked up by the command and add the new count
@@ -295,9 +391,15 @@ class UserAggregateCommandTest(TestCase):
         other_url_pattern.collections.add(other_collection)
         other_url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         LinkEventFactory(content_object=other_url_pattern)
 
@@ -329,9 +431,15 @@ class UserAggregateCommandTest(TestCase):
         url_pattern.collections.add(new_collection)
         url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         self.assertEqual(
             UserAggregate.objects.filter(collection=new_collection).count(), 0
@@ -343,7 +451,10 @@ class UserAggregateCommandTest(TestCase):
             UserAggregate.objects.filter(collection=new_collection).count(), 2
         )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
@@ -466,11 +577,19 @@ class PageProjectAggregateCommandTest(TestCase):
         # Add a LinkEvent from yesterday, a PageProjectAggregate with this date does not
         # exist yet
         yesterday_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 9, 18, 47, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            9,
+            18,
+            47,
+            tzinfo=timezone.utc,
         )
         LinkEventFactory(
             content_object=self.url,
-            timestamp=yesterday_datetime, domain="en.wiki.org", page_title="Page1",
+            timestamp=yesterday_datetime,
+            domain="en.wiki.org",
+            page_title="Page1",
         )
 
         call_command("fill_pageproject_aggregates")
@@ -489,11 +608,19 @@ class PageProjectAggregateCommandTest(TestCase):
         # The eventstream container crashed and a LinkEvent was not added to
         # yesterday's aggregate
         yesterday_late_datetime = datetime(
-            yesterday.year, yesterday.month, yesterday.day, 12, 30, 56, tzinfo=timezone.utc
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            12,
+            30,
+            56,
+            tzinfo=timezone.utc,
         )
         LinkEventFactory(
             content_object=self.url,
-            timestamp=yesterday_late_datetime, domain="en.wiki.org", page_title="Page1",
+            timestamp=yesterday_late_datetime,
+            domain="en.wiki.org",
+            page_title="Page1",
         )
 
         # That should be picked up by the command and add the new count
@@ -514,22 +641,24 @@ class PageProjectAggregateCommandTest(TestCase):
     def test_pageproject_aggregate_with_argument(self):
         # Create a new collection and some LinkEvents associated with it
         new_collection = CollectionFactory(name="Monsters Inc")
-        url_pattern = URLPatternFactory(
-            url="www.duckduckgo.com"
-        )
+        url_pattern = URLPatternFactory(url="www.duckduckgo.com")
         url_pattern.collections.add(new_collection)
         url_pattern.save()
         # Creating a collection and LinkEvent that won't be run in the command
         other_collection = CollectionFactory(name="Unused")
-        other_url_pattern = URLPatternFactory(
-            url="www.notusingthis.com"
-        )
+        other_url_pattern = URLPatternFactory(url="www.notusingthis.com")
         other_url_pattern.collections.add(other_collection)
         other_url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         LinkEventFactory(content_object=other_url_pattern)
 
@@ -561,9 +690,15 @@ class PageProjectAggregateCommandTest(TestCase):
         url_pattern.collections.add(new_collection)
         url_pattern.save()
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 1, 1, 15, 30, 35, tzinfo=timezone.utc),
+        )
 
-        LinkEventFactory(content_object=url_pattern, timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            content_object=url_pattern,
+            timestamp=datetime(2020, 4, 23, 8, 50, 13, tzinfo=timezone.utc),
+        )
 
         self.assertEqual(
             PageProjectAggregate.objects.filter(collection=new_collection).count(), 0
@@ -575,7 +710,9 @@ class PageProjectAggregateCommandTest(TestCase):
             PageProjectAggregate.objects.filter(collection=new_collection).count(), 2
         )
 
-        LinkEventFactory(timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc))
+        LinkEventFactory(
+            timestamp=datetime(2020, 4, 25, 8, 50, 13, tzinfo=timezone.utc)
+        )
 
         # Delete the organisation
         Organisation.objects.filter(pk=new_organisation.pk).delete()
@@ -583,3 +720,427 @@ class PageProjectAggregateCommandTest(TestCase):
         with self.assertRaises(CommandError):
             # No collection was returned
             call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
+
+
+class MonthlyLinkAggregateCommandTest(TestCase):
+    def setUp(self):
+        self.organisation = OrganisationFactory(name="ACME Org")
+        self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
+
+        # 10 entries for Jan 2024 (first 10 days)
+        self.expected_total_added = 0
+        self.expected_total_removed = 0
+        for day in range(1, 11):
+            self.expected_total_added += day
+            self.expected_total_removed += day - 1
+            LinkAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+
+    def test_aggregate_monthly_data(self):
+        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 0)
+
+        call_command("fill_monthly_link_aggregates")
+
+        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
+
+        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+
+    def test_no_aggregation_when_no_new_data(self):
+        call_command("fill_monthly_link_aggregates")
+
+        # Running it again should NOT create duplicate entries
+        call_command("fill_monthly_link_aggregates")
+        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
+
+    def test_no_aggregation_when_month_already_run(self):
+        """
+        If the monthly aggregation was already executed, it should be ignored.
+        """
+
+        call_command("fill_monthly_link_aggregates")
+
+        # Add 5 more days to the same month (already aggregated)
+        for day in range(15, 20):
+            LinkAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_link_aggregates")
+
+        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
+        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+        self.assertEqual(
+            LinkAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
+        )
+
+    def test_aggregate_next_month(self):
+        call_command("fill_monthly_link_aggregates")
+
+        # Simulate next month by adding 5 more days to the next month
+        next_total_added = 0
+        next_total_removed = 0
+        for day in range(15, 20):
+            next_total_added += day
+            next_total_removed += day - 1
+            LinkAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_link_aggregates")
+
+        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
+        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=2, day=0)
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
+        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(LinkAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        other_collection = CollectionFactory(
+            name="Other Collection", organisation=self.organisation
+        )
+        for day in range(1, 6):
+            LinkAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=other_collection,
+                total_links_added=day * 2,
+                total_links_removed=day * 2 - 1,
+            )
+
+        call_command("fill_monthly_link_aggregates", collections=[other_collection.pk])
+
+        self.assertEqual(
+            LinkAggregate.objects.filter(day=0, collection=other_collection).count(), 1
+        )
+        self.assertEqual(
+            LinkAggregate.objects.filter(day=0, collection=self.collection).count(), 0
+        )
+
+
+class MonthlyUserAggregateCommandTest(TestCase):
+    def setUp(self):
+        self.organisation = OrganisationFactory(name="ACME Org")
+        self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
+        self.user = UserFactory(username="juannieve")
+
+        # 10 entries for Jan 2024 (first 10 days)
+        self.expected_total_added = 0
+        self.expected_total_removed = 0
+        for day in range(1, 11):
+            self.expected_total_added += day
+            self.expected_total_removed += day - 1
+            UserAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+
+        # 10 more entries for Jan 2024 with a different user
+        self.user2 = UserFactory(username="jonsnow")
+        for day in range(1, 11):
+            UserAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user2,
+                total_links_added=day + 1,
+                total_links_removed=day + 2,
+            )
+
+    def test_aggregate_monthly_data(self):
+        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 0)
+
+        call_command("fill_monthly_user_aggregates")
+
+        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+
+        monthly_aggregate = UserAggregate.objects.get(
+            year=2024, month=1, day=0, username=self.user
+        )
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+
+    def test_no_aggregation_when_no_new_data(self):
+        call_command("fill_monthly_user_aggregates")
+
+        # Running it again should NOT create duplicate entries
+        call_command("fill_monthly_user_aggregates")
+        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+
+    def test_no_aggregation_when_month_already_run(self):
+        """
+        If the monthly aggregation was already executed, it should be ignored.
+        """
+
+        call_command("fill_monthly_user_aggregates")
+
+        # Add 5 more days to the same month (already aggregated)
+        for day in range(15, 20):
+            UserAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_user_aggregates")
+
+        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+        monthly_aggregate = UserAggregate.objects.get(
+            year=2024, month=1, day=0, username=self.user
+        )
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+        self.assertEqual(
+            UserAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
+        )
+
+    def test_aggregate_next_month(self):
+        call_command("fill_monthly_user_aggregates")
+
+        # Simulate next month by adding 5 more days to the next month
+        next_total_added = 0
+        next_total_removed = 0
+        for day in range(15, 20):
+            next_total_added += day
+            next_total_removed += day - 1
+            UserAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_user_aggregates")
+
+        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 3)
+        monthly_aggregate = UserAggregate.objects.get(
+            year=2024, month=2, day=0, username=self.user
+        )
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
+        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(UserAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        other_collection = CollectionFactory(
+            name="Other Collection", organisation=self.organisation
+        )
+        for day in range(1, 6):
+            UserAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=other_collection,
+                username=self.user,
+                total_links_added=day * 2,
+                total_links_removed=day * 2 - 1,
+            )
+
+        call_command("fill_monthly_user_aggregates", collections=[other_collection.pk])
+
+        self.assertEqual(
+            UserAggregate.objects.filter(day=0, collection=other_collection).count(), 1
+        )
+        self.assertEqual(
+            UserAggregate.objects.filter(day=0, collection=self.collection).count(), 0
+        )
+
+
+class MonthlyPageProjectAggregateCommandTest(TestCase):
+    def setUp(self):
+        self.organisation = OrganisationFactory(name="ACME Org")
+        self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
+        self.project_name = "en.wiki.org"
+        self.page_name = "Page1"
+
+        # 10 entries for Jan 2024 (first 10 days)
+        self.expected_total_added = 0
+        self.expected_total_removed = 0
+        for day in range(1, 11):
+            self.expected_total_added += day
+            self.expected_total_removed += day - 1
+            PageProjectAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+
+        # 10 more entries for Jan 2024 with a different user
+        self.project_name2 = "es.wiki.org"
+        self.page_name2 = "Page1-es"
+        for day in range(1, 11):
+            PageProjectAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name2,
+                page_name=self.page_name2,
+                total_links_added=day + 1,
+                total_links_removed=day + 2,
+            )
+
+    def test_aggregate_monthly_data(self):
+        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 0)
+
+        call_command("fill_monthly_pageproject_aggregates")
+
+        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+
+        monthly_aggregate = PageProjectAggregate.objects.get(
+            year=2024,
+            month=1,
+            day=0,
+            project_name=self.project_name,
+            page_name=self.page_name,
+        )
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+
+    def test_no_aggregation_when_no_new_data(self):
+        call_command("fill_monthly_pageproject_aggregates")
+
+        # Running it again should NOT create duplicate entries
+        call_command("fill_monthly_pageproject_aggregates")
+        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+
+    def test_no_aggregation_when_month_already_run(self):
+        """
+        If the monthly aggregation was already executed, it should be ignored.
+        """
+
+        call_command("fill_monthly_pageproject_aggregates")
+
+        # Add 5 more days to the same month (already aggregated)
+        for day in range(15, 20):
+            PageProjectAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_pageproject_aggregates")
+
+        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+        monthly_aggregate = PageProjectAggregate.objects.get(
+            year=2024,
+            month=1,
+            day=0,
+            project_name=self.project_name,
+            page_name=self.page_name,
+        )
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(
+            monthly_aggregate.total_links_removed, self.expected_total_removed
+        )
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(year=2024, month=1)
+            .exclude(day=0)
+            .count(),
+            5,
+        )
+
+    def test_aggregate_next_month(self):
+        call_command("fill_monthly_pageproject_aggregates")
+
+        # Simulate next month by adding 5 more days to the next month
+        next_total_added = 0
+        next_total_removed = 0
+        for day in range(15, 20):
+            next_total_added += day
+            next_total_removed += day - 1
+            PageProjectAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
+        call_command("fill_monthly_pageproject_aggregates")
+
+        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 3)
+        monthly_aggregate = PageProjectAggregate.objects.get(
+            year=2024,
+            month=2,
+            day=0,
+            project_name=self.project_name,
+            page_name=self.page_name,
+        )
+        # Should still be the same
+        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
+        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(PageProjectAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        other_collection = CollectionFactory(
+            name="Other Collection", organisation=self.organisation
+        )
+        for day in range(1, 6):
+            PageProjectAggregateFactory(
+                full_date=date(2024, 1, day),
+                organisation=self.organisation,
+                collection=other_collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                total_links_added=day * 2,
+                total_links_removed=day * 2 - 1,
+            )
+
+        call_command(
+            "fill_monthly_pageproject_aggregates", collections=[other_collection.pk]
+        )
+
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(
+                day=0, collection=other_collection
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            PageProjectAggregate.objects.filter(
+                day=0, collection=self.collection
+            ).count(),
+            0,
+        )
