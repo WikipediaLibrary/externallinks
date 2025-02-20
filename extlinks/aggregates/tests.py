@@ -749,9 +749,9 @@ class MonthlyLinkAggregateCommandTest(TestCase):
         self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
 
         monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
 
     def test_no_aggregation_when_no_new_data(self):
@@ -782,9 +782,9 @@ class MonthlyLinkAggregateCommandTest(TestCase):
         self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
         monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
         self.assertEqual(
             LinkAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
@@ -811,8 +811,8 @@ class MonthlyLinkAggregateCommandTest(TestCase):
         self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
         monthly_aggregate = LinkAggregate.objects.get(year=2024, month=2, day=0)
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
-        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
         self.assertEqual(LinkAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
@@ -881,9 +881,9 @@ class MonthlyUserAggregateCommandTest(TestCase):
         monthly_aggregate = UserAggregate.objects.get(
             year=2024, month=1, day=0, username=self.user
         )
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
 
     def test_no_aggregation_when_no_new_data(self):
@@ -917,9 +917,9 @@ class MonthlyUserAggregateCommandTest(TestCase):
             year=2024, month=1, day=0, username=self.user
         )
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
         self.assertEqual(
             UserAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
@@ -949,8 +949,8 @@ class MonthlyUserAggregateCommandTest(TestCase):
             year=2024, month=2, day=0, username=self.user
         )
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
-        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
         self.assertEqual(UserAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
@@ -1028,9 +1028,9 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             project_name=self.project_name,
             page_name=self.page_name,
         )
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
 
     def test_no_aggregation_when_no_new_data(self):
@@ -1069,9 +1069,9 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             page_name=self.page_name,
         )
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, self.expected_total_added)
+        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
         self.assertEqual(
-            monthly_aggregate.total_links_removed, self.expected_total_removed
+            self.expected_total_removed, monthly_aggregate.total_links_removed
         )
         self.assertEqual(
             PageProjectAggregate.objects.filter(year=2024, month=1)
@@ -1109,8 +1109,8 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             page_name=self.page_name,
         )
         # Should still be the same
-        self.assertEqual(monthly_aggregate.total_links_added, next_total_added)
-        self.assertEqual(monthly_aggregate.total_links_removed, next_total_removed)
+        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
         self.assertEqual(PageProjectAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
