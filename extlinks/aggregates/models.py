@@ -105,6 +105,9 @@ class PageProjectAggregate(models.Model):
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
+            models.Index(
+                fields=["full_date", "collection_id", "project_name", "page_name"]
+            ),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
