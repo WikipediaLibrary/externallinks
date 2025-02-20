@@ -2,12 +2,11 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Max, Q
 
 from ...models import UserAggregate
-from extlinks.organisations.models import Collection
 
 logger = logging.getLogger("django")
 
