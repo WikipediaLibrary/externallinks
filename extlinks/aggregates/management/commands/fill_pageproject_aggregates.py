@@ -10,7 +10,9 @@ from django.db.models.fields import DateField
 from ...models import PageProjectAggregate
 from extlinks.links.models import LinkEvent
 from extlinks.organisations.models import Collection
+
 logger = logging.getLogger("django")
+
 
 class Command(BaseCommand):
     help = "Adds aggregated data into the PageProjectAggregate table"
@@ -158,6 +160,9 @@ class Command(BaseCommand):
         None
         """
         for link_event in link_events:
+            # Use a slice (LIMIT 1) with .all() instead of .first() to prevent
+            # Django from adding an 'ORDER BY id ASC' clause that can
+            # potentially slow down this query for some collections.
             existing_link_aggregate = PageProjectAggregate.objects.filter(
                 organisation=collection.organisation,
                 collection=collection,
@@ -165,7 +170,11 @@ class Command(BaseCommand):
                 project_name=link_event["domain"],
                 full_date=link_event["timestamp_date"],
                 on_user_list=link_event["on_user_list"],
-            ).first()
+            )[:1].all()
+
+            existing_link_aggregate = (
+                existing_link_aggregate[0] if len(existing_link_aggregate) > 0 else None
+            )
             if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
@@ -195,5 +204,7 @@ class Command(BaseCommand):
                         on_user_list=link_event["on_user_list"],
                     )
                     if not created:
-                        logger.error("Aggregate already exists, skipping" + aggregate)
+                        logger.error(
+                            "Aggregate already exists, skipping" + str(aggregate)
+                        )
                         continue
