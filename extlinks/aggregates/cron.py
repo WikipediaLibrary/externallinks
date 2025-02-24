@@ -29,7 +29,7 @@ class MonthlyLinkAggregatesCron(CronJobBase):
     # Will run monthly on the 3rd day at 01:00 UTC
     schedule = Schedule(
         run_at_times=["01:00"],
-        run_on_days=[3], # Running on the 3rd to ensure last month is finished
+        run_on_days=[10],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_link_aggregates_cron"
@@ -63,7 +63,7 @@ class MonthlyUserAggregatesCron(CronJobBase):
     # Will run monthly on the 3rd day at 01:05 UTC
     schedule = Schedule(
         run_at_times=["01:05"],
-        run_on_days=[3],
+        run_on_days=[10],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_user_aggregates_cron"
@@ -97,7 +97,7 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
     # Will run monthly on the 3rd day at 01:45 UTC
     schedule = Schedule(
         run_at_times=["01:45"],
-        run_on_days=[3],
+        run_on_days=[10],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_pageproject_aggregates_cron"

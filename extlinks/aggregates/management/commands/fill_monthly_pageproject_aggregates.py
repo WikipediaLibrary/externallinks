@@ -10,6 +10,7 @@ from ...models import PageProjectAggregate
 
 logger = logging.getLogger("django")
 
+
 class Command(BaseCommand):
     help = "Adds monthly aggregated data into the PageProjectAggregate table"
 
@@ -39,15 +40,17 @@ class Command(BaseCommand):
                     )
                     & start_date_filter
                 )
-                daily_aggregation = (
-                    PageProjectAggregate.objects.filter(filter_query).exclude(day=0).first()
+                daily_aggregation_exists = (
+                    PageProjectAggregate.objects.filter(filter_query)
+                    .exclude(day=0)
+                    .exists()
                 )
-                if daily_aggregation is None:
+                if daily_aggregation_exists:
+                    self._process_aggregation(col_id, start_date_filter)
+                else:
                     logger.info(
                         f"Collection '{col_id}' has no need to aggregate monthly data"
                     )
-                else:
-                    self._process_aggregation(col_id, start_date_filter)
         else:
             start_date_filter = self._get_start_date_filter()
             self._process_aggregation(start_date_filter=start_date_filter)
@@ -61,9 +64,9 @@ class Command(BaseCommand):
         if collection_id is not None:
             base_query &= Q(collection_id=collection_id)
 
-        latest_date_aggregation = PageProjectAggregate.objects.filter(base_query).aggregate(
-            Max("full_date")
-        )["full_date__max"]
+        latest_date_aggregation = PageProjectAggregate.objects.filter(
+            base_query
+        ).aggregate(Max("full_date"))["full_date__max"]
         if latest_date_aggregation is not None:
             first_day_of_next_month = latest_date_aggregation.replace(
                 day=1
@@ -135,7 +138,7 @@ class Command(BaseCommand):
                     prev_item.organisation_id != aggregation.organisation_id
                     or prev_item.collection_id != aggregation.collection_id
                 ):
-                    logger.info (
+                    logger.info(
                         f"Monthly PageProjectAggregate for organisation {prev_item.organisation_id} "
                         f"collection {prev_item.collection_id} processed successfully"
                     )
@@ -150,7 +153,7 @@ class Command(BaseCommand):
             self._save_aggregation(
                 aggregated_items, total_links_added, total_links_removed
             )
-            logger.info (
+            logger.info(
                 f"Monthly PageProjectAggregate for organisation {prev_item.organisation_id} "
                 f"collection {prev_item.collection_id} processed successfully"
             )
@@ -173,6 +176,9 @@ class Command(BaseCommand):
         aggregation_last_day.total_links_added = total_links_added
         aggregation_last_day.total_links_removed = total_links_removed
 
+        # Use a slice (LIMIT 1) instead of .first() to prevent
+        # Django from adding an 'ORDER BY id ASC' clause that can
+        # potentially slow down this query for some collections.
         existing_monthly_aggregate = PageProjectAggregate.objects.filter(
             collection_id=aggregation_last_day.collection_id,
             organisation_id=aggregation_last_day.organisation_id,
@@ -182,7 +188,12 @@ class Command(BaseCommand):
             year=aggregation_last_day.year,
             month=aggregation_last_day.month,
             day=0,
-        ).first()
+        )[:1]
+        existing_monthly_aggregate = (
+            existing_monthly_aggregate[0]
+            if len(existing_monthly_aggregate) > 0
+            else None
+        )
 
         with transaction.atomic():
             if existing_monthly_aggregate is not None:
