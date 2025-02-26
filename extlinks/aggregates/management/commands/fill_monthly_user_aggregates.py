@@ -56,6 +56,21 @@ class Command(BaseCommand):
         logger.info("Monthly UserAggregate job ended")
 
     def _get_start_date_filter(self, collection_id=None):
+        """
+        This function gets the latest full_date reported in the monthly
+        aggregation. It is used to filter UserAggregate later in the main
+        process so we don't go through all dates every time.
+
+        Parameters
+        ----------
+        collection_id : int|None
+            The collection ID for getting the max full_date of the
+            monthly aggregation
+
+        Returns
+        -------
+        Q object
+        """
         result = Q()
 
         base_query = Q(day=0)
@@ -82,6 +97,20 @@ class Command(BaseCommand):
         for the entire month for each group of collection_id,
         organisation_id, username, and on_user_list, which is the same
         granularity in the daily aggregation (fill_user_aggregates.py).
+
+        Parameters
+        ---------
+        collection_id : int|None
+            The collection ID this process is focused on, or None if it
+            should run for all collections
+
+        start_date_filter : Q|None
+            The starting full_date in which this process should start
+            scanning, or None for a full scan
+
+        Returns
+        -------
+        None
         """
         today = date.today()
         first_day_of_month = today.replace(day=1)
@@ -162,6 +191,22 @@ class Command(BaseCommand):
         - If a monthly aggregation already exists, it will be deleted
         - The last day of the group will be used to store the monthly
         aggregation, with the day set to 0
+
+        Parameters
+        ----------
+        aggregated_items: List[UserAggregate]
+            The list of daily UserAggregate objects to be deleted in
+            favor of the monthly aggregation
+
+        total_links_added: int
+            The summed total of links added from the daily aggregation
+
+        total_links_removed: int
+            The summed total of links removed from the daily aggregation
+
+        Returns
+        -------
+        None
         """
         if not aggregated_items:
             return
