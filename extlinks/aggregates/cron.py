@@ -60,9 +60,9 @@ class MonthlyUserAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:05 UTC
+    # Will run monthly on the 3rd day at 01:30 UTC
     schedule = Schedule(
-        run_at_times=["01:05"],
+        run_at_times=["01:30"],
         run_on_days=[10],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
@@ -94,9 +94,9 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:45 UTC
+    # Will run monthly on the 3rd day at 03:30 UTC
     schedule = Schedule(
-        run_at_times=["01:45"],
+        run_at_times=["03:30"],
         run_on_days=[10],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )

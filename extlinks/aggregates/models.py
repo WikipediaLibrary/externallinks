@@ -11,7 +11,15 @@ class LinkAggregate(models.Model):
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
-            models.Index(fields=["organisation_id", "collection_id", "on_user_list"]),
+            models.Index(
+                fields=[
+                    "organisation_id",
+                    "collection_id",
+                    "on_user_list",
+                    "year",
+                    "month",
+                ]
+            ),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -61,7 +69,14 @@ class UserAggregate(models.Model):
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
             models.Index(
-                fields=["organisation_id", "collection_id", "username", "on_user_list"]
+                fields=[
+                    "organisation_id",
+                    "collection_id",
+                    "username",
+                    "on_user_list",
+                    "year",
+                    "month",
+                ]
             ),
         ]
 
@@ -123,6 +138,8 @@ class PageProjectAggregate(models.Model):
                     "project_name",
                     "page_name",
                     "on_user_list",
+                    "year",
+                    "month",
                 ]
             ),
         ]

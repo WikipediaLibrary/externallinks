@@ -1,12 +1,13 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 import logging
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Count, Q, Sum
 
 from ...models import PageProjectAggregate
+from extlinks.common.helpers import batch_iterator
 
 logger = logging.getLogger("django")
 
@@ -15,7 +16,7 @@ class Command(BaseCommand):
     help = "Adds monthly aggregated data into the PageProjectAggregate table"
 
     def add_arguments(self, parser):
-        # Named (optional) arguments
+        # Option to filter by specific collection(s)
         parser.add_argument(
             "--collections",
             nargs="+",
@@ -23,77 +24,75 @@ class Command(BaseCommand):
             help="A list of collection IDs that will be processed instead of every collection",
         )
 
+        # Option to filter by specific YYYY-MM
+        parser.add_argument(
+            "--year-month",
+            type=str,
+            help="A specific year-month (YYYY-MM) to aggregate data for. Example: '2024-01'",
+        )
+
+        # Option to process **all** past months from the earliest available date
+        parser.add_argument(
+            "--full-scan",
+            action="store_true",
+            help="Reprocess all available past data, from the earliest date up to last month.",
+        )
+
     def handle(self, *args, **options):
+        """
+        Default execution of this job is to process all collections for
+        the past month.
+
+        Additional options are specified in `add_arguments` so you can
+        run by specific collection, year/month, or a full scan of the
+        historic data.
+        """
         logger.info("Monthly PageProjectAggregate job started")
 
-        if options["collections"]:
-            today = date.today()
-            first_day_of_month = today.replace(day=1)
-            last_day_of_last_month = first_day_of_month - timedelta(days=1)
-            for col_id in options["collections"]:
-                # Let's just ensure this collection is eligible for aggregation
-                start_date_filter = self._get_start_date_filter(col_id)
-                filter_query = (
-                    Q(
-                        collection_id=col_id,
-                        full_date__lte=last_day_of_last_month,
-                    )
-                    & start_date_filter
+        if options["full_scan"] and options["year_month"]:
+            raise CommandError("Cannot specify year-month and full-scan together.")
+
+        if options["year_month"]:
+            try:
+                selected_year, selected_month = map(
+                    int, options["year_month"].split("-")
                 )
-                daily_aggregation_exists = (
-                    PageProjectAggregate.objects.filter(filter_query)
-                    .exclude(day=0)
-                    .exists()
+                first_day_of_month = date(selected_year, selected_month, 1)
+                last_day_of_month = (
+                    first_day_of_month + relativedelta(months=1) - timedelta(days=1)
                 )
-                if daily_aggregation_exists:
-                    self._process_aggregation(col_id, start_date_filter)
-                else:
-                    logger.info(
-                        f"Collection '{col_id}' has no need to aggregate monthly data"
-                    )
+            except ValueError:
+                raise CommandError(
+                    "Invalid format for --year-month. Use YYYY-MM (e.g., 2024-01)."
+                )
         else:
-            start_date_filter = self._get_start_date_filter()
-            self._process_aggregation(start_date_filter=start_date_filter)
+            today = date.today()
+            last_day_of_month = today.replace(day=1) - timedelta(days=1)
+            first_day_of_month = last_day_of_month.replace(day=1)
+
+        if options["full_scan"]:
+            logger.info(f"Processing data from {last_day_of_month} and backwards")
+            month_filter = Q(full_date__lte=last_day_of_month)
+        else:
+            logger.info(
+                f"Processing data from {first_day_of_month} to {last_day_of_month}"
+            )
+            month_filter = Q(
+                full_date__gte=first_day_of_month, full_date__lte=last_day_of_month
+            )
+
+        if options["collections"]:
+            filter_query = Q(collection_id__in=options["collections"]) & month_filter
+            self._process_aggregation(filter_query)
+        else:
+            self._process_aggregation(month_filter)
 
         logger.info("Monthly PageProjectAggregate job ended")
 
-    def _get_start_date_filter(self, collection_id=None):
+    def _process_aggregation(self, main_filter_query):
         """
-        This function gets the latest full_date reported in the monthly
-        aggregation. It is used to filter PageProjectAggregate later in
-        the main process so we don't go through all dates every time.
-
-        Parameters
-        ----------
-        collection_id : int|None
-            The collection ID for getting the max full_date of the
-            monthly aggregation
-
-        Returns
-        -------
-        Q object
-        """
-        result = Q()
-
-        base_query = Q(day=0)
-        if collection_id is not None:
-            base_query &= Q(collection_id=collection_id)
-
-        latest_date_aggregation = PageProjectAggregate.objects.filter(
-            base_query
-        ).aggregate(Max("full_date"))["full_date__max"]
-        if latest_date_aggregation is not None:
-            first_day_of_next_month = latest_date_aggregation.replace(
-                day=1
-            ) + relativedelta(months=1)
-            result &= Q(full_date__gte=first_day_of_next_month)
-
-        return result
-
-    def _process_aggregation(self, collection_id=None, start_date_filter=Q()):
-        """
-        Process all daily aggregations from last month (including) and
-        backwards.
+        Process all daily aggregations in PageProjectAggregate into
+        monthly aggregations.
 
         Monthly aggregation sums total_links_added and total_links_removed
         for the entire month for each group of organisation_id,
@@ -103,135 +102,92 @@ class Command(BaseCommand):
 
         Parameters
         ---------
-        collection_id : int|None
-            The collection ID this process is focused on, or None if it
-            should run for all collections
-
-        start_date_filter : Q|None
-            The starting full_date in which this process should start
-            scanning, or None for a full scan
+        main_filter_query : Q
+            The main filter in which this process should start scanning.
 
         Returns
         -------
         None
         """
-        today = date.today()
-        first_day_of_month = today.replace(day=1)
-        last_day_of_last_month = first_day_of_month - timedelta(days=1)
+        logger.info("Fetching the main query")
 
-        daily_aggregations_query = Q(full_date__lte=last_day_of_last_month)
-        daily_aggregations_query &= start_date_filter
-        if collection_id is not None:
-            daily_aggregations_query &= Q(collection_id=collection_id)
-
-        daily_aggregations = (
-            PageProjectAggregate.objects.filter(daily_aggregations_query)
+        aggregated_data = (
+            PageProjectAggregate.objects.filter(main_filter_query)
             .exclude(day=0)
-            .order_by(
+            .values(
                 "organisation_id",
                 "collection_id",
                 "project_name",
                 "page_name",
                 "on_user_list",
-                "full_date",
+                "year",
+                "month",
+            )
+            .annotate(
+                monthly_total_links_added=Sum("total_links_added"),
+                monthly_total_links_removed=Sum("total_links_removed"),
+                count=Count("id"),  # For logging and double-checking
             )
             .iterator()  # This may be a big dataset - let's prevent caching
         )
 
-        total_links_added = 0
-        total_links_removed = 0
-        aggregated_items = []  # For storing the items to be deleted
-        prev_item = None
+        total_aggregations = 0
+        # Batch transactions for memory efficiency
+        for batch_index, batch in enumerate(batch_iterator(aggregated_data), start=1):
+            with transaction.atomic():
+                total_aggregations += len(batch)
+                logger.info(f"Processing batch {batch_index} (size: {len(batch)})")
+                for monthly_aggregation in batch:
+                    self._verify_and_save_aggregation(monthly_aggregation)
 
-        for aggregation in daily_aggregations:
-            # Similar granulation to the daily process, except this is
-            # considering the whole month
-            # Changing this should also impact the daily aggregation
-            if prev_item is not None and (
-                prev_item.organisation_id != aggregation.organisation_id
-                or prev_item.collection_id != aggregation.collection_id
-                or prev_item.project_name != aggregation.project_name
-                or prev_item.page_name != aggregation.page_name
-                or prev_item.on_user_list != aggregation.on_user_list
-                or prev_item.year != aggregation.year
-                or prev_item.month != aggregation.month
-            ):
-                self._save_aggregation(
-                    aggregated_items, total_links_added, total_links_removed
-                )
-                aggregated_items = []
-                total_links_added = 0
-                total_links_removed = 0
+        logger.info(f"Processed a total of {total_aggregations} monthly aggregations")
 
-                if (
-                    prev_item.organisation_id != aggregation.organisation_id
-                    or prev_item.collection_id != aggregation.collection_id
-                ):
-                    logger.info(
-                        f"Monthly PageProjectAggregate for organisation {prev_item.organisation_id} "
-                        f"collection {prev_item.collection_id} processed successfully"
-                    )
-
-            total_links_added += aggregation.total_links_added
-            total_links_removed += aggregation.total_links_removed
-
-            aggregated_items.append(aggregation)
-            prev_item = aggregation
-
-        if prev_item is not None and aggregated_items:
-            self._save_aggregation(
-                aggregated_items, total_links_added, total_links_removed
-            )
-            logger.info(
-                f"Monthly PageProjectAggregate for organisation {prev_item.organisation_id} "
-                f"collection {prev_item.collection_id} processed successfully"
-            )
-
-    def _save_aggregation(
-        self, aggregated_items, total_links_added, total_links_removed
-    ):
+    def _verify_and_save_aggregation(self, monthly_aggregation):
         """
         Saves the monthly aggregation and delete the daily ones.
-
-        - If a monthly aggregation already exists, it will be deleted
-        - The last day of the group will be used to store the monthly
-        aggregation, with the day set to 0
+        It also verifies if expected deletion count and actual deleted
+        daily aggregations count match.
 
         Parameters
         ----------
-        aggregated_items: List[PageProjectAggregate]
-            The list of daily PageProjectAggregate objects to be deleted
-            in favor of the monthly aggregation
-
-        total_links_added: int
-            The summed total of links added from the daily aggregation
-
-        total_links_removed: int
-            The summed total of links removed from the daily aggregation
+        monthly_aggregation : PageProjectAggregate
+            The calculated monthly aggregation
 
         Returns
         -------
         None
         """
-        if not aggregated_items:
-            return
+        expected_delete_count = monthly_aggregation["count"]
+        deleted_count, _ = (
+            PageProjectAggregate.objects.filter(
+                organisation_id=monthly_aggregation["organisation_id"],
+                collection_id=monthly_aggregation["collection_id"],
+                project_name=monthly_aggregation["project_name"],
+                page_name=monthly_aggregation["page_name"],
+                on_user_list=monthly_aggregation["on_user_list"],
+                year=monthly_aggregation["year"],
+                month=monthly_aggregation["month"],
+            )
+            .exclude(day=0)
+            .delete()
+        )
 
-        aggregation_last_day = aggregated_items.pop()
-        aggregation_last_day.day = 0
-        aggregation_last_day.total_links_added = total_links_added
-        aggregation_last_day.total_links_removed = total_links_removed
+        if deleted_count != expected_delete_count:
+            raise CommandError(
+                f"Delete count mismatch: Expected to delete {expected_delete_count} records, "
+                f"but actually deleted {deleted_count} - organisation_id={monthly_aggregation['organisation_id']}, "
+                f"collection_id={monthly_aggregation['collection_id']}, project_name={monthly_aggregation['project_name']}",
+                f"page_name={monthly_aggregation['page_name']}, year={monthly_aggregation['year']}, month={monthly_aggregation['month']}",
+            )
 
-        # Use a slice (LIMIT 1) instead of .first() to prevent
-        # Django from adding an 'ORDER BY id ASC' clause that can
-        # potentially slow down this query for some collections.
         existing_monthly_aggregate = PageProjectAggregate.objects.filter(
-            collection_id=aggregation_last_day.collection_id,
-            organisation_id=aggregation_last_day.organisation_id,
-            project_name=aggregation_last_day.project_name,
-            page_name=aggregation_last_day.page_name,
-            on_user_list=aggregation_last_day.on_user_list,
-            year=aggregation_last_day.year,
-            month=aggregation_last_day.month,
+            organisation_id=monthly_aggregation["organisation_id"],
+            collection_id=monthly_aggregation["collection_id"],
+            project_name=monthly_aggregation["project_name"],
+            page_name=monthly_aggregation["page_name"],
+            on_user_list=monthly_aggregation["on_user_list"],
+            year=monthly_aggregation["year"],
+            month=monthly_aggregation["month"],
             day=0,
         )[:1]
         existing_monthly_aggregate = (
@@ -240,12 +196,28 @@ class Command(BaseCommand):
             else None
         )
 
-        with transaction.atomic():
-            if existing_monthly_aggregate is not None:
-                existing_monthly_aggregate.delete()
-
-            # New monthly aggregation
-            aggregation_last_day.save()
-
-            for delete_item in aggregated_items:
-                delete_item.delete()
+        if existing_monthly_aggregate:
+            existing_monthly_aggregate.total_links_added += monthly_aggregation[
+                "monthly_total_links_added"
+            ]
+            existing_monthly_aggregate.total_links_removed += monthly_aggregation[
+                "monthly_total_links_removed"
+            ]
+            existing_monthly_aggregate.save()
+        else:
+            last_day_of_month = (
+                date(monthly_aggregation["year"], monthly_aggregation["month"], 1)
+                + relativedelta(months=1)
+                - timedelta(days=1)
+            )
+            PageProjectAggregate.objects.create(
+                organisation_id=monthly_aggregation["organisation_id"],
+                collection_id=monthly_aggregation["collection_id"],
+                project_name=monthly_aggregation["project_name"],
+                page_name=monthly_aggregation["page_name"],
+                on_user_list=monthly_aggregation["on_user_list"],
+                full_date=last_day_of_month,
+                day=0,
+                total_links_added=monthly_aggregation["monthly_total_links_added"],
+                total_links_removed=monthly_aggregation["monthly_total_links_removed"],
+            )

@@ -1,4 +1,5 @@
 from datetime import datetime, date, timedelta, timezone
+import time_machine
 
 from django.core.management import call_command, CommandError
 from django.test import TestCase
@@ -742,63 +743,88 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 0)
+        with time_machine.travel(date(2024, 2, 1)):
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 0)
 
-        call_command("fill_monthly_link_aggregates")
+            call_command("fill_monthly_link_aggregates")
 
-        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
 
-        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
+            monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
     def test_no_aggregation_when_no_new_data(self):
-        call_command("fill_monthly_link_aggregates")
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_link_aggregates")
 
-        # Running it again should NOT create duplicate entries
-        call_command("fill_monthly_link_aggregates")
-        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
-
-    def test_no_aggregation_when_month_already_run(self):
-        """
-        If the monthly aggregation was already executed, it should be ignored.
-        """
-
-        call_command("fill_monthly_link_aggregates")
-
-        # Add 5 more days to the same month (already aggregated)
-        for day in range(15, 20):
-            LinkAggregateFactory(
-                full_date=date(2024, 1, day),
-                organisation=self.organisation,
-                collection=self.collection,
-                total_links_added=day,
-                total_links_removed=day - 1,
-            )
-        call_command("fill_monthly_link_aggregates")
-
-        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
-        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
-        # Should still be the same
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
-        self.assertEqual(
-            LinkAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
-        )
+            # Running it again should NOT create duplicate entries
+            call_command("fill_monthly_link_aggregates")
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
 
     def test_aggregate_next_month(self):
-        call_command("fill_monthly_link_aggregates")
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_link_aggregates")
 
-        # Simulate next month by adding 5 more days to the next month
-        next_total_added = 0
-        next_total_removed = 0
-        for day in range(15, 20):
-            next_total_added += day
-            next_total_removed += day - 1
+        with time_machine.travel(date(2024, 3, 1)):
+            # Simulate next month by adding 5 more days to the next month
+            next_total_added = 0
+            next_total_removed = 0
+            for day in range(15, 20):
+                next_total_added += day
+                next_total_removed += day - 1
+                LinkAggregateFactory(
+                    full_date=date(2024, 2, day),
+                    organisation=self.organisation,
+                    collection=self.collection,
+                    total_links_added=day,
+                    total_links_removed=day - 1,
+                )
+            call_command("fill_monthly_link_aggregates")
+
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
+            monthly_aggregate = LinkAggregate.objects.get(year=2024, month=2, day=0)
+            # Should still be the same
+            self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+            self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
+            self.assertEqual(LinkAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        with time_machine.travel(date(2024, 2, 1)):
+            other_collection = CollectionFactory(
+                name="Other Collection", organisation=self.organisation
+            )
+            for day in range(1, 6):
+                LinkAggregateFactory(
+                    full_date=date(2024, 1, day),
+                    organisation=self.organisation,
+                    collection=other_collection,
+                    total_links_added=day * 2,
+                    total_links_removed=day * 2 - 1,
+                )
+
+            call_command(
+                "fill_monthly_link_aggregates", collections=[other_collection.pk]
+            )
+
+            self.assertEqual(
+                LinkAggregate.objects.filter(
+                    day=0, collection=other_collection
+                ).count(),
+                1,
+            )
+            self.assertEqual(
+                LinkAggregate.objects.filter(day=0, collection=self.collection).count(),
+                0,
+            )
+
+    def test_specific_year_month(self):
+        # Adding different month data
+        for day in range(1, 11):
             LinkAggregateFactory(
                 full_date=date(2024, 2, day),
                 organisation=self.organisation,
@@ -806,36 +832,43 @@ class MonthlyLinkAggregateCommandTest(TestCase):
                 total_links_added=day,
                 total_links_removed=day - 1,
             )
-        call_command("fill_monthly_link_aggregates")
 
-        self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
-        monthly_aggregate = LinkAggregate.objects.get(year=2024, month=2, day=0)
-        # Should still be the same
-        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
-        self.assertEqual(LinkAggregate.objects.exclude(day=0).count(), 0)
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_link_aggregates", year_month="2024-01")
 
-    def test_specific_collection_aggregation(self):
-        other_collection = CollectionFactory(
-            name="Other Collection", organisation=self.organisation
-        )
-        for day in range(1, 6):
-            LinkAggregateFactory(
-                full_date=date(2024, 1, day),
-                organisation=self.organisation,
-                collection=other_collection,
-                total_links_added=day * 2,
-                total_links_removed=day * 2 - 1,
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
+
+            monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
             )
 
-        call_command("fill_monthly_link_aggregates", collections=[other_collection.pk])
+    def test_full_scan_option(self):
+        # Adding different month data
+        for day in range(1, 11):
+            LinkAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
 
-        self.assertEqual(
-            LinkAggregate.objects.filter(day=0, collection=other_collection).count(), 1
-        )
-        self.assertEqual(
-            LinkAggregate.objects.filter(day=0, collection=self.collection).count(), 0
-        )
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_link_aggregates", full_scan=True)
+
+            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
+
+            monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
 
 class MonthlyUserAggregateCommandTest(TestCase):
@@ -872,68 +905,130 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 0)
+        with time_machine.travel(date(2024, 2, 1)):
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 0)
 
-        call_command("fill_monthly_user_aggregates")
+            call_command("fill_monthly_user_aggregates")
 
-        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
 
-        monthly_aggregate = UserAggregate.objects.get(
-            year=2024, month=1, day=0, username=self.user
-        )
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
+            monthly_aggregate = UserAggregate.objects.get(
+                year=2024, month=1, day=0, username=self.user
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
     def test_no_aggregation_when_no_new_data(self):
-        call_command("fill_monthly_user_aggregates")
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_user_aggregates")
 
-        # Running it again should NOT create duplicate entries
-        call_command("fill_monthly_user_aggregates")
-        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+            # Running it again should NOT create duplicate entries
+            call_command("fill_monthly_user_aggregates")
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
 
-    def test_no_aggregation_when_month_already_run(self):
+    def test_aggregate_new_data_same_month(self):
         """
-        If the monthly aggregation was already executed, it should be ignored.
+        Simulating running the script again, in case we receive new data
         """
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_user_aggregates")
 
-        call_command("fill_monthly_user_aggregates")
+            # Adding more data to the same month should add up to the totals
+            for day in range(1, 11):
+                self.expected_total_added += day
+                self.expected_total_removed += day - 1
+                UserAggregateFactory(
+                    full_date=date(2024, 1, day),
+                    organisation=self.organisation,
+                    collection=self.collection,
+                    username=self.user,
+                    total_links_added=day,
+                    total_links_removed=day - 1,
+                )
+            call_command("fill_monthly_user_aggregates")
 
-        # Add 5 more days to the same month (already aggregated)
-        for day in range(15, 20):
-            UserAggregateFactory(
-                full_date=date(2024, 1, day),
+            monthly_aggregate = UserAggregate.objects.get(
                 organisation=self.organisation,
                 collection=self.collection,
                 username=self.user,
-                total_links_added=day,
-                total_links_removed=day - 1,
+                year=2024,
+                month=1,
+                day=0,
             )
-        call_command("fill_monthly_user_aggregates")
-
-        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
-        monthly_aggregate = UserAggregate.objects.get(
-            year=2024, month=1, day=0, username=self.user
-        )
-        # Should still be the same
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
-        self.assertEqual(
-            UserAggregate.objects.filter(year=2024, month=1).exclude(day=0).count(), 5
-        )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
     def test_aggregate_next_month(self):
-        call_command("fill_monthly_user_aggregates")
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_user_aggregates")
 
-        # Simulate next month by adding 5 more days to the next month
-        next_total_added = 0
-        next_total_removed = 0
-        for day in range(15, 20):
-            next_total_added += day
-            next_total_removed += day - 1
+        with time_machine.travel(date(2024, 3, 1)):
+            # Simulate next month by adding 5 more days to the next month
+            next_total_added = 0
+            next_total_removed = 0
+            for day in range(15, 20):
+                next_total_added += day
+                next_total_removed += day - 1
+                UserAggregateFactory(
+                    full_date=date(2024, 2, day),
+                    organisation=self.organisation,
+                    collection=self.collection,
+                    username=self.user,
+                    total_links_added=day,
+                    total_links_removed=day - 1,
+                )
+            call_command("fill_monthly_user_aggregates")
+
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 3)
+            monthly_aggregate = UserAggregate.objects.get(
+                year=2024, month=2, day=0, username=self.user
+            )
+            # Should still be the same
+            self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+            self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
+            self.assertEqual(UserAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        with time_machine.travel(date(2024, 2, 1)):
+            other_collection = CollectionFactory(
+                name="Other Collection", organisation=self.organisation
+            )
+            for day in range(1, 6):
+                UserAggregateFactory(
+                    full_date=date(2024, 1, day),
+                    organisation=self.organisation,
+                    collection=other_collection,
+                    username=self.user,
+                    total_links_added=day * 2,
+                    total_links_removed=day * 2 - 1,
+                )
+
+            call_command(
+                "fill_monthly_user_aggregates", collections=[other_collection.pk]
+            )
+
+            self.assertEqual(
+                UserAggregate.objects.filter(
+                    day=0, collection=other_collection
+                ).count(),
+                1,
+            )
+            self.assertEqual(
+                UserAggregate.objects.filter(day=0, collection=self.collection).count(),
+                0,
+            )
+
+    def test_specific_year_month(self):
+        # Adding different month data
+        for day in range(1, 11):
             UserAggregateFactory(
                 full_date=date(2024, 2, day),
                 organisation=self.organisation,
@@ -942,39 +1037,58 @@ class MonthlyUserAggregateCommandTest(TestCase):
                 total_links_added=day,
                 total_links_removed=day - 1,
             )
-        call_command("fill_monthly_user_aggregates")
 
-        self.assertEqual(UserAggregate.objects.filter(day=0).count(), 3)
-        monthly_aggregate = UserAggregate.objects.get(
-            year=2024, month=2, day=0, username=self.user
-        )
-        # Should still be the same
-        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
-        self.assertEqual(UserAggregate.objects.exclude(day=0).count(), 0)
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_user_aggregates", year_month="2024-01")
 
-    def test_specific_collection_aggregation(self):
-        other_collection = CollectionFactory(
-            name="Other Collection", organisation=self.organisation
-        )
-        for day in range(1, 6):
-            UserAggregateFactory(
-                full_date=date(2024, 1, day),
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
+
+            monthly_aggregate = UserAggregate.objects.get(
                 organisation=self.organisation,
-                collection=other_collection,
+                collection=self.collection,
                 username=self.user,
-                total_links_added=day * 2,
-                total_links_removed=day * 2 - 1,
+                year=2024,
+                month=1,
+                day=0,
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
             )
 
-        call_command("fill_monthly_user_aggregates", collections=[other_collection.pk])
+    def test_full_scan_option(self):
+        # Adding different month data
+        for day in range(1, 11):
+            UserAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
 
-        self.assertEqual(
-            UserAggregate.objects.filter(day=0, collection=other_collection).count(), 1
-        )
-        self.assertEqual(
-            UserAggregate.objects.filter(day=0, collection=self.collection).count(), 0
-        )
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_user_aggregates", full_scan=True)
+
+            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 3)
+
+            monthly_aggregate = UserAggregate.objects.get(
+                organisation=self.organisation,
+                collection=self.collection,
+                username=self.user,
+                year=2024,
+                month=1,
+                day=0,
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
 
 class MonthlyPageProjectAggregateCommandTest(TestCase):
@@ -1015,80 +1129,144 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 0)
+        with time_machine.travel(date(2024, 2, 1)):
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 0)
 
-        call_command("fill_monthly_pageproject_aggregates")
+            call_command("fill_monthly_pageproject_aggregates")
 
-        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
 
-        monthly_aggregate = PageProjectAggregate.objects.get(
-            year=2024,
-            month=1,
-            day=0,
-            project_name=self.project_name,
-            page_name=self.page_name,
-        )
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
-
-    def test_no_aggregation_when_no_new_data(self):
-        call_command("fill_monthly_pageproject_aggregates")
-
-        # Running it again should NOT create duplicate entries
-        call_command("fill_monthly_pageproject_aggregates")
-        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
-
-    def test_no_aggregation_when_month_already_run(self):
-        """
-        If the monthly aggregation was already executed, it should be ignored.
-        """
-
-        call_command("fill_monthly_pageproject_aggregates")
-
-        # Add 5 more days to the same month (already aggregated)
-        for day in range(15, 20):
-            PageProjectAggregateFactory(
-                full_date=date(2024, 1, day),
-                organisation=self.organisation,
-                collection=self.collection,
+            monthly_aggregate = PageProjectAggregate.objects.get(
+                year=2024,
+                month=1,
+                day=0,
                 project_name=self.project_name,
                 page_name=self.page_name,
-                total_links_added=day,
-                total_links_removed=day - 1,
             )
-        call_command("fill_monthly_pageproject_aggregates")
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
-        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
-        monthly_aggregate = PageProjectAggregate.objects.get(
-            year=2024,
-            month=1,
-            day=0,
-            project_name=self.project_name,
-            page_name=self.page_name,
-        )
-        # Should still be the same
-        self.assertEqual(self.expected_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(
-            self.expected_total_removed, monthly_aggregate.total_links_removed
-        )
-        self.assertEqual(
-            PageProjectAggregate.objects.filter(year=2024, month=1)
-            .exclude(day=0)
-            .count(),
-            5,
-        )
+    def test_no_aggregation_when_no_new_data(self):
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_pageproject_aggregates")
+
+            # Running it again should NOT create duplicate entries
+            call_command("fill_monthly_pageproject_aggregates")
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+
+    def test_aggregate_new_data_same_month(self):
+        """
+        Simulating running the script again, in case we receive new data
+        """
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_pageproject_aggregates")
+
+            # Adding more data to the same month should add up to the totals
+            for day in range(1, 11):
+                self.expected_total_added += day
+                self.expected_total_removed += day - 1
+                PageProjectAggregateFactory(
+                    full_date=date(2024, 1, day),
+                    organisation=self.organisation,
+                    collection=self.collection,
+                    project_name=self.project_name,
+                    page_name=self.page_name,
+                    total_links_added=day,
+                    total_links_removed=day - 1,
+                )
+            call_command("fill_monthly_pageproject_aggregates")
+
+            monthly_aggregate = PageProjectAggregate.objects.get(
+                organisation=self.organisation,
+                collection=self.collection,
+                year=2024,
+                month=1,
+                day=0,
+                project_name=self.project_name,
+                page_name=self.page_name,
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
 
     def test_aggregate_next_month(self):
-        call_command("fill_monthly_pageproject_aggregates")
+        with time_machine.travel(date(2024, 2, 1)):
+            call_command("fill_monthly_pageproject_aggregates")
 
-        # Simulate next month by adding 5 more days to the next month
-        next_total_added = 0
-        next_total_removed = 0
-        for day in range(15, 20):
-            next_total_added += day
-            next_total_removed += day - 1
+        with time_machine.travel(date(2024, 3, 1)):
+            # Simulate next month by adding 5 more days to the next month
+            next_total_added = 0
+            next_total_removed = 0
+            for day in range(15, 20):
+                next_total_added += day
+                next_total_removed += day - 1
+                PageProjectAggregateFactory(
+                    full_date=date(2024, 2, day),
+                    organisation=self.organisation,
+                    collection=self.collection,
+                    project_name=self.project_name,
+                    page_name=self.page_name,
+                    total_links_added=day,
+                    total_links_removed=day - 1,
+                )
+            call_command("fill_monthly_pageproject_aggregates")
+
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 3)
+            monthly_aggregate = PageProjectAggregate.objects.get(
+                year=2024,
+                month=2,
+                day=0,
+                project_name=self.project_name,
+                page_name=self.page_name,
+            )
+            # Should still be the same
+            self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
+            self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
+            self.assertEqual(PageProjectAggregate.objects.exclude(day=0).count(), 0)
+
+    def test_specific_collection_aggregation(self):
+        with time_machine.travel(date(2024, 2, 1)):
+            other_collection = CollectionFactory(
+                name="Other Collection", organisation=self.organisation
+            )
+            for day in range(1, 6):
+                PageProjectAggregateFactory(
+                    full_date=date(2024, 1, day),
+                    organisation=self.organisation,
+                    collection=other_collection,
+                    project_name=self.project_name,
+                    page_name=self.page_name,
+                    total_links_added=day * 2,
+                    total_links_removed=day * 2 - 1,
+                )
+
+            call_command(
+                "fill_monthly_pageproject_aggregates", collections=[other_collection.pk]
+            )
+
+            self.assertEqual(
+                PageProjectAggregate.objects.filter(
+                    day=0, collection=other_collection
+                ).count(),
+                1,
+            )
+            self.assertEqual(
+                PageProjectAggregate.objects.filter(
+                    day=0, collection=self.collection
+                ).count(),
+                0,
+            )
+
+    def test_specific_year_month(self):
+        # Adding different month data
+        for day in range(1, 11):
             PageProjectAggregateFactory(
                 full_date=date(2024, 2, day),
                 organisation=self.organisation,
@@ -1098,49 +1276,58 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
                 total_links_added=day,
                 total_links_removed=day - 1,
             )
-        call_command("fill_monthly_pageproject_aggregates")
 
-        self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 3)
-        monthly_aggregate = PageProjectAggregate.objects.get(
-            year=2024,
-            month=2,
-            day=0,
-            project_name=self.project_name,
-            page_name=self.page_name,
-        )
-        # Should still be the same
-        self.assertEqual(next_total_added, monthly_aggregate.total_links_added)
-        self.assertEqual(next_total_removed, monthly_aggregate.total_links_removed)
-        self.assertEqual(PageProjectAggregate.objects.exclude(day=0).count(), 0)
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_pageproject_aggregates", year_month="2024-01")
 
-    def test_specific_collection_aggregation(self):
-        other_collection = CollectionFactory(
-            name="Other Collection", organisation=self.organisation
-        )
-        for day in range(1, 6):
-            PageProjectAggregateFactory(
-                full_date=date(2024, 1, day),
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
+
+            monthly_aggregate = PageProjectAggregate.objects.get(
                 organisation=self.organisation,
-                collection=other_collection,
+                collection=self.collection,
                 project_name=self.project_name,
                 page_name=self.page_name,
-                total_links_added=day * 2,
-                total_links_removed=day * 2 - 1,
+                year=2024,
+                month=1,
+                day=0,
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
             )
 
-        call_command(
-            "fill_monthly_pageproject_aggregates", collections=[other_collection.pk]
-        )
+    def test_full_scan_option(self):
+        # Adding different month data
+        for day in range(1, 11):
+            PageProjectAggregateFactory(
+                full_date=date(2024, 2, day),
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                total_links_added=day,
+                total_links_removed=day - 1,
+            )
 
-        self.assertEqual(
-            PageProjectAggregate.objects.filter(
-                day=0, collection=other_collection
-            ).count(),
-            1,
-        )
-        self.assertEqual(
-            PageProjectAggregate.objects.filter(
-                day=0, collection=self.collection
-            ).count(),
-            0,
-        )
+        with time_machine.travel(date(2024, 5, 1)):
+            call_command("fill_monthly_pageproject_aggregates", full_scan=True)
+
+            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 3)
+
+            monthly_aggregate = PageProjectAggregate.objects.get(
+                organisation=self.organisation,
+                collection=self.collection,
+                project_name=self.project_name,
+                page_name=self.page_name,
+                year=2024,
+                month=1,
+                day=0,
+            )
+            self.assertEqual(
+                self.expected_total_added, monthly_aggregate.total_links_added
+            )
+            self.assertEqual(
+                self.expected_total_removed, monthly_aggregate.total_links_removed
+            )
