@@ -155,7 +155,7 @@ def build_queryset_filters(form_data, collection_or_organisations):
     )
 
 
-def batch_iterator(iterable, size=10000):
+def batch_iterator(iterable, size=1000):
     """
     This yields successive batches from an iterable (memory-efficient).
 

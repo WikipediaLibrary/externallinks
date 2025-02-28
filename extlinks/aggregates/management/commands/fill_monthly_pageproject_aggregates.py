@@ -10,6 +10,7 @@ from ...models import PageProjectAggregate
 from extlinks.common.helpers import batch_iterator
 
 logger = logging.getLogger("django")
+BATCH_SIZE = 500
 
 
 class Command(BaseCommand):
@@ -133,7 +134,9 @@ class Command(BaseCommand):
 
         total_aggregations = 0
         # Batch transactions for memory efficiency
-        for batch_index, batch in enumerate(batch_iterator(aggregated_data), start=1):
+        for batch_index, batch in enumerate(
+            batch_iterator(aggregated_data, BATCH_SIZE), start=1
+        ):
             with transaction.atomic():
                 total_aggregations += len(batch)
                 logger.info(f"Processing batch {batch_index} (size: {len(batch)})")
