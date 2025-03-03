@@ -31,18 +31,8 @@ class Command(BaseCommand):
             help="A specific year-month (YYYY-MM) to aggregate data for. Example: '2024-01'",
         )
 
-        # Option to process **all** past months from the earliest available date
-        parser.add_argument(
-            "--full-scan",
-            action="store_true",
-            help="Reprocess all available past data, from the earliest date up to last month.",
-        )
-
     def handle(self, *args, **options):
         logger.info("Monthly UserAggregate job started")
-
-        if options["full_scan"] and options["year_month"]:
-            raise CommandError("Cannot specify year-month and full-scan together.")
 
         if options["year_month"]:
             try:
@@ -62,16 +52,10 @@ class Command(BaseCommand):
             last_day_of_month = today.replace(day=1) - timedelta(days=1)
             first_day_of_month = last_day_of_month.replace(day=1)
 
-        if options["full_scan"]:
-            logger.info(f"Processing data from {last_day_of_month} and backwards")
-            month_filter = Q(full_date__lte=last_day_of_month)
-        else:
-            logger.info(
-                f"Processing data from {first_day_of_month} to {last_day_of_month}"
-            )
-            month_filter = Q(
-                full_date__gte=first_day_of_month, full_date__lte=last_day_of_month
-            )
+        logger.info(f"Processing data from {first_day_of_month} to {last_day_of_month}")
+        month_filter = Q(
+            full_date__gte=first_day_of_month, full_date__lte=last_day_of_month
+        )
 
         if options["collections"]:
             filter_query = Q(collection_id__in=options["collections"]) & month_filter

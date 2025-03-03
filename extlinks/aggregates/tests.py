@@ -846,30 +846,6 @@ class MonthlyLinkAggregateCommandTest(TestCase):
                 self.expected_total_removed, monthly_aggregate.total_links_removed
             )
 
-    def test_full_scan_option(self):
-        # Adding different month data
-        for day in range(1, 11):
-            LinkAggregateFactory(
-                full_date=date(2024, 2, day),
-                organisation=self.organisation,
-                collection=self.collection,
-                total_links_added=day,
-                total_links_removed=day - 1,
-            )
-
-        with time_machine.travel(date(2024, 5, 1)):
-            call_command("fill_monthly_link_aggregates", full_scan=True)
-
-            self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 2)
-
-            monthly_aggregate = LinkAggregate.objects.get(year=2024, month=1, day=0)
-            self.assertEqual(
-                self.expected_total_added, monthly_aggregate.total_links_added
-            )
-            self.assertEqual(
-                self.expected_total_removed, monthly_aggregate.total_links_removed
-            )
-
 
 class MonthlyUserAggregateCommandTest(TestCase):
     def setUp(self):
@@ -1042,38 +1018,6 @@ class MonthlyUserAggregateCommandTest(TestCase):
             call_command("fill_monthly_user_aggregates", year_month="2024-01")
 
             self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
-
-            monthly_aggregate = UserAggregate.objects.get(
-                organisation=self.organisation,
-                collection=self.collection,
-                username=self.user,
-                year=2024,
-                month=1,
-                day=0,
-            )
-            self.assertEqual(
-                self.expected_total_added, monthly_aggregate.total_links_added
-            )
-            self.assertEqual(
-                self.expected_total_removed, monthly_aggregate.total_links_removed
-            )
-
-    def test_full_scan_option(self):
-        # Adding different month data
-        for day in range(1, 11):
-            UserAggregateFactory(
-                full_date=date(2024, 2, day),
-                organisation=self.organisation,
-                collection=self.collection,
-                username=self.user,
-                total_links_added=day,
-                total_links_removed=day - 1,
-            )
-
-        with time_machine.travel(date(2024, 5, 1)):
-            call_command("fill_monthly_user_aggregates", full_scan=True)
-
-            self.assertEqual(UserAggregate.objects.filter(day=0).count(), 3)
 
             monthly_aggregate = UserAggregate.objects.get(
                 organisation=self.organisation,
@@ -1281,40 +1225,6 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             call_command("fill_monthly_pageproject_aggregates", year_month="2024-01")
 
             self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)
-
-            monthly_aggregate = PageProjectAggregate.objects.get(
-                organisation=self.organisation,
-                collection=self.collection,
-                project_name=self.project_name,
-                page_name=self.page_name,
-                year=2024,
-                month=1,
-                day=0,
-            )
-            self.assertEqual(
-                self.expected_total_added, monthly_aggregate.total_links_added
-            )
-            self.assertEqual(
-                self.expected_total_removed, monthly_aggregate.total_links_removed
-            )
-
-    def test_full_scan_option(self):
-        # Adding different month data
-        for day in range(1, 11):
-            PageProjectAggregateFactory(
-                full_date=date(2024, 2, day),
-                organisation=self.organisation,
-                collection=self.collection,
-                project_name=self.project_name,
-                page_name=self.page_name,
-                total_links_added=day,
-                total_links_removed=day - 1,
-            )
-
-        with time_machine.travel(date(2024, 5, 1)):
-            call_command("fill_monthly_pageproject_aggregates", full_scan=True)
-
-            self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 3)
 
             monthly_aggregate = PageProjectAggregate.objects.get(
                 organisation=self.organisation,
