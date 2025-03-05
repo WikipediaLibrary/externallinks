@@ -78,6 +78,8 @@ class UserAggregate(models.Model):
                     "month",
                 ]
             ),
+            models.Index(fields=["organisation", "username"]),
+            models.Index(fields=["collection", "username"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -142,6 +144,8 @@ class PageProjectAggregate(models.Model):
                     "month",
                 ]
             ),
+            models.Index(fields=["organisation", "project_name"]),
+            models.Index(fields=["collection", "project_name", "page_name"]),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
