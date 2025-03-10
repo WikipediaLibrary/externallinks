@@ -11,6 +11,15 @@ class LinkAggregate(models.Model):
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
+            models.Index(
+                fields=[
+                    "organisation_id",
+                    "collection_id",
+                    "on_user_list",
+                    "year",
+                    "month",
+                ]
+            ),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -28,7 +37,8 @@ class LinkAggregate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        self.day = self.full_date.day
+        if self.day is None or self.day != 0:
+            self.day = self.full_date.day
         self.month = self.full_date.month
         self.year = self.full_date.year
         if self.pk is None:
@@ -43,6 +53,7 @@ class LinkAggregate(models.Model):
             collection=self.collection,
             full_date=self.full_date,
             on_user_list=self.on_user_list,
+            day=self.day,  # day can be 0 if the aggregation is a monthly one
         ).exists():
             raise ValidationError(
                 message="LinkAggregate with this combination (organisation, collection, full_date, on_user_list) already exists.",
@@ -57,6 +68,16 @@ class UserAggregate(models.Model):
             models.Index(fields=["full_date"]),
             models.Index(fields=["collection"]),
             models.Index(fields=["organisation"]),
+            models.Index(
+                fields=[
+                    "organisation_id",
+                    "collection_id",
+                    "username",
+                    "on_user_list",
+                    "year",
+                    "month",
+                ]
+            ),
         ]
 
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
@@ -75,7 +96,8 @@ class UserAggregate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        self.day = self.full_date.day
+        if self.day is None or self.day != 0:
+            self.day = self.full_date.day
         self.month = self.full_date.month
         self.year = self.full_date.year
         if self.pk is None:
@@ -91,6 +113,7 @@ class UserAggregate(models.Model):
             username=self.username,
             full_date=self.full_date,
             on_user_list=self.on_user_list,
+            day=self.day,  # day can be 0 if the aggregation is a monthly one
         ).exists():
             raise ValidationError(
                 message="UserAggregate with this combination (organisation, collection, username, full_date, on_user_list) already exists.",
@@ -107,6 +130,17 @@ class PageProjectAggregate(models.Model):
             models.Index(fields=["organisation"]),
             models.Index(
                 fields=["full_date", "collection_id", "project_name", "page_name"]
+            ),
+            models.Index(
+                fields=[
+                    "organisation_id",
+                    "collection_id",
+                    "project_name",
+                    "page_name",
+                    "on_user_list",
+                    "year",
+                    "month",
+                ]
             ),
         ]
 
@@ -127,7 +161,8 @@ class PageProjectAggregate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        self.day = self.full_date.day
+        if self.day is None or self.day != 0:
+            self.day = self.full_date.day
         self.month = self.full_date.month
         self.year = self.full_date.year
         if self.pk is None:
@@ -144,6 +179,7 @@ class PageProjectAggregate(models.Model):
             page_name=self.page_name,
             full_date=self.full_date,
             on_user_list=self.on_user_list,
+            day=self.day,  # day can be 0 if the aggregation is a monthly one
         ).exists():
             raise ValidationError(
                 message="PageProjectAggregate with this combination (organisation, collection, project_name, page_name, full_date, on_user_list) already exists.",

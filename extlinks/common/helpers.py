@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from itertools import islice
 
 from django.db.models import Avg, Q
 from django.db.models.functions import TruncMonth
@@ -152,3 +153,31 @@ def build_queryset_filters(form_data, collection_or_organisations):
         & start_date_filter
         & end_date_filter
     )
+
+
+def batch_iterator(iterable, size=1000):
+    """
+    This yields successive batches from an iterable (memory-efficient).
+
+    Used for large queries that use `.iterator()` for efficiency.
+    Instead of loading all data into memory at once, this function
+    retrieves items lazily in fixed-size batches.
+
+    Parameters
+    ----------
+    iterable : Iterator
+        An iterable object, typically a Django QuerySet with `.iterator()`,
+        that returns items one by one in a memory-efficient manner.
+
+    size : int
+        The maximum number of items to include in each batch.
+
+    Returns
+    -------
+    Iterator[List]
+        An iterator that yields lists containing at most `size` items
+        per batch.
+    """
+    iterator = iter(iterable)
+    while batch := list(islice(iterator, size)):
+        yield batch

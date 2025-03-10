@@ -39,6 +39,11 @@
               </div>
             </div>
             <div class="form-row">
+              <p class="help" style="padding-left: 15px;">
+                Note: Date filters always consider full month.
+              </p>
+            </div>
+            <div class="form-row">
               {% if object.limit_by_user %}
                 <div class="fieldWrapper" style="padding: 15px;">
                   {{ form.limit_to_user_list.errors }}

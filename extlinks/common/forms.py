@@ -1,3 +1,6 @@
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+
 from django import forms
 
 
@@ -31,3 +34,30 @@ class FilterForm(forms.Form):
     )
 
     exclude_bots = forms.BooleanField(required=False)
+
+    def clean_start_date(self):
+        """
+        This is automatically called by Django when validating this field.
+        Modify the start date to return the first day of its month.
+        """
+        start_date = self.cleaned_data.get("start_date")
+
+        if not start_date:
+            return None
+
+        return start_date.replace(day=1)
+
+
+    def clean_end_date(self):
+        """
+        This is automatically called by Django when validating this field.
+        Modify the end date to return the last day of its month.
+        """
+        end_date = self.cleaned_data.get("end_date")
+
+        if not end_date:
+            return None
+
+        next_month = end_date.replace(day=1) + relativedelta(months=1)
+
+        return next_month - timedelta(days=1)
