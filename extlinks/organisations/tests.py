@@ -9,7 +9,6 @@ from extlinks.common.views import (
     CSVPageTotals,
     CSVProjectTotals,
     CSVUserTotals,
-    CSVAllLinkEvents,
 )
 from extlinks.links.factories import LinkEventFactory, URLPatternFactory
 from extlinks.links.models import LinkEvent
@@ -354,25 +353,6 @@ class OrganisationDetailTest(TestCase):
             "Username,Links added,Links removed,Net Change\r\n" "Jim,2,0,2\r\n"
         )
         self.assertEqual(csv_content, expected_output)
-
-    def test_latest_links_csv(self):
-        """
-        Test that the top users CSV returns the expected data
-        """
-        factory = RequestFactory()
-
-        csv_url = reverse(
-            "organisations:csv_all_links", kwargs={"pk": self.organisation1.pk}
-        )
-
-        request = factory.get(csv_url)
-        response = CSVAllLinkEvents.as_view()(request, pk=self.organisation1.pk)
-        self.assertContains(response, self.linkevent1.link)
-        self.assertContains(response, self.linkevent2.link)
-        self.assertContains(response, self.linkevent3.link)
-        self.assertContains(response, self.linkevent4.link)
-
-        self.assertContains(response, self.linkevent1.username.username)
 
     def test_bot_edits_form(self):
         """

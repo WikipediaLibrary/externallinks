@@ -172,46 +172,6 @@ class CSVUserTotals(_CSVDownloadView):
             )
 
 
-class CSVAllLinkEvents(_CSVDownloadView):
-    def _write_data(self, response):
-        pk = self.kwargs["pk"]
-        # If we came from an organisation page:
-        if "/organisation" in self.request.build_absolute_uri():
-            organisation = Organisation.objects.get(pk=pk)
-            if organisation:
-                url_patterns = URLPattern.objects.filter(collections__organisation=organisation)
-                url_pattern_type = ContentType.objects.get_for_model(URLPattern)
-                linkevents = LinkEvent.objects.filter(content_type__pk=url_pattern_type.id, object_id__in=url_patterns)
-        writer = csv.writer(response)
-
-        writer.writerow(
-            [
-                "Link",
-                "User",
-                "Bot user",
-                "Page title",
-                "Project",
-                "Timestamp",
-                "Revision ID",
-                "Change",
-            ]
-        )
-
-        for link in linkevents.order_by("-timestamp"):
-            writer.writerow(
-                [
-                    link.link,
-                    link.username,
-                    link.user_is_bot,
-                    link.page_title,
-                    link.domain,
-                    link.timestamp,
-                    link.rev_id,
-                    link.change,
-                ]
-            )
-
-
 def _get_queryset_filter(pk, uri, filters):
     """
     This function returns a Q object with filters depending on which URL a user

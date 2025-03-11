@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+import tempfile, glob, os
+
+from datetime import datetime, date, timezone
 
 from django.core.management import call_command
 from django.test import TestCase
+from django_cron.models import CronJobLog
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -267,6 +270,323 @@ class LinkEventsCollectCommandTest(TestCase):
         self.assertEqual(LinkEvent.objects.count(), 2)
 
 
+class LinkEventsArchiveCommandTest(TestCase):
+    def setUp(self):
+        self.user = UserFactory(username="jonsnow")
+
+        self.jstor_organisation = OrganisationFactory(name="JSTOR")
+        self.jstor_collection = CollectionFactory(
+            name="JSTOR", organisation=self.jstor_organisation
+        )
+        self.jstor_url_pattern = URLPatternFactory(url="www.jstor.org")
+        self.jstor_url_pattern.collections.add(self.jstor_collection)
+        self.jstor_url_pattern.save()
+
+    def test_dump_with_date(self):
+        """
+        Test that LinkEvents are dumped and removed from the database when
+        using the 'linkevents_archive' management command. LinkEvent dumps
+        should be grouped together by date.
+        """
+
+        # Add the LinkEvent data that will be dumped.
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_17_{i}",
+                timestamp=datetime(2021, 1, 17, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_18_{i}",
+                timestamp=datetime(2021, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events we just added.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                date=date(year=2021, month=1, day=18),
+                output=temp_dir,
+            )
+
+            # Ensure the expected archives were generated.
+            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20210116_0.json.gz")
+            self.assertTrue(os.path.isfile(jan_16_archive))
+            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20210117_0.json.gz")
+            self.assertTrue(os.path.isfile(jan_17_archive))
+            jan_18_archive = os.path.join(temp_dir, "links_linkevent_20210118_0.json.gz")
+            self.assertTrue(os.path.isfile(jan_18_archive))
+
+            # Make sure the events that were archived got removed from the db.
+            self.assertEqual(LinkEvent.objects.count(), 0)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    def test_dump_without_date(self):
+        """
+        Test that LinkEvents are dumped and removed from the database when
+        using the 'linkevents_archive' management command even when a date
+        option is not provided. A date should be inferred from the job logs.
+        """
+
+        # Add the LinkEvent data that will be dumped.
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2025, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_17_{i}",
+                timestamp=datetime(2025, 1, 17, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_17_{i}",
+                timestamp=datetime(2025, 1, 19, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        # Add cron job log entries since these are needed to automatically
+        # determine safe dates for the job to filter by.
+
+        CronJobLog(
+            code="aggregates.link_aggregates_cron",
+            start_time=datetime(2025, 1, 18, 18, 0, 0),
+            end_time=datetime(2025, 1, 18, 18, 0, 0),
+            is_success=True,
+        ).save()
+
+        CronJobLog(
+            code="aggregates.user_aggregates_cron",
+            start_time=datetime(2025, 1, 18, 19, 0, 0),
+            end_time=datetime(2025, 1, 18, 19, 0, 0),
+            is_success=True,
+        ).save()
+
+        CronJobLog(
+            code="aggregates.pageproject_aggregates_cron",
+            start_time=datetime(2025, 1, 18, 20, 0, 0),
+            end_time=datetime(2025, 1, 18, 20, 0, 0),
+            is_success=True,
+        ).save()
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events we just added.
+            call_command("linkevents_archive", "dump", output=temp_dir)
+
+            # Ensure the expected archives were generated.
+            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            self.assertTrue(os.path.isfile(jan_16_archive))
+            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            self.assertTrue(os.path.isfile(jan_17_archive))
+
+            # Make sure the events that were archived got removed from the db.
+            # We expect 5 since 10 of the 15 events were inserted before the
+            # jobs started, but the remaining 5 were inserted afterwards.
+            self.assertEqual(LinkEvent.objects.count(), 5)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    def test_dump_with_partial_jobs(self):
+        """
+        Test that no links are archived if not all of the jobs have run yet.
+        """
+
+        # Add the LinkEvent data that will be dumped.
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2025, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_17_{i}",
+                timestamp=datetime(2025, 1, 17, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        # Add cron job log entries since these are needed to automatically
+        # determine safe dates for the job to filter by. One of the required
+        # jobs is missing.
+
+        CronJobLog(
+            code="aggregates.link_aggregates_cron",
+            start_time=datetime(2025, 1, 18, 18, 0, 0),
+            end_time=datetime(2025, 1, 18, 18, 0, 0),
+            is_success=True,
+        ).save()
+
+        CronJobLog(
+            code="aggregates.user_aggregates_cron",
+            start_time=datetime(2025, 1, 18, 19, 0, 0),
+            end_time=datetime(2025, 1, 18, 19, 0, 0),
+            is_success=True,
+        ).save()
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events we just added.
+            call_command("linkevents_archive", "dump", output=temp_dir)
+
+            # Ensure that no archives were generated.
+            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            self.assertFalse(os.path.isfile(jan_16_archive))
+            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            self.assertFalse(os.path.isfile(jan_17_archive))
+
+            # Ensure that no LinkEvents were deleted.
+            self.assertEqual(LinkEvent.objects.count(), 10)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    def test_dump_with_no_jobs(self):
+        """
+        Test that no links are archived if none of the jobs have run yet.
+        """
+
+        # Add the LinkEvent data that will be dumped.
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2025, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_17_{i}",
+                timestamp=datetime(2025, 1, 17, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        # Add cron job log entries since these are needed to automatically
+        # determine safe dates for the job to filter by. None of the required
+        # jobs are present.
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events we just added.
+            call_command("linkevents_archive", "dump", output=temp_dir)
+
+            # Ensure that no archives were generated.
+            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            self.assertFalse(os.path.isfile(jan_16_archive))
+            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            self.assertFalse(os.path.isfile(jan_17_archive))
+
+            # Ensure that no LinkEvents were deleted.
+            self.assertEqual(LinkEvent.objects.count(), 10)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    def test_load(self):
+        """
+        Test that we can load LinkEvents from an archive in the filesystem.
+        Generate and dump some test data and, load it, and verify it looks as
+        we expect it to.
+        """
+
+        # Generate some test data that we'll be dumping and loading.
+
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events we just added.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                date=date(year=2021, month=1, day=16),
+                output=temp_dir,
+            )
+
+            # Make sure the events that were archived got removed from the db.
+            self.assertEqual(LinkEvent.objects.count(), 0)
+
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "load",
+                os.path.join(temp_dir, "links_linkevent_20210116_0.json.gz"),
+            )
+
+            # Verify that the expected amount of LinkEvents now exist.
+            self.assertEqual(LinkEvent.objects.count(), 5)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+
 class EZProxyRemovalCommandTest(TestCase):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
@@ -275,9 +595,7 @@ class EZProxyRemovalCommandTest(TestCase):
         self.jstor_collection = CollectionFactory(
             name="JSTOR", organisation=self.jstor_organisation
         )
-        self.jstor_url_pattern = URLPatternFactory(
-            url="www.jstor.org"
-        )
+        self.jstor_url_pattern = URLPatternFactory(url="www.jstor.org")
         self.jstor_url_pattern.collections.add(self.jstor_collection)
         self.jstor_url_pattern.save()
 
@@ -357,15 +675,9 @@ class EZProxyRemovalCommandTest(TestCase):
 
         # Assert the correct number of LinkEvents before deleting the proxy url
         # and collection
-        self.assertEqual(
-            self.jstor_url_pattern.link_events.count(), 2
-        )
-        self.assertEqual(
-            self.proquest_url_pattern.link_events.count(), 2
-        )
-        self.assertEqual(
-            self.proxy_url_pattern.link_events.count(), 2
-        )
+        self.assertEqual(self.jstor_url_pattern.link_events.count(), 2)
+        self.assertEqual(self.proquest_url_pattern.link_events.count(), 2)
+        self.assertEqual(self.proxy_url_pattern.link_events.count(), 2)
 
         # Assert the correct number of aggregates before deleting the proxy url
         # and collection
@@ -375,12 +687,8 @@ class EZProxyRemovalCommandTest(TestCase):
 
         call_command("remove_ezproxy_collection")
 
-        self.assertEqual(
-            self.jstor_url_pattern.link_events.count(), 3
-        )
-        self.assertEqual(
-           self.proquest_url_pattern.link_events.count(), 3
-        )
+        self.assertEqual(self.jstor_url_pattern.link_events.count(), 3)
+        self.assertEqual(self.proquest_url_pattern.link_events.count(), 3)
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
@@ -407,9 +715,7 @@ class FixOnUserListCommandTest(TestCase):
         self.proquest_collection = CollectionFactory(
             name="ProQuest", organisation=self.proquest_organisation
         )
-        self.proquest_url_pattern = URLPatternFactory(
-            url="www.proquest.com"
-        )
+        self.proquest_url_pattern = URLPatternFactory(url="www.proquest.com")
         self.proquest_url_pattern.collections.set([self.proquest_collection])
 
         self.linkevent_jstor1 = LinkEventFactory(

@@ -73,8 +73,8 @@
       <h3>Latest link events</h3>
       <table id="{{ collection.collection_id }}-link-events-table" class="table">
         <tr id="{{ collection.collection_id }}-link-events-button-container">
-          <td> <button id="{{ collection.collection_id }}-link-events-load-button" 
-              onclick='getLatestLinkEvents({{ collection.collection_id|safe }}, {{ form_data|safe }})' 
+          <td> <button id="{{ collection.collection_id }}-link-events-load-button"
+              onclick='getLatestLinkEvents({{ collection.collection_id|safe }}, {{ form_data|safe }})'
               class="btn btn-outline-primary"> Load Latest Link Events</button> </td>
         </tr>
         <tr id="{{ collection.collection_id }}-link-events-table-header">
@@ -85,9 +85,6 @@
           <th>Timestamp</th>
         </tr>
       </table>
-      <div style="text-align:right;">
-        <a href="{% url 'organisations:csv_all_links' pk=object.pk %}?{{ query_string }}" class="btn btn-outline-primary">Download {% now "Y" %} CSV</a>
-      </div>
     </div>
   {% endfor %}
 </div>
@@ -384,7 +381,7 @@
       }
     });
   }
-  
+
   function getLatestLinkEvents(collection_id, form_data){
     var idSpinnerLinkEvents = collection_id + "-loading-spinner-latest-link-events";
     var idLinkEventsTable = collection_id + "-link-events-table";
