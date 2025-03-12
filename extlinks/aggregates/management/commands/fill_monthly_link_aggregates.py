@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
@@ -14,6 +15,13 @@ logger = logging.getLogger("django")
 
 class Command(BaseCommand):
     help = "Adds monthly aggregated data into the LinkAggregate table"
+
+    def info(self, msg):
+        # Log and print so that messages are visible
+        # in docker logs (log) and cron job logs (print)
+        logger.info(msg)
+        self.stdout.write(msg)
+        self.stdout.flush()
 
     def add_arguments(self, parser):
         # Option to filter by specific collection(s)
@@ -34,13 +42,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """
         Default execution of this job is to process all collections for
-        the past month.
+        the oldest month.
 
         Additional options are specified in `add_arguments` so you can
         run by specific collection, year/month, or a full scan of the
         historic data.
         """
-        logger.info("Monthly LinkAggregate job started")
+        self.info("Monthly LinkAggregate job started")
 
         if options["year_month"]:
             try:
@@ -57,10 +65,22 @@ class Command(BaseCommand):
                 )
         else:
             today = date.today()
-            last_day_of_month = today.replace(day=1) - timedelta(days=1)
-            first_day_of_month = last_day_of_month.replace(day=1)
+            oldest_agg = LinkAggregate.objects.exclude(day=0).earliest("full_date")
+            if oldest_agg is None:
+                self.info("No data to process.")
+                return
+            oldest_date = oldest_agg.full_date
+            monthrange = calendar.monthrange(oldest_date.year, oldest_date.month)
+            first_day_of_month = oldest_date.replace(day=1)
+            last_day_of_month = oldest_date.replace(day=monthrange[1])
+            no_later_than_date = today - timedelta(days=10)
+            if last_day_of_month > no_later_than_date:
+                self.info(
+                    f"No data within allowed date range: {no_later_than_date} falls within the month of {oldest_date}"
+                )
+                return
 
-        logger.info(f"Processing data from {first_day_of_month} to {last_day_of_month}")
+        self.info(f"Processing data from {first_day_of_month} to {last_day_of_month}")
         month_filter = Q(
             full_date__gte=first_day_of_month, full_date__lte=last_day_of_month
         )
@@ -71,7 +91,7 @@ class Command(BaseCommand):
         else:
             self._process_aggregation(month_filter)
 
-        logger.info("Monthly LinkAggregate job ended")
+        self.info("Monthly LinkAggregate job ended")
 
     def _process_aggregation(self, main_filter_query):
         """
@@ -92,7 +112,7 @@ class Command(BaseCommand):
         -------
         None
         """
-        logger.info("Fetching the main query")
+        self.info("Fetching the main query")
 
         aggregated_data = (
             LinkAggregate.objects.filter(main_filter_query)
@@ -117,11 +137,11 @@ class Command(BaseCommand):
         for batch_index, batch in enumerate(batch_iterator(aggregated_data), start=1):
             with transaction.atomic():
                 total_aggregations += len(batch)
-                logger.info(f"Processing batch {batch_index} (size: {len(batch)})")
+                self.info(f"Processing batch {batch_index} (size: {len(batch)})")
                 for monthly_aggregation in batch:
                     self._verify_and_save_aggregation(monthly_aggregation)
 
-        logger.info(f"Processed a total of {total_aggregations} monthly aggregations")
+        self.info(f"Processed a total of {total_aggregations} monthly aggregations")
 
     def _verify_and_save_aggregation(self, monthly_aggregation):
         """
