@@ -1,6 +1,6 @@
 from django_cron import CronJobBase, Schedule
 
-from django.core.management import call_command
+from subprocess import check_output
 
 
 class LinkAggregatesCron(CronJobBase):
@@ -13,7 +13,8 @@ class LinkAggregatesCron(CronJobBase):
     code = "aggregates.link_aggregates_cron"
 
     def do(self):
-        call_command("fill_link_aggregates")
+        return check_output(["python", "manage.py", "fill_link_aggregates"], text=True)
+
 
 class MonthlyLinkAggregatesCron(CronJobBase):
     """
@@ -35,7 +36,10 @@ class MonthlyLinkAggregatesCron(CronJobBase):
     code = "aggregates.monthly_link_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_link_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_link_aggregates"], text=True
+        )
+
 
 class UserAggregatesCron(CronJobBase):
     RETRY_AFTER_FAILURE_MINS = 360
@@ -47,7 +51,8 @@ class UserAggregatesCron(CronJobBase):
     code = "aggregates.user_aggregates_cron"
 
     def do(self):
-        call_command("fill_user_aggregates")
+        return check_output(["python", "manage.py", "fill_user_aggregates"], text=True)
+
 
 class MonthlyUserAggregatesCron(CronJobBase):
     """
@@ -69,7 +74,10 @@ class MonthlyUserAggregatesCron(CronJobBase):
     code = "aggregates.monthly_user_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_user_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_user_aggregates"], text=True
+        )
+
 
 class PageProjectAggregatesCron(CronJobBase):
     RETRY_AFTER_FAILURE_MINS = 360
@@ -81,7 +89,10 @@ class PageProjectAggregatesCron(CronJobBase):
     code = "aggregates.pageproject_aggregates_cron"
 
     def do(self):
-        call_command("fill_pageproject_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_pageproject_aggregates"], text=True
+        )
+
 
 class MonthlyPageProjectAggregatesCron(CronJobBase):
     """
@@ -103,4 +114,6 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
     code = "aggregates.monthly_pageproject_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_pageproject_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_pageproject_aggregates"], text=True
+        )
