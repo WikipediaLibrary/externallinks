@@ -27,10 +27,9 @@ class MonthlyLinkAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:00 UTC
+    # Will run every 5 minutes
     schedule = Schedule(
-        run_at_times=["01:00"],
-        run_on_days=[10],
+        run_every_mins=5,
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_link_aggregates_cron"
@@ -65,10 +64,9 @@ class MonthlyUserAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:30 UTC
+    # Will run every 5 minutes
     schedule = Schedule(
-        run_at_times=["01:30"],
-        run_on_days=[10],
+        run_every_mins=5,
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_user_aggregates_cron"
@@ -105,10 +103,9 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 03:30 UTC
+    # Will run every 5 minutes
     schedule = Schedule(
-        run_at_times=["03:30"],
-        run_on_days=[10],
+        run_every_mins=5,
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_pageproject_aggregates_cron"
