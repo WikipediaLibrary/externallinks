@@ -91,20 +91,17 @@ class ProgramDetailView(DetailView):
         else:
             queryset_filter = Q(organisation__in=organisations)
 
-        context = self._fill_chart_context(organisations, context, queryset_filter)
+        context = self._fill_chart_context(context, queryset_filter)
 
         return context
 
-    def _fill_chart_context(self, organisations, context, queryset_filter):
+    def _fill_chart_context(self, context, queryset_filter):
         """
         This function adds the chart information to the context
         dictionary to display in ProgramDetailView
 
         Parameters
         ----------
-        organisations : List[Organisation]
-            A list of organisations that belong to the program
-
         context : dict
             The context dictionary that the function will be adding information to
 
@@ -124,7 +121,7 @@ class ProgramDetailView(DetailView):
         current_date = date.today()
         filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
 
-        if filtered_link_aggregate:
+        if filtered_link_aggregate.exists():
             earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
         else:
             # No link information from that collection, so setting earliest_link_date
