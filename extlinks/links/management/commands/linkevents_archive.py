@@ -213,7 +213,6 @@ class Command(BaseCommand):
             return True
 
         except Exception as e:
-            print("Error HERE!")
             logger.error(f"Failed to upload {local_filepath} to Swift: {e}")
             return False
 
