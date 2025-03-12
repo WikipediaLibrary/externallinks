@@ -1,10 +1,13 @@
-import tempfile, glob, os
+import tempfile, glob, gzip, json, os
 
 from datetime import datetime, date, timezone
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.test import TestCase, TransactionTestCase
 from django_cron.models import CronJobLog
+
+from unittest import mock
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -836,3 +839,135 @@ class FixOnUserListCommandTest(TransactionTestCase):
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
+
+
+class LinkEventsArchiveFixSchemaTests(TestCase):
+    """
+    Unit tests for linkevents_archive_fix_schema.py
+    """
+
+    def setUp(self):
+        self.test_dir = "test_archives"
+        os.makedirs(self.test_dir, exist_ok=True)
+
+        self.test_filename = os.path.join(
+            self.test_dir, "links_linkevent_202401.0.json.gz"
+        )
+        self.invalid_filename = os.path.join(self.test_dir, "invalid_file.json.gz")
+
+        self.content_type = ContentType.objects.get(
+            app_label="links", model="urlpattern"
+        )
+        if not self.content_type:
+            self.content_type = ContentType.objects.create(
+                app_label="links", model="urlpattern"
+            )
+
+        # Create a dummy JSON archive
+        data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://example.com",
+                    "timestamp": "2024-01-01 00:00:00.000",
+                    "domain": "example.org",
+                    "url": [42],
+                },
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://example.com/2",
+                    "timestamp": "2024-01-01 00:01:00.000",
+                    "domain": "example.org",
+                    "url": [43, 44],
+                },
+            },
+        ]
+        with gzip.open(self.test_filename, "wt", encoding="utf-8") as f:
+            json.dump(data, f)
+        with gzip.open(self.invalid_filename, "wt", encoding="utf-8") as f:
+            json.dump(data, f)
+
+    def tearDown(self):
+        for file in os.listdir(self.test_dir):
+            os.remove(os.path.join(self.test_dir, file))
+        os.rmdir(self.test_dir)
+
+    def test_update_schema_fills_missing_fields(self):
+        """
+        Test if update_schema fills content_type and object_id correctly.
+        """
+
+        call_command(
+            "linkevents_archive_fix_schema",
+            "update",
+            self.test_filename,
+            "--skip-validation",
+            "--skip-upload",
+            output=self.test_dir,
+        )
+
+        # Read the updated archive
+        new_filename = os.path.join(self.test_dir, "links_linkevent_202401.0.json.gz")
+        with gzip.open(new_filename, "rt", encoding="utf-8") as f:
+            updated_data = json.load(f)
+
+        self.assertEqual(
+            updated_data[0]["fields"]["content_type"], self.content_type.id
+        )
+        self.assertEqual(updated_data[0]["fields"]["object_id"], 42)
+
+        # multiple url should have none to content_type and object_id
+        self.assertIsNone(updated_data[1]["fields"]["content_type"])
+        self.assertIsNone(updated_data[1]["fields"]["object_id"])
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_swift_creates_correct_container(self, mock_swift_connection):
+        """
+        Test that the upload_swift method extracts YYYYMM and uploads to the correct container.
+        """
+        mock_conn = mock_swift_connection.return_value
+        # Simulate no containers
+        mock_conn.get_account.return_value = ({}, [])
+
+        call_command(
+            "linkevents_archive_fix_schema",
+            "upload",
+            self.test_filename,
+        )
+
+        expected_container = "linkevents-backup-202401"
+        mock_conn.put_object.assert_called_with(
+            expected_container,
+            "links_linkevent_202401.0.json.gz",
+            contents=mock.ANY,
+            content_type="application/gzip",
+        )
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_swift_handles_invalid_filenames(self, mock_swift_connection):
+        """
+        Test that upload_swift handles invalid filenames correctly.
+        """
+        mock_conn = mock_swift_connection.return_value
+        # Simulate existing containers
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202401"}],
+        )
+
+        with self.assertLogs("django", level="ERROR") as cm:
+            call_command(
+                "linkevents_archive_fix_schema",
+                "upload",
+                self.invalid_filename,
+            )
+
+        self.assertIn(
+            f"Invalid filename format: {os.path.basename(self.invalid_filename)}. Skipping upload.",
+            cm.output[0],
+        )
+        mock_conn.put_object.assert_not_called()
