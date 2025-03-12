@@ -65,8 +65,9 @@ class Command(BaseCommand):
                 )
         else:
             today = date.today()
-            oldest_agg = LinkAggregate.objects.exclude(day=0).earliest("full_date")
-            if oldest_agg is None:
+            try:
+                oldest_agg = LinkAggregate.objects.exclude(day=0).earliest("full_date")
+            except LinkAggregate.DoesNotExist:
                 self.info("No data to process.")
                 return
             oldest_date = oldest_agg.full_date

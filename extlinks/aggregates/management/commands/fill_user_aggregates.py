@@ -163,25 +163,36 @@ class Command(BaseCommand):
             on_user_list = link_event["on_user_list"]
             links_added = link_event["links_added"]
             links_removed = link_event["links_removed"]
-            if any(attr is None for attr in [username, full_date, on_user_list, links_added, links_removed]):
+            if any(
+                attr is None
+                for attr in [
+                    username,
+                    full_date,
+                    on_user_list,
+                    links_added,
+                    links_removed,
+                ]
+            ):
                 continue
 
             # Granulation level for the daily aggregation.
             # Changing this filter should also impact the monthly
             # aggregation in `fill_monthly_user_aggregates.py`
-            existing_link_aggregate = UserAggregate.objects.filter(
-                organisation=collection.organisation,
-                collection=collection,
-                username=username,
-                full_date=full_date,
-                on_user_list=on_user_list,
-            ).exclude(day=0).first()
+            existing_link_aggregate = (
+                UserAggregate.objects.filter(
+                    organisation=collection.organisation,
+                    collection=collection,
+                    username=username,
+                    full_date=full_date,
+                    on_user_list=on_user_list,
+                )
+                .exclude(day=0)
+                .first()
+            )
             if existing_link_aggregate is not None:
                 if (
-                    existing_link_aggregate.total_links_added
-                    != links_added
-                    or existing_link_aggregate.total_links_removed
-                    != links_removed
+                    existing_link_aggregate.total_links_added != links_added
+                    or existing_link_aggregate.total_links_removed != links_removed
                 ):
                     # Updating the total links added and removed
                     existing_link_aggregate.total_links_added = links_added
