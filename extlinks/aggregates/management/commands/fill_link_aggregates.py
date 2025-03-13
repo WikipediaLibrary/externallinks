@@ -116,7 +116,8 @@ class Command(BaseCommand):
         url_patterns = collection.get_url_patterns()
         for url_pattern in url_patterns:
             link_events_with_annotated_timestamp = url_pattern.link_events.annotate(
-                timestamp_date=Cast("timestamp", DateField())).distinct()
+                timestamp_date=Cast("timestamp", DateField())
+            ).distinct()
             link_events = (
                 link_events_with_annotated_timestamp.values(
                     "timestamp_date", "on_user_list"
@@ -160,12 +161,16 @@ class Command(BaseCommand):
             # Granulation level for the daily aggregation.
             # Changing this filter should also impact the monthly
             # aggregation in `fill_monthly_link_aggregates.py`
-            existing_link_aggregate = LinkAggregate.objects.filter(
-                organisation=collection.organisation,
-                collection=collection,
-                full_date=link_event["timestamp_date"],
-                on_user_list=link_event["on_user_list"],
-            ).exclude(day=0).first()
+            existing_link_aggregate = (
+                LinkAggregate.objects.filter(
+                    organisation=collection.organisation,
+                    collection=collection,
+                    full_date=link_event["timestamp_date"],
+                    on_user_list=link_event["on_user_list"],
+                )
+                .exclude(day=0)
+                .first()
+            )
             if existing_link_aggregate is not None:
                 if (
                     existing_link_aggregate.total_links_added
