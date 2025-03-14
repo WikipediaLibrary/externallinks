@@ -939,7 +939,7 @@ class LinkEventsArchiveFixSchemaTests(TestCase):
             self.test_filename,
         )
 
-        expected_container = "linkevents-backup-202401"
+        expected_container = "archive-linkevents"
         mock_conn.put_object.assert_called_with(
             expected_container,
             "links_linkevent_202401.0.json.gz",
@@ -947,27 +947,3 @@ class LinkEventsArchiveFixSchemaTests(TestCase):
             content_type="application/gzip",
         )
 
-    @mock.patch("swiftclient.client.Connection")
-    def test_upload_swift_handles_invalid_filenames(self, mock_swift_connection):
-        """
-        Test that upload_swift handles invalid filenames correctly.
-        """
-        mock_conn = mock_swift_connection.return_value
-        # Simulate existing containers
-        mock_conn.get_account.return_value = (
-            {},
-            [{"name": "linkevents-backup-202401"}],
-        )
-
-        with self.assertLogs("django", level="ERROR") as cm:
-            call_command(
-                "linkevents_archive_fix_schema",
-                "upload",
-                self.invalid_filename,
-            )
-
-        self.assertIn(
-            f"Invalid filename format: {os.path.basename(self.invalid_filename)}. Skipping upload.",
-            cm.output[0],
-        )
-        mock_conn.put_object.assert_not_called()

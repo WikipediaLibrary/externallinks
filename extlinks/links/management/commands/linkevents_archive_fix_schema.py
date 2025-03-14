@@ -16,6 +16,9 @@ APPLICATION_CREDENTIAL_ID = os.environ["SWIFT_APPLICATION_CREDENTIAL_ID"]
 APPLICATION_CREDENTIAL_SECRET = os.environ["SWIFT_APPLICATION_CREDENTIAL_SECRET"]
 USER_DOMAIN_ID = "default"
 PROJECT_NAME = os.environ["SWIFT_PROJECT_NAME"]
+SWIFT_CONTAINER_NAME = os.environ.get(
+    "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
+)
 
 
 class Command(BaseCommand):
@@ -57,7 +60,7 @@ class Command(BaseCommand):
         filenames = options["filenames"]
 
         if not filenames:
-            logger.info("No link event archives specified")
+            self.log_msg("No link event archives specified")
             return
 
         if action == "update":
@@ -70,7 +73,7 @@ class Command(BaseCommand):
                         skip_upload=options["skip_upload"],
                     )
                 else:
-                    logger.info(
+                    self.log_msg(
                         f"Archive {filename} doesn't exist! Skipping this entry"
                     )
 
@@ -79,9 +82,35 @@ class Command(BaseCommand):
                 if os.path.isfile(filename):
                     self.upload_swift(filename)
                 else:
-                    logger.info(
+                    self.log_msg(
                         f"Archive {filename} doesn't exist! Skipping this entry"
                     )
+
+    def log_msg(self, msg, level="info"):
+        """
+        Logs and prints messages so they are visible in both Docker
+        logs and cron job logs
+
+        Parameters
+        ----------
+        msg : str
+            The message to log
+
+        level : str
+            The log level ('info' or 'error'), defaults to 'info'
+
+        Returns
+        -------
+        None
+        """
+        if level == "error":
+            logger.error(msg)
+            self.stderr.write(msg)
+            self.stderr.flush()
+        else:
+            logger.info(msg)
+            self.stdout.write(msg)
+            self.stdout.flush()
 
     def update_schema(
         self,
@@ -117,13 +146,15 @@ class Command(BaseCommand):
         None
 
         """
-        logger.info(f"Updating schema for {filename}")
+        self.log_msg(f"Updating schema for {filename}")
 
         try:
             urlpattern_content_type_id = ContentType.objects.get(model="urlpattern").id
         except ContentType.DoesNotExist:
             # This should not happen, but just in case
-            logger.error("ContentType for URLPattern not found! Cannot proceed.")
+            self.log_msg(
+                "ContentType for URLPattern not found! Cannot proceed.", level="error"
+            )
             return
 
         with gzip.open(filename, "rt", encoding="utf-8") as archive:
@@ -146,12 +177,12 @@ class Command(BaseCommand):
 
         if skip_validation == False:
             try:
-                logger.info("Validating schema")
+                self.log_msg("Validating schema")
                 # Just parsing for validation purposes, not saving
                 list(serializers.deserialize("json", json.dumps(data)))
             except Exception as e:
-                logger.error(f"Schema validation failed: {e}")
-                logger.error(f"Archive {filename} skipped")
+                self.log_msg(f"Schema validation failed: {e}", level="error")
+                self.log_msg(f"Archive {filename} skipped", level="error")
                 return
 
         if output:
@@ -163,21 +194,16 @@ class Command(BaseCommand):
         with gzip.open(new_archive_path, "wt", encoding="utf-8") as new_archive:
             json.dump(data, new_archive)
 
-        logger.info(f"Updated archive saved {new_archive_path}")
+        self.log_msg(f"Updated archive saved {new_archive_path}")
 
         if skip_upload == False:
-            logger.info(f"Uploading archive to Swift")
+            self.log_msg(f"Uploading archive to Swift")
             self.upload_swift(new_archive_path)
 
     def upload_swift(self, local_filepath: str):
         """
         Upload a file to Swift object storage, ensuring the container exists.
         Reference: https://docs.openstack.org/python-swiftclient/latest/client-api.html
-
-        It is expected the filename follows the pattern
-        `links_linkevent_YYYYMM[DD].N.json.gz`
-        - `links_linkevent_201907.0.json.gz`
-        - `links_linkevent_20250101.0.json.gz`
 
         Parameters
         ----------
@@ -189,21 +215,6 @@ class Command(BaseCommand):
         None
 
         """
-        remote_filename = os.path.basename(local_filepath)
-        # Extract YYYYMM from the filename
-        match = re.search(
-            r"links_linkevent_(\d{6})\d{0,2}\.\d+\.json\.gz", remote_filename
-        )
-
-        if not match:
-            logger.error(
-                f"Invalid filename format: {remote_filename}. Skipping upload."
-            )
-            return
-
-        # group 1 should contain YYYYMM
-        container_name = f"linkevents-backup-{match.group(1)}"
-
         try:
             auth = ApplicationCredential(
                 auth_url=AUTH_URL,
@@ -219,24 +230,27 @@ class Command(BaseCommand):
             existing_containers = [
                 container["name"] for container in conn.get_account()[1]
             ]
-            if container_name not in existing_containers:
-                logger.info(f"Creating new container: {container_name}")
-                conn.put_container(container_name)  # Create the container
+            if SWIFT_CONTAINER_NAME not in existing_containers:
+                self.log_msg(f"Creating new container: {SWIFT_CONTAINER_NAME}")
+                conn.put_container(SWIFT_CONTAINER_NAME)  # Create the container
 
             # Upload the file
+            remote_filename = os.path.basename(local_filepath)
             with open(local_filepath, "rb") as f:
                 conn.put_object(
-                    container_name,
+                    SWIFT_CONTAINER_NAME,
                     remote_filename,
                     contents=f,
                     content_type="application/gzip",
                 )
 
-            logger.info(
-                f"Successfully uploaded {local_filepath} to Swift container {container_name}"
+            self.log_msg(
+                f"Successfully uploaded {local_filepath} to Swift container {SWIFT_CONTAINER_NAME}"
             )
             return
 
         except Exception as e:
-            logger.error(f"Failed to upload {local_filepath} to Swift: {e}")
+            self.log_msg(
+                f"Failed to upload {local_filepath} to Swift: {e}", level="error"
+            )
             return
