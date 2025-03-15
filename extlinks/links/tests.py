@@ -607,7 +607,7 @@ class LinkEventsArchiveCommandTest(TestCase):
             )
 
             # Ensure `put_container` was called
-            mock_conn.put_container.assert_called_with("linkevents-backup-202101")
+            mock_conn.put_container.assert_called_with("archive-linkevents")
 
         finally:
             pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
@@ -634,7 +634,7 @@ class LinkEventsArchiveCommandTest(TestCase):
         # Simulate existing container
         mock_conn.get_account.return_value = (
             {},
-            [{"name": "linkevents-backup-202101"}],
+            [{"name": "archive-linkevents"}],
         )
 
         temp_dir = tempfile.gettempdir()

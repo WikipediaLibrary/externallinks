@@ -22,10 +22,44 @@ APPLICATION_CREDENTIAL_ID = os.environ["SWIFT_APPLICATION_CREDENTIAL_ID"]
 APPLICATION_CREDENTIAL_SECRET = os.environ["SWIFT_APPLICATION_CREDENTIAL_SECRET"]
 USER_DOMAIN_ID = "default"
 PROJECT_NAME = os.environ["SWIFT_PROJECT_NAME"]
+SWIFT_CONTAINER_NAME = os.environ.get(
+    "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
+)
 
 
 class Command(BaseCommand):
     help = "dump & delete or load LinkEvents"
+
+    def log_msg(self, msg, *args, level="info"):
+        """
+        Logs and prints messages so they are visible in both Docker
+        logs and cron job logs
+
+        Parameters
+        ----------
+        msg : str
+            The message to log
+
+        *args : tuple
+            Arguments to be lazily formatted into msg.
+
+        level : str
+            The log level ('info' or 'error'), defaults to 'info'
+
+        Returns
+        -------
+        None
+        """
+        if level == "error":
+            logger.error(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stderr.write(formatted_msg)
+            self.stderr.flush()
+        else:
+            logger.info(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stdout.write(formatted_msg)
+            self.stdout.flush()
 
     def dump(
         self,
@@ -63,7 +97,7 @@ class Command(BaseCommand):
                 )
             )
             if len(most_recent_aggregates) != 3:
-                logger.info("All of the aggregate jobs have not been run yet")
+                self.log_msg("All of the aggregate jobs have not been run yet")
                 return
 
             # Find the oldest start time of the 3 jobs start datetimes we have. All
@@ -106,7 +140,7 @@ class Command(BaseCommand):
 
             filename = f"links_linkevent_{start.strftime('%Y%m%d')}_{iteration}.json.gz"
             local_filepath = os.path.join(output_dir, filename)
-            logger.info(
+            self.log_msg(
                 "Dumping %d LinkEvents into %s", len(linkevents_by_date), local_filepath
             )
 
@@ -115,13 +149,12 @@ class Command(BaseCommand):
                 archive.write(serializers.serialize("json", linkevents_by_date))
 
             # Upload to Swift
-            container_name = f"linkevents-backup-{start.strftime('%Y%m')}"
             if (
-                self.upload_to_swift(local_filepath, filename, container_name)
+                self.upload_to_swift(local_filepath, filename, SWIFT_CONTAINER_NAME)
                 and object_storage_only
             ):
                 os.remove(local_filepath)
-                logger.info(f"Deleted local file {local_filepath} after upload")
+                self.log_msg(f"Deleted local file {local_filepath} after upload")
 
             if len(results) > CHUNK_SIZE:
                 iteration += 1
@@ -131,7 +164,7 @@ class Command(BaseCommand):
 
             total += len(linkevents_by_date)
 
-        logger.info(
+        self.log_msg(
             "Deleting %d LinkEvents before %s from the database",
             total,
             archive_start_time.strftime("%Y-%m-%d"),
@@ -151,11 +184,11 @@ class Command(BaseCommand):
         """
 
         if not filenames:
-            logger.info("No link event archives specified")
+            self.log_msg("No link event archives specified")
             return
 
         for filename in sorted(filenames):
-            logger.info("Loading " + filename)
+            self.log_msg("Loading " + filename)
             # loaddata supports gzipped fixtures and handles relationships properly
             call_command("loaddata", filename)
 
@@ -195,7 +228,7 @@ class Command(BaseCommand):
                 container["name"] for container in conn.get_account()[1]
             ]
             if container_name not in existing_containers:
-                logger.info(f"Creating new container: {container_name}")
+                self.log_msg(f"Creating new container: {container_name}")
                 conn.put_container(container_name)  # Create the container
 
             # Upload the file
@@ -207,13 +240,15 @@ class Command(BaseCommand):
                     content_type="application/gzip",
                 )
 
-            logger.info(
+            self.log_msg(
                 f"Successfully uploaded {local_filepath} to Swift container {container_name}"
             )
             return True
 
         except Exception as e:
-            logger.error(f"Failed to upload {local_filepath} to Swift: {e}")
+            self.log_msg(
+                f"Failed to upload {local_filepath} to Swift: {e}", level="error"
+            )
             return False
 
     def add_arguments(self, parser):
