@@ -1,4 +1,7 @@
 import gzip, logging, datetime, os
+from keystoneauth1.identity.v3 import ApplicationCredential
+from keystoneauth1 import session as keystone_session
+from swiftclient import client as swiftclient
 
 from typing import List, Optional
 
@@ -13,12 +16,57 @@ from extlinks.links.models import LinkEvent
 logger = logging.getLogger("django")
 
 CHUNK_SIZE = 10_000
+# Authentication for Swift Object Store
+AUTH_URL = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
+APPLICATION_CREDENTIAL_ID = os.environ["SWIFT_APPLICATION_CREDENTIAL_ID"]
+APPLICATION_CREDENTIAL_SECRET = os.environ["SWIFT_APPLICATION_CREDENTIAL_SECRET"]
+USER_DOMAIN_ID = "default"
+PROJECT_NAME = os.environ["SWIFT_PROJECT_NAME"]
+SWIFT_CONTAINER_NAME = os.environ.get(
+    "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
+)
 
 
 class Command(BaseCommand):
     help = "dump & delete or load LinkEvents"
 
-    def dump(self, date: Optional[datetime.date] = None, output: Optional[str] = None):
+    def log_msg(self, msg, *args, level="info"):
+        """
+        Logs and prints messages so they are visible in both Docker
+        logs and cron job logs
+
+        Parameters
+        ----------
+        msg : str
+            The message to log
+
+        *args : tuple
+            Arguments to be lazily formatted into msg.
+
+        level : str
+            The log level ('info' or 'error'), defaults to 'info'
+
+        Returns
+        -------
+        None
+        """
+        if level == "error":
+            logger.error(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stderr.write(formatted_msg)
+            self.stderr.flush()
+        else:
+            logger.info(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stdout.write(formatted_msg)
+            self.stdout.flush()
+
+    def dump(
+        self,
+        date: Optional[datetime.date] = None,
+        output: Optional[str] = None,
+        object_storage_only=False,
+    ):
         """
         Export LinkEvents to gzipped JSON files that are grouped by day, and
         then delete them from the database.
@@ -49,7 +97,7 @@ class Command(BaseCommand):
                 )
             )
             if len(most_recent_aggregates) != 3:
-                logger.info("All of the aggregate jobs have not been run yet")
+                self.log_msg("All of the aggregate jobs have not been run yet")
                 return
 
             # Find the oldest start time of the 3 jobs start datetimes we have. All
@@ -90,17 +138,23 @@ class Command(BaseCommand):
             # Remove the overfetched record before saving the archive.
             linkevents_by_date = results[:CHUNK_SIZE]
 
-            filename = os.path.join(
-                output_dir,
-                f"links_linkevent_{start.strftime('%Y%m%d')}_{iteration}.json.gz",
-            )
-            logger.info(
-                "Dumping %d LinkEvents into %s", len(linkevents_by_date), filename
+            filename = f"links_linkevent_{start.strftime('%Y%m%d')}_{iteration}.json.gz"
+            local_filepath = os.path.join(output_dir, filename)
+            self.log_msg(
+                "Dumping %d LinkEvents into %s", len(linkevents_by_date), local_filepath
             )
 
             # Serialize the records directly in the writer to conserve memory.
-            with gzip.open(filename, "wt", encoding="utf-8") as archive:
+            with gzip.open(local_filepath, "wt", encoding="utf-8") as archive:
                 archive.write(serializers.serialize("json", linkevents_by_date))
+
+            # Upload to Swift
+            if (
+                self.upload_to_swift(local_filepath, filename, SWIFT_CONTAINER_NAME)
+                and object_storage_only
+            ):
+                os.remove(local_filepath)
+                self.log_msg(f"Deleted local file {local_filepath} after upload")
 
             if len(results) > CHUNK_SIZE:
                 iteration += 1
@@ -110,7 +164,7 @@ class Command(BaseCommand):
 
             total += len(linkevents_by_date)
 
-        logger.info(
+        self.log_msg(
             "Deleting %d LinkEvents before %s from the database",
             total,
             archive_start_time.strftime("%Y-%m-%d"),
@@ -124,20 +178,78 @@ class Command(BaseCommand):
             delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
             LinkEvent.objects.filter(pk__in=list(delete_query_set)).delete()
 
-
     def load(self, filenames: List[str]):
         """
         Import LinkEvents from gzipped JSON files.
         """
 
         if not filenames:
-            logger.info("No link event archives specified")
+            self.log_msg("No link event archives specified")
             return
 
         for filename in sorted(filenames):
-            logger.info("Loading " + filename)
+            self.log_msg("Loading " + filename)
             # loaddata supports gzipped fixtures and handles relationships properly
             call_command("loaddata", filename)
+
+    def upload_to_swift(self, local_filepath, remote_filename, container_name):
+        """
+        Upload a file to Swift object storage, ensuring the container exists.
+
+        Reference: https://docs.openstack.org/python-swiftclient/latest/client-api.html
+
+        Parameters
+        ----------
+        local_file_path : str
+            The backup file path to be uploaded to Swift
+
+        remote_filename : str
+            The file name to be created in Swift
+
+        container_name : str
+            The Swift container to upload the file
+        Returns
+        -------
+        None
+        """
+        try:
+            auth = ApplicationCredential(
+                auth_url=AUTH_URL,
+                application_credential_id=APPLICATION_CREDENTIAL_ID,
+                application_credential_secret=APPLICATION_CREDENTIAL_SECRET,
+                user_domain_id=USER_DOMAIN_ID,
+                project_name=PROJECT_NAME,
+            )
+            session = keystone_session.Session(auth=auth)
+            conn = swiftclient.Connection(session=session)
+
+            # Ensure the container exists before uploading
+            existing_containers = [
+                container["name"] for container in conn.get_account()[1]
+            ]
+            if container_name not in existing_containers:
+                self.log_msg(f"Creating new container: {container_name}")
+                conn.put_container(container_name)  # Create the container
+
+            # Upload the file
+            with open(local_filepath, "rb") as f:
+                conn.put_object(
+                    container_name,
+                    remote_filename,
+                    contents=f,
+                    content_type="application/gzip",
+                )
+
+            self.log_msg(
+                f"Successfully uploaded {local_filepath} to Swift container {container_name}"
+            )
+            return True
+
+        except Exception as e:
+            self.log_msg(
+                f"Failed to upload {local_filepath} to Swift: {e}", level="error"
+            )
+            return False
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -167,10 +279,19 @@ class Command(BaseCommand):
             type=str,
             help="The directory that the archives containing the LinkEvents should be written to.",
         )
+        parser.add_argument(
+            "--object-storage-only",
+            action="store_true",
+            help="If enabled, archives will only be stored in Swift and deleted from local storage after upload.",
+        )
 
     def handle(self, *args, **options):
         action = options["action"][0]
         if action == "dump":
-            self.dump(date=options["date"], output=options["output"])
+            self.dump(
+                date=options["date"],
+                output=options["output"],
+                object_storage_only=options["object_storage_only"],
+            )
         if action == "load":
             self.load(filenames=options["filenames"])
