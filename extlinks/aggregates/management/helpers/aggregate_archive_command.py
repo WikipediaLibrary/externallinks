@@ -2,6 +2,8 @@ import datetime
 import gzip
 import logging
 import os
+import swiftclient
+import swiftclient.exceptions
 
 from abc import ABC, abstractmethod
 from dateutil.relativedelta import relativedelta
@@ -9,6 +11,10 @@ from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import models
+from extlinks.aggregates.management.helpers.swift import (
+    swift_connection,
+    batch_upload_files,
+)
 from typing import List, Optional, Type
 
 logger = logging.getLogger("django")
@@ -52,6 +58,13 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             type=str,
             help=f"The directory that the archives containing the {self.name} data should be written to.",
         )
+        dump_parser.add_argument(
+            "-c",
+            "--container",
+            nargs="?",
+            type=str,
+            help=f"The Swift container to upload {self.name} archives to. If left unspecified then nothing will be uploaded.",
+        )
 
         load_parser = subparsers.add_parser(
             "load",
@@ -68,11 +81,20 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         subcommand = options["subcommand"]
 
         if subcommand == "dump":
-            self.dump(date=options["date"], output=options["output"])
+            self.dump(
+                date=options["date"],
+                output=options["output"],
+                container=options["container"],
+            )
         elif subcommand == "load":
             self.load(filenames=options["filenames"])
 
-    def dump(self, date: datetime.date, output: Optional[str] = None):
+    def dump(
+        self,
+        date: datetime.date,
+        output: Optional[str] = None,
+        container: Optional[str] = None,
+    ):
         """
         Dump aggregate data to gzipped JSON files that are grouped by month,
         and then delete them from the database.
@@ -85,6 +107,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         start = date
         total = 0
         iteration = 0
+        archives: List[str] = []
 
         while True:
             limit = (iteration + 1) * CHUNK_SIZE
@@ -116,6 +139,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             # Serialize the records directly in the writer to conserve memory.
             with gzip.open(filename, "wt", encoding="utf-8") as archive:
                 archive.write(serializers.serialize("json", results_by_date))
+                archives.append(filename)
 
             if len(results) > CHUNK_SIZE:
                 iteration += 1
@@ -138,6 +162,31 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         while query_set.exists():
             delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
             AggregateModel.objects.filter(pk__in=list(delete_query_set)).delete()
+
+        # Upload the archives to object storage if a container was specified.
+        if container and len(archives) > 0:
+            logger.info("Uploading %d archives to object storage", len(archives))
+            conn = swift_connection()
+
+            try:
+                conn.get_container(container)
+            except swiftclient.exceptions.ClientException as exc:
+                if exc.http_status == 404:
+                    logger.error(
+                        "Cannot upload archives to Swift. The container '%s' "
+                        "doesn't exist",
+                        container,
+                    )
+
+                raise
+
+            successful, _ = batch_upload_files(conn, container, archives)
+
+            logger.info(
+                "Successfully uploaded %d/%d archives to object storage",
+                len(successful),
+                len(archives),
+            )
 
     def load(self, filenames: List[str]):
         """
