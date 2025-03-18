@@ -17,11 +17,10 @@ logger = logging.getLogger("django")
 
 CHUNK_SIZE = 10_000
 # Authentication for Swift Object Store
-AUTH_URL = "https://openstack.eqiad1.wikimediacloud.org:25000/v3"
+AUTH_URL = os.environ["OPENSTACK_AUTH_URL"]
 APPLICATION_CREDENTIAL_ID = os.environ["SWIFT_APPLICATION_CREDENTIAL_ID"]
 APPLICATION_CREDENTIAL_SECRET = os.environ["SWIFT_APPLICATION_CREDENTIAL_SECRET"]
 USER_DOMAIN_ID = "default"
-PROJECT_NAME = os.environ["SWIFT_PROJECT_NAME"]
 SWIFT_CONTAINER_NAME = os.environ.get(
     "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
 )
@@ -218,7 +217,6 @@ class Command(BaseCommand):
                 application_credential_id=APPLICATION_CREDENTIAL_ID,
                 application_credential_secret=APPLICATION_CREDENTIAL_SECRET,
                 user_domain_id=USER_DOMAIN_ID,
-                project_name=PROJECT_NAME,
             )
             session = keystone_session.Session(auth=auth)
             conn = swiftclient.Connection(session=session)
