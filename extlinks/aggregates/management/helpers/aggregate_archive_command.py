@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from dateutil.relativedelta import relativedelta
 from django.core import serializers
 from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandParser
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import models
 from extlinks.aggregates.management.helpers.swift import (
     swift_connection,
@@ -77,6 +77,25 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             help=f"{self.name} archive filenames to load.",
         )
 
+        upload_parser = subparsers.add_parser(
+            "upload",
+            help=f"Upload {self.name} data to Swift object storage from the local filesystem.",
+        )
+        upload_parser.add_argument(
+            "-c",
+            "--container",
+            nargs="?",
+            type=str,
+            help=f"The Swift container to upload {self.name} archives to.",
+            required=True,
+        )
+        upload_parser.add_argument(
+            "filenames",
+            nargs="*",
+            type=str,
+            help=f"{self.name} archive filenames to upload.",
+        )
+
     def handle(self, *args, **options):
         subcommand = options["subcommand"]
 
@@ -88,6 +107,8 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             )
         elif subcommand == "load":
             self.load(filenames=options["filenames"])
+        elif subcommand == "upload":
+            self.upload(container=options["container"], filenames=options["filenames"])
 
     def dump(
         self,
@@ -165,28 +186,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
         # Upload the archives to object storage if a container was specified.
         if container and len(archives) > 0:
-            logger.info("Uploading %d archives to object storage", len(archives))
-            conn = swift_connection()
-
-            try:
-                conn.get_container(container)
-            except swiftclient.exceptions.ClientException as exc:
-                if exc.http_status == 404:
-                    logger.error(
-                        "Cannot upload archives to Swift. The container '%s' "
-                        "doesn't exist",
-                        container,
-                    )
-
-                raise
-
-            successful, _ = batch_upload_files(conn, container, archives)
-
-            logger.info(
-                "Successfully uploaded %d/%d archives to object storage",
-                len(successful),
-                len(archives),
-            )
+            self.upload(container, archives)
 
     def load(self, filenames: List[str]):
         """
@@ -202,6 +202,37 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
             # loaddata supports gzipped fixtures and handles relationships properly.
             call_command("loaddata", filename)
+
+    def upload(self, container: str, filenames: List[str]):
+        """
+        Upload the given files to object storage.
+        """
+
+        if len(filenames) == 0:
+            raise CommandError("Filenames must be provided to the upload command")
+
+        logger.info("Uploading %d archives to object storage", len(filenames))
+        conn = swift_connection()
+
+        try:
+            conn.get_container(container)
+        except swiftclient.exceptions.ClientException as exc:
+            if exc.http_status == 404:
+                logger.error(
+                    "Cannot upload archives to Swift. The container '%s' "
+                    "doesn't exist",
+                    container,
+                )
+
+            raise
+
+        successful, _ = batch_upload_files(conn, container, filenames)
+
+        logger.info(
+            "Successfully uploaded %d/%d filenames to object storage",
+            len(successful),
+            len(filenames),
+        )
 
     @abstractmethod
     def get_model(self) -> Type[models.Model]:
