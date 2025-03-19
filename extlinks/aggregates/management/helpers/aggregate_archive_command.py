@@ -229,7 +229,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         successful, _ = batch_upload_files(conn, container, filenames)
 
         logger.info(
-            "Successfully uploaded %d/%d filenames to object storage",
+            "Successfully uploaded %d/%d archives to object storage",
             len(successful),
             len(filenames),
         )
