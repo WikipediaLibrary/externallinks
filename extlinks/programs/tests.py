@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import json
 
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, TransactionTestCase
 from django.urls import reverse
 from django.core.management import call_command
 
@@ -54,7 +54,7 @@ class ProgramListTest(TestCase):
         self.assertContains(response, self.program_two.name)
 
 
-class ProgramDetailTest(TestCase):
+class ProgramDetailTest(TransactionTestCase):
     def setUp(self):
         self.program1 = ProgramFactory()
         self.organisation1 = OrganisationFactory(name="Org 1", program=(self.program1,))

@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from django.core import serializers
 from django.core.management import BaseCommand, call_command
-from django.db import connection
+from django.db import close_old_connections
 from django.db.models import Q, Max
 from django_cron.models import CronJobLog
 
@@ -124,7 +124,6 @@ class Command(BaseCommand):
             delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
             LinkEvent.objects.filter(pk__in=list(delete_query_set)).delete()
 
-
     def load(self, filenames: List[str]):
         """
         Import LinkEvents from gzipped JSON files.
@@ -174,3 +173,4 @@ class Command(BaseCommand):
             self.dump(date=options["date"], output=options["output"])
         if action == "load":
             self.load(filenames=options["filenames"])
+        close_old_connections()
