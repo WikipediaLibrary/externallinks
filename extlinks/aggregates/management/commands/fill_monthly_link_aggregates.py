@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import transaction, close_old_connections
 from django.db.models import Count, Q, Sum
 
 from ...models import LinkAggregate
@@ -93,6 +93,7 @@ class Command(BaseCommand):
             self._process_aggregation(month_filter)
 
         self.info("Monthly LinkAggregate job ended")
+        close_old_connections()
 
     def _process_aggregation(self, main_filter_query):
         """

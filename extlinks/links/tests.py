@@ -3,7 +3,7 @@ import tempfile, glob, os
 from datetime import datetime, date, timezone
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django_cron.models import CronJobLog
 
 from extlinks.aggregates.models import (
@@ -270,7 +270,7 @@ class LinkEventsCollectCommandTest(TestCase):
         self.assertEqual(LinkEvent.objects.count(), 2)
 
 
-class LinkEventsArchiveCommandTest(TestCase):
+class LinkEventsArchiveCommandTest(TransactionTestCase):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
 
@@ -330,11 +330,17 @@ class LinkEventsArchiveCommandTest(TestCase):
             )
 
             # Ensure the expected archives were generated.
-            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20210116_0.json.gz")
+            jan_16_archive = os.path.join(
+                temp_dir, "links_linkevent_20210116_0.json.gz"
+            )
             self.assertTrue(os.path.isfile(jan_16_archive))
-            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20210117_0.json.gz")
+            jan_17_archive = os.path.join(
+                temp_dir, "links_linkevent_20210117_0.json.gz"
+            )
             self.assertTrue(os.path.isfile(jan_17_archive))
-            jan_18_archive = os.path.join(temp_dir, "links_linkevent_20210118_0.json.gz")
+            jan_18_archive = os.path.join(
+                temp_dir, "links_linkevent_20210118_0.json.gz"
+            )
             self.assertTrue(os.path.isfile(jan_18_archive))
 
             # Make sure the events that were archived got removed from the db.
@@ -412,9 +418,13 @@ class LinkEventsArchiveCommandTest(TestCase):
             call_command("linkevents_archive", "dump", output=temp_dir)
 
             # Ensure the expected archives were generated.
-            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            jan_16_archive = os.path.join(
+                temp_dir, "links_linkevent_20250116_0.json.gz"
+            )
             self.assertTrue(os.path.isfile(jan_16_archive))
-            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            jan_17_archive = os.path.join(
+                temp_dir, "links_linkevent_20250117_0.json.gz"
+            )
             self.assertTrue(os.path.isfile(jan_17_archive))
 
             # Make sure the events that were archived got removed from the db.
@@ -477,9 +487,13 @@ class LinkEventsArchiveCommandTest(TestCase):
             call_command("linkevents_archive", "dump", output=temp_dir)
 
             # Ensure that no archives were generated.
-            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            jan_16_archive = os.path.join(
+                temp_dir, "links_linkevent_20250116_0.json.gz"
+            )
             self.assertFalse(os.path.isfile(jan_16_archive))
-            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            jan_17_archive = os.path.join(
+                temp_dir, "links_linkevent_20250117_0.json.gz"
+            )
             self.assertFalse(os.path.isfile(jan_17_archive))
 
             # Ensure that no LinkEvents were deleted.
@@ -526,9 +540,13 @@ class LinkEventsArchiveCommandTest(TestCase):
             call_command("linkevents_archive", "dump", output=temp_dir)
 
             # Ensure that no archives were generated.
-            jan_16_archive = os.path.join(temp_dir, "links_linkevent_20250116_0.json.gz")
+            jan_16_archive = os.path.join(
+                temp_dir, "links_linkevent_20250116_0.json.gz"
+            )
             self.assertFalse(os.path.isfile(jan_16_archive))
-            jan_17_archive = os.path.join(temp_dir, "links_linkevent_20250117_0.json.gz")
+            jan_17_archive = os.path.join(
+                temp_dir, "links_linkevent_20250117_0.json.gz"
+            )
             self.assertFalse(os.path.isfile(jan_17_archive))
 
             # Ensure that no LinkEvents were deleted.
@@ -587,7 +605,7 @@ class LinkEventsArchiveCommandTest(TestCase):
                 os.remove(file)
 
 
-class EZProxyRemovalCommandTest(TestCase):
+class EZProxyRemovalCommandTest(TransactionTestCase):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
 
@@ -694,7 +712,7 @@ class EZProxyRemovalCommandTest(TestCase):
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
 
 
-class FixOnUserListCommandTest(TestCase):
+class FixOnUserListCommandTest(TransactionTestCase):
     def setUp(self):
         self.user1 = UserFactory(username="jonsnow")
 

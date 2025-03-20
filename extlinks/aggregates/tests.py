@@ -2,7 +2,7 @@ from datetime import datetime, date, timedelta, timezone
 import time_machine
 
 from django.core.management import call_command, CommandError
-from django.test import TestCase
+from django.test import TransactionTestCase
 
 from .factories import (
     LinkAggregateFactory,
@@ -19,7 +19,7 @@ from extlinks.organisations.factories import (
 from extlinks.organisations.models import Organisation
 
 
-class LinkAggregateCommandTest(TestCase):
+class LinkAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -217,7 +217,7 @@ class LinkAggregateCommandTest(TestCase):
             call_command("fill_link_aggregates", collections=[new_collection.pk])
 
 
-class UserAggregateCommandTest(TestCase):
+class UserAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -465,7 +465,7 @@ class UserAggregateCommandTest(TestCase):
             call_command("fill_user_aggregates", collections=[new_collection.pk])
 
 
-class PageProjectAggregateCommandTest(TestCase):
+class PageProjectAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -723,7 +723,7 @@ class PageProjectAggregateCommandTest(TestCase):
             call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
 
 
-class MonthlyLinkAggregateCommandTest(TestCase):
+class MonthlyLinkAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -847,7 +847,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             )
 
 
-class MonthlyUserAggregateCommandTest(TestCase):
+class MonthlyUserAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -1035,7 +1035,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
 
-class MonthlyPageProjectAggregateCommandTest(TestCase):
+class MonthlyPageProjectAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)

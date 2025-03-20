@@ -2,6 +2,7 @@ import os
 import requests
 
 from django.core.management import BaseCommand
+from django.db import close_old_connections
 
 from extlinks.organisations.models import Organisation, User
 
@@ -35,3 +36,5 @@ class Command(BaseCommand):
                 user_object, _ = User.objects.get_or_create(username=username)
 
                 organisation.username_list.add(user_object)
+
+        close_old_connections()
