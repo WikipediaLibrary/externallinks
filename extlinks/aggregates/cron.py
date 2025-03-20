@@ -103,7 +103,7 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run every 24 hours
+    # Will run every 24 hours at 03:50
     schedule = Schedule(
         run_at_times=["03:50"],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
