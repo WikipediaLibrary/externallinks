@@ -222,9 +222,15 @@ class Command(BaseCommand):
             conn = swiftclient.Connection(session=session)
 
             # Ensure the container exists before uploading
-            existing_containers = [
-                container["name"] for container in conn.get_account()[1]
-            ]
+            account_info = conn.get_account()
+            if not account_info or len(account_info) < 2:
+                self.log_msg(
+                    "Failed to retrieve container list from Swift account.",
+                    level="error",
+                )
+                return False
+
+            existing_containers = [container["name"] for container in account_info[1]]
             if container_name not in existing_containers:
                 self.log_msg(f"Creating new container: {container_name}")
                 conn.put_container(container_name)  # Create the container
