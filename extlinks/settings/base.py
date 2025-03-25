@@ -156,6 +156,7 @@ CRON_CLASSES = [
     "extlinks.aggregates.cron.MonthlyLinkAggregatesCron",
     "extlinks.aggregates.cron.MonthlyUserAggregatesCron",
     "extlinks.aggregates.cron.MonthlyPageProjectAggregatesCron",
+    "extlinks.links.cron.ArchiveLinksCron",
 ]
 # DJANGO_CRON_DELETE_LOGS_OLDER_THAN = 90  # Leave only the last 3 month's logs
 
