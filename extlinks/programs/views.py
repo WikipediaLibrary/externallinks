@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import json
 
 from django.db.models import Sum, Count, Q
@@ -9,12 +9,12 @@ from django.utils.decorators import method_decorator
 
 from extlinks.aggregates.models import (
     LinkAggregate,
-    PageProjectAggregate,
-    UserAggregate,
+    ProgramTopOrganisationsTotal,
+    ProgramTopProjectsTotal,
+    ProgramTopUsersTotal,
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import build_queryset_filters
-from extlinks.organisations.models import Organisation
 from .models import Program
 
 from logging import getLogger
@@ -45,7 +45,7 @@ class ProgramDetailView(DetailView):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
-        context["orgs_values"] = [org.pk for org in this_program_organisations]
+        context["program_id"] = self.object.pk
         form = self.form_class(self.request.GET)
         context["form"] = form
 
@@ -172,16 +172,11 @@ def get_editor_count(request):
     Ajax request for editor count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-
-    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+    editor_count = ProgramTopUsersTotal.objects.filter(queryset_filter).aggregate(
         editor_count=Count("username", distinct=True)
     )
 
@@ -195,16 +190,11 @@ def get_project_count(request):
     Ajax request for project count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-
-    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+    project_count = ProgramTopProjectsTotal.objects.filter(queryset_filter).aggregate(
         project_count=Count("project_name", distinct=True)
     )
 
@@ -218,15 +208,13 @@ def get_links_count(request):
     Ajax request for link events counts (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+    links_added_removed = ProgramTopOrganisationsTotal.objects.filter(
+        queryset_filter
+    ).aggregate(
         links_added=Sum("total_links_added"),
         links_removed=Sum("total_links_removed"),
         links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -245,17 +233,12 @@ def get_top_organisations(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_organisations = (
-        LinkAggregate.objects.filter(queryset_filter)
+        ProgramTopOrganisationsTotal.objects.filter(queryset_filter)
         .values("organisation__pk", "organisation__name")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -275,17 +258,12 @@ def get_top_projects(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_projects = (
-        PageProjectAggregate.objects.filter(queryset_filter)
+        ProgramTopProjectsTotal.objects.filter(queryset_filter)
         .values("project_name")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -305,17 +283,12 @@ def get_top_users(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_users = (
-        UserAggregate.objects.filter(queryset_filter)
+        ProgramTopUsersTotal.objects.filter(queryset_filter)
         .values("username")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
