@@ -2,13 +2,16 @@ import concurrent.futures
 import logging
 import os
 
-from typing import Iterable, List, Tuple, cast
+from typing import Iterable, List, Tuple, cast, Dict, Optional
 
 import swiftclient
 import keystoneauth1.identity.v3 as identity
 import keystoneauth1.session as session
 
 logger = logging.getLogger("django")
+
+MAX_WORKERS = 10
+OBJECT_LIMIT = 1000
 
 
 def swift_connection() -> swiftclient.Connection:
@@ -92,6 +95,37 @@ def ensure_container_exists(conn: swiftclient.Connection, container: str) -> boo
         return True
 
     return False
+
+
+def get_object_list(
+    conn: swiftclient.Connection,
+    container: str,
+    prefix: Optional[str] = None,
+) -> List[Dict]:
+    """
+    Gets a list of all objects in a container matching an optional prefix.
+    """
+
+    objects = []
+    marker = None
+
+    while True:
+        _, objects_page = conn.get_container(
+            container,
+            prefix=prefix,
+            marker=marker,
+            limit=OBJECT_LIMIT,
+        )
+        if not objects_page:
+            break
+
+        objects.extend(objects_page)
+        marker = objects_page[-1]["name"]
+
+        if len(objects_page) < OBJECT_LIMIT:
+            break
+
+    return objects
 
 
 def upload_file(
@@ -197,7 +231,7 @@ def batch_upload_files(
     conn: swiftclient.Connection,
     container: str,
     files: Iterable[str],
-    max_workers=10,
+    max_workers=MAX_WORKERS,
 ) -> Tuple[List[str], List[str]]:
     """
     Uploads a batch of multiple files to the given Swift container.
@@ -242,3 +276,37 @@ def batch_upload_files(
                 failed.append(path)
 
     return successful, failed
+
+
+def batch_download_files(
+    conn: swiftclient.Connection,
+    container: str,
+    objects: Iterable[str],
+    max_workers=MAX_WORKERS,
+) -> Dict[str, bytes]:
+    """
+    Downloads a batch of multiple files from the given Swift container.
+    """
+
+    result: Dict[str, bytes] = {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(download_file, conn, container, o): o for o in objects
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            name = futures[future]
+
+            try:
+                value = future.result()
+                result[name] = value
+            except Exception as exc:
+                logging.error(
+                    "Unable to download '%s' from the '%s' container: %s",
+                    name,
+                    container,
+                    exc,
+                )
+
+    return result
