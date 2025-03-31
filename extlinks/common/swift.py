@@ -3,9 +3,12 @@ import logging
 import os
 import swiftclient
 
-from typing import List, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, cast
 
 logger = logging.getLogger("django")
+
+MAX_WORKERS = 10
+OBJECT_LIMIT = 1000
 
 
 def swift_connection() -> swiftclient.Connection:
@@ -38,7 +41,38 @@ def swift_connection() -> swiftclient.Connection:
         )
 
 
-def upload_file(conn: swiftclient.Connection, container: str, path: str):
+def get_object_list(
+    conn: swiftclient.Connection,
+    container: str,
+    prefix: Optional[str] = None,
+) -> List[Dict]:
+    """
+    Gets a list of all objects in a container matching an optional prefix.
+    """
+
+    objects = []
+    marker = None
+
+    while True:
+        _, objects_page = conn.get_container(
+            container,
+            prefix=prefix,
+            marker=marker,
+            limit=OBJECT_LIMIT,
+        )
+        if not objects_page:
+            break
+
+        objects.extend(objects_page)
+        marker = objects_page[-1]["name"]
+
+        if len(objects_page) < OBJECT_LIMIT:
+            break
+
+    return objects
+
+
+def upload_file(conn: swiftclient.Connection, container: str, path: str) -> str:
     """
     Uploads a file on the local filesystem to the provided Swift container.
     """
@@ -56,11 +90,21 @@ def upload_file(conn: swiftclient.Connection, container: str, path: str):
     return object_name
 
 
+def download_file(conn: swiftclient.Connection, container: str, object: str) -> bytes:
+    """
+    Downloads a file from object storage.
+    """
+
+    _, response = conn.get_object(container, object)
+
+    return cast(bytes, response)
+
+
 def batch_upload_files(
     conn: swiftclient.Connection,
     container: str,
-    files: List[str],
-    max_workers=10,
+    files: Iterator[str],
+    max_workers=MAX_WORKERS,
 ) -> Tuple[List[str], List[str]]:
     """
     Uploads a batch of multiple files to the given Swift container.
@@ -84,3 +128,37 @@ def batch_upload_files(
                 failed.append(path)
 
     return successful, failed
+
+
+def batch_download_files(
+    conn: swiftclient.Connection,
+    container: str,
+    objects: Iterable[str],
+    max_workers=MAX_WORKERS,
+) -> Dict[str, bytes]:
+    """
+    Downloads a batch of multiple files from the given Swift container.
+    """
+
+    result: Dict[str, bytes] = {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(download_file, conn, container, o): o for o in objects
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            name = futures[future]
+
+            try:
+                value = future.result()
+                result[name] = value
+            except Exception as exc:
+                logging.error(
+                    "Unable to download '%s' from the '%s' container: %s",
+                    name,
+                    container,
+                    exc,
+                )
+
+    return result
