@@ -1,4 +1,4 @@
-import os
+from os import getenv
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
@@ -24,7 +24,8 @@ urlpatterns = [
     ),
 ]
 
-if settings.DEBUG and os.environ["REQUIREMENTS_FILE"] == "local.txt":
+reqs = getenv("REQUIREMENTS_FILE", "django.txt")
+if settings.DEBUG and reqs == "local.txt":
     if not settings.TESTING:
         import debug_toolbar
 
