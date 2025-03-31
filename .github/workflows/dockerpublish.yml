@@ -91,3 +91,15 @@ jobs:
           docker tag ${image_name}:latest ${image_name}:${commit_tag}
           docker push ${image_name}:${branch_tag}
           docker push ${image_name}:${commit_tag}
+
+      - name: Push externallinks_cron image to quay.io/wikipedialibrary
+        run: |
+          # The image name represents both the local image name and the remote image repository.
+          image_name=quay.io/wikipedialibrary/externallinks_cron
+          branch_tag=${{ steps.branch.outputs.tag }}
+          commit_tag=${{ steps.commit.outputs.tag }}
+
+          docker tag ${image_name}:latest ${image_name}:${branch_tag}
+          docker tag ${image_name}:latest ${image_name}:${commit_tag}
+          docker push ${image_name}:${branch_tag}
+          docker push ${image_name}:${commit_tag}

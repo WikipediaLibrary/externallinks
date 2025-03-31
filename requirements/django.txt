@@ -3,8 +3,10 @@ django_cron==0.6.0
 django_extensions==3.2.3
 factory_boy>=3.0.1
 faker==26.0.0
+filelock==3.18.0
 mysqlclient==2.2.4
 pymemcache==4.0.0
+python-dotenv==1.1.0
 sentry-sdk==2.10.0
 sseclient==0.0.27
 time_machine==2.14.2

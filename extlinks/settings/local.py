@@ -1,5 +1,6 @@
 from .base import *
 from .logging import *
+from os import getenv
 import sys
 
 DEBUG = True
@@ -14,7 +15,8 @@ DEFAULT_FROM_EMAIL = SERVER_EMAIL
 # Sometimes, developers do not want the debug toolbar on their local environments,
 # so we can disable it by not passing a REQUIREMENTS_FILE variable when building
 # the docker containers
-if os.environ["REQUIREMENTS_FILE"] == "local.txt":
+reqs = getenv("REQUIREMENTS_FILE", "django.txt")
+if reqs == "local.txt":
     TESTING = "test" in sys.argv
     if not TESTING:
         INSTALLED_APPS += [
