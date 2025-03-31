@@ -149,6 +149,37 @@ def ensure_container_exists(conn: swiftclient.Connection, container: str) -> boo
     return False
 
 
+def get_object_list(
+    conn: swiftclient.Connection,
+    container: str,
+    prefix: Optional[str] = None,
+) -> List[Dict]:
+    """
+    Gets a list of all objects in a container matching an optional prefix.
+    """
+
+    objects = []
+    marker = None
+
+    while True:
+        _, objects_page = conn.get_container(
+            container,
+            prefix=prefix,
+            marker=marker,
+            limit=OBJECT_LIMIT,
+        )
+        if not objects_page:
+            break
+
+        objects.extend(objects_page)
+        marker = objects_page[-1]["name"]
+
+        if len(objects_page) < OBJECT_LIMIT:
+            break
+
+    return objects
+
+
 def upload_file(
     conn: swiftclient.Connection,
     container: str,
