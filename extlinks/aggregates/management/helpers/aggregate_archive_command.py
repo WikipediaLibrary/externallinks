@@ -16,10 +16,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import models
 
-from extlinks.aggregates.management.helpers.swift import (
-    swift_connection,
-    batch_upload_files,
-)
+from extlinks.common.swift import swift_connection, batch_upload_files
 
 logger = logging.getLogger("django")
 
