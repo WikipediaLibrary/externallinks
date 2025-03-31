@@ -12,3 +12,6 @@ ENTRYPOINT ["/app/bin/django_wait_for_db.sh"]
 
 FROM eventstream as externallinks
 RUN pip install gunicorn
+
+from eventstream as cron
+RUN apt update && apt install -y cron && rm -rf /var/lib/apt/lists/*

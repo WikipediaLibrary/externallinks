@@ -29,15 +29,15 @@ services:
           cpus: "0.25"
           memory: "384M"
   crons:
-    image: quay.io/wikipedialibrary/externallinks:${EXTERNALLINKS_TAG}
+    image: quay.io/wikipedialibrary/externallinks_cron${EXTERNALLINKS_TAG}
     build:
       context: .
-      target: externallinks
+      target: cron
     env_file:
       - ".env"
     depends_on:
       - db
-    command: ["python", "manage.py", "cronloop"]
+    command: ["/app/bin/cron.sh"]
     volumes:
       - type: bind
         source: ./
