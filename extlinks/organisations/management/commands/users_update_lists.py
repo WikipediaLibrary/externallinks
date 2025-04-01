@@ -1,7 +1,7 @@
 import os
 import requests
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
 
 from extlinks.organisations.models import Organisation, User
@@ -10,7 +10,7 @@ from extlinks.organisations.models import Organisation, User
 class Command(BaseCommand):
     help = "Updates organisation user lists who have a user_list_url"
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         user_list_orgs = Organisation.objects.filter(username_list_url__isnull=False)
 
         for organisation in user_list_orgs:

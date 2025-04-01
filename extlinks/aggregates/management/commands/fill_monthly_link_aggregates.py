@@ -3,7 +3,8 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
 
-from django.core.management.base import BaseCommand, CommandError
+from extlinks.common.management.commands import BaseCommand
+from django.core.management.base import CommandError
 from django.db import transaction, close_old_connections
 from django.db.models import Count, Q, Sum
 
@@ -39,7 +40,7 @@ class Command(BaseCommand):
             help="A specific year-month (YYYY-MM) to aggregate data for. Example: '2024-01'",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         """
         Default execution of this job is to process all collections for
         the oldest month.

@@ -348,7 +348,7 @@ class Command(BaseCommand):
             help="If enabled, archives will only be stored in Swift and deleted from local storage after upload.",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         action = options["action"][0]
         if action == "dump":
             self.dump(

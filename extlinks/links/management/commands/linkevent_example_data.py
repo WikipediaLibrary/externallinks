@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import random
 from faker import Faker
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 
 from extlinks.organisations.models import User
 from ...models import URLPattern, LinkEvent
@@ -14,7 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("num_events", nargs="+", type=int)
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         # Number of link events to log in total
         num_events = options["num_events"][0]
 

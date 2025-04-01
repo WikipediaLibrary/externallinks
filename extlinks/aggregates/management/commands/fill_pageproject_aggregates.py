@@ -1,7 +1,8 @@
 from datetime import date, timedelta, datetime
 import logging
 
-from django.core.management.base import BaseCommand, CommandError
+from extlinks.common.management.commands import BaseCommand
+from django.core.management.base import CommandError
 from django.db import transaction, close_old_connections
 from django.db.models import Count, Q
 from django.db.models.functions import Cast
@@ -26,7 +27,7 @@ class Command(BaseCommand):
             help="A list of collection IDs that will be processed instead of every collection",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         if options["collections"]:
             for col_id in options["collections"]:
                 collection = (
