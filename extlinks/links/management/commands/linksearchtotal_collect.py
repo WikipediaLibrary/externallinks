@@ -2,7 +2,7 @@ import csv
 import MySQLdb
 import os
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
 
 from extlinks.links.helpers import split_url_for_query
@@ -13,7 +13,7 @@ from extlinks.settings.base import BASE_DIR
 class Command(BaseCommand):
     help = "Updates link totals from externallinks table"
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         protocols = ["http", "https"]
 
         with open(os.path.join(BASE_DIR, "wiki-list.csv"), "r") as wiki_list:

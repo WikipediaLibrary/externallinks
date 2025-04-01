@@ -167,7 +167,7 @@ class Command(BaseCommand):
             help="The directory that the archives containing the LinkEvents should be written to.",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         action = options["action"][0]
         if action == "dump":
             self.dump(date=options["date"], output=options["output"])

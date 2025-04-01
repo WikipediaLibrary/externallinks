@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 import random
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 
 from ...models import URLPattern, LinkSearchTotal
 
@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("weeks", nargs="+", type=int)
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         # The number of weeks to go back
         num_dates = options["weeks"][0]
 

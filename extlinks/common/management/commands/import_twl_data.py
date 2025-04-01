@@ -1,7 +1,6 @@
 import csv
 
-from django.core.management import BaseCommand
-
+from . import BaseCommand
 from extlinks.links.models import URLPattern
 from extlinks.organisations.models import Organisation, Collection
 from extlinks.programs.models import Program
@@ -15,7 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("file_path", nargs="+", type=str)
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         file_path = options["file_path"][0]
 
         # Check TWL program exists, if it doesn't, create it.
