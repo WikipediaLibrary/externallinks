@@ -1,4 +1,3 @@
-
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
@@ -28,6 +27,7 @@ class Organisation(models.Model):
     username_list = models.ManyToManyField(User, blank=True)
     # If a URL is placed here, we'll use it to regularly update username_list
     username_list_url = models.URLField(blank=True, null=True)
+    username_list_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -52,7 +52,9 @@ class Collection(models.Model):
     def get_linkevents(self):
         url_patterns = URLPattern.objects.filter(collections__name__contains=self.name)
         url_pattern_type = ContentType.objects.get_for_model(URLPattern)
-        return LinkEvent.objects.filter(content_type__pk=url_pattern_type.id, object_id__in=url_patterns)
+        return LinkEvent.objects.filter(
+            content_type__pk=url_pattern_type.id, object_id__in=url_patterns
+        )
 
     def get_url_patterns(self):
         return URLPattern.objects.filter(collections__name__contains=self.name)
