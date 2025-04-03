@@ -2,7 +2,7 @@ from datetime import date, timedelta, datetime
 import logging
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import transaction, close_old_connections
 from django.db.models import Count, Q
 from django.db.models.functions import Cast
 from django.db.models.fields import DateField
@@ -48,6 +48,7 @@ class Command(BaseCommand):
 
             for collection in collections:
                 self._process_single_collection(link_event_filter, collection)
+        close_old_connections()
 
     def _get_linkevent_filter(self, collection=None):
         """

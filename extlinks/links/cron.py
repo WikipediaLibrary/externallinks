@@ -10,7 +10,9 @@ class TotalLinksCron(CronJobBase):
     MIN_NUM_FAILURES = 3
     # 10080 is weekly.
     schedule = Schedule(
-        run_every_mins=10080, retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS
+        run_every_mins=10080,
+        run_at_times=["05:10"],
+        retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "links.total_links_cron"
 

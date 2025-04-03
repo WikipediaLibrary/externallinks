@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import json
 
 from django.core.management import call_command
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, TransactionTestCase
 from django.urls import reverse
 
 from extlinks.common.views import (
@@ -26,7 +26,7 @@ class OrganisationListTest(TestCase):
     def test_organisation_list_view(self):
         """
         Test that we can simply load the organisation list page successfully
-       """
+        """
         factory = RequestFactory()
 
         request = factory.get(reverse("organisations:list"))
@@ -48,7 +48,7 @@ class OrganisationListTest(TestCase):
         self.assertContains(response, self.organisation_two.name)
 
 
-class OrganisationDetailTest(TestCase):
+class OrganisationDetailTest(TransactionTestCase):
     """
     Mostly the same tests as for programs, at least for now.
     """

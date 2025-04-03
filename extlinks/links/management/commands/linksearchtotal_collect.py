@@ -3,6 +3,7 @@ import MySQLdb
 import os
 
 from django.core.management import BaseCommand
+from django.db import close_old_connections
 
 from extlinks.links.helpers import split_url_for_query
 from extlinks.links.models import LinkSearchTotal, URLPattern
@@ -65,3 +66,5 @@ class Command(BaseCommand):
                 url=URLPattern.objects.get(pk=urlpattern_pk), total=total_count
             )
             linksearch_object.save()
+
+        close_old_connections()

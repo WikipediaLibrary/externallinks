@@ -1,6 +1,6 @@
 from django_cron import CronJobBase, Schedule
 
-from django.core.management import call_command
+from subprocess import check_output
 
 
 class LinkAggregatesCron(CronJobBase):
@@ -13,7 +13,8 @@ class LinkAggregatesCron(CronJobBase):
     code = "aggregates.link_aggregates_cron"
 
     def do(self):
-        call_command("fill_link_aggregates")
+        return check_output(["python", "manage.py", "fill_link_aggregates"], text=True)
+
 
 class MonthlyLinkAggregatesCron(CronJobBase):
     """
@@ -26,16 +27,18 @@ class MonthlyLinkAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:00 UTC
+    # Will run every 24 hours at 03:00
     schedule = Schedule(
-        run_at_times=["01:00"],
-        run_on_days=[10],
+        run_at_times=["03:00"],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_link_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_link_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_link_aggregates"], text=True
+        )
+
 
 class UserAggregatesCron(CronJobBase):
     RETRY_AFTER_FAILURE_MINS = 360
@@ -47,7 +50,8 @@ class UserAggregatesCron(CronJobBase):
     code = "aggregates.user_aggregates_cron"
 
     def do(self):
-        call_command("fill_user_aggregates")
+        return check_output(["python", "manage.py", "fill_user_aggregates"], text=True)
+
 
 class MonthlyUserAggregatesCron(CronJobBase):
     """
@@ -60,16 +64,18 @@ class MonthlyUserAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 01:30 UTC
+    # Will run every 24 hours at 03:10
     schedule = Schedule(
-        run_at_times=["01:30"],
-        run_on_days=[10],
+        run_at_times=["03:10"],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_user_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_user_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_user_aggregates"], text=True
+        )
+
 
 class PageProjectAggregatesCron(CronJobBase):
     RETRY_AFTER_FAILURE_MINS = 360
@@ -81,7 +87,10 @@ class PageProjectAggregatesCron(CronJobBase):
     code = "aggregates.pageproject_aggregates_cron"
 
     def do(self):
-        call_command("fill_pageproject_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_pageproject_aggregates"], text=True
+        )
+
 
 class MonthlyPageProjectAggregatesCron(CronJobBase):
     """
@@ -94,13 +103,14 @@ class MonthlyPageProjectAggregatesCron(CronJobBase):
 
     RETRY_AFTER_FAILURE_MINS = 360
     MIN_NUM_FAILURES = 5
-    # Will run monthly on the 3rd day at 03:30 UTC
+    # Will run every 24 hours at 03:50
     schedule = Schedule(
-        run_at_times=["03:30"],
-        run_on_days=[10],
+        run_at_times=["03:50"],
         retry_after_failure_mins=RETRY_AFTER_FAILURE_MINS,
     )
     code = "aggregates.monthly_pageproject_aggregates_cron"
 
     def do(self):
-        call_command("fill_monthly_pageproject_aggregates")
+        return check_output(
+            ["python", "manage.py", "fill_monthly_pageproject_aggregates"], text=True
+        )

@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from django.core import serializers
 from django.core.management import BaseCommand, call_command
-from django.db import connection
+from django.db import close_old_connections
 from django.db.models import Q, Max
 from django_cron.models import CronJobLog
 
@@ -336,3 +336,5 @@ class Command(BaseCommand):
             self.load(filenames=options["filenames"])
         if action == "upload":
             self.upload(filenames=options["filenames"])
+
+        close_old_connections()

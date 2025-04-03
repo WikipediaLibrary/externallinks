@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     "extlinks.programs",
     "django_cron",
     "extlinks.aggregates",
-    "django_extensions"
+    "django_extensions",
 ]
 
 # Fixing django_cron migration warning
@@ -157,7 +157,7 @@ CRON_CLASSES = [
     "extlinks.aggregates.cron.MonthlyUserAggregatesCron",
     "extlinks.aggregates.cron.MonthlyPageProjectAggregatesCron",
 ]
-DJANGO_CRON_DELETE_LOGS_OLDER_THAN = 365  # Leave only this year's logs
+# DJANGO_CRON_DELETE_LOGS_OLDER_THAN = 90  # Leave only the last 3 month's logs
 
 # EMAIL CONFIGURATION
 # ------------------------------------------------------------------------------

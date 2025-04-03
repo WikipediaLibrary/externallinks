@@ -2,7 +2,7 @@ from datetime import datetime, date, timedelta, timezone
 import time_machine
 
 from django.core.management import call_command, CommandError
-from django.test import TestCase
+from django.test import TransactionTestCase
 
 from .factories import (
     LinkAggregateFactory,
@@ -19,7 +19,7 @@ from extlinks.organisations.factories import (
 from extlinks.organisations.models import Organisation
 
 
-class LinkAggregateCommandTest(TestCase):
+class LinkAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -82,7 +82,7 @@ class LinkAggregateCommandTest(TestCase):
         self.assertEqual(LinkAggregate.objects.count(), 0)
         # Add LinkAggregates NOTE: the last LinkAggregate date here needs to be
         # greater than the latest LinkEvent date in the setUp
-        LinkAggregateFactory(full_date=date(2020, 1, 1))
+        LinkAggregateFactory(full_date=date(2020, 1, 11))
         LinkAggregateFactory(full_date=date(2020, 2, 12))
         LinkAggregateFactory(full_date=date(2020, 2, 15))
         LinkAggregateFactory(full_date=date(2020, 9, 10))
@@ -217,7 +217,7 @@ class LinkAggregateCommandTest(TestCase):
             call_command("fill_link_aggregates", collections=[new_collection.pk])
 
 
-class UserAggregateCommandTest(TestCase):
+class UserAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -309,7 +309,7 @@ class UserAggregateCommandTest(TestCase):
         self.assertEqual(UserAggregate.objects.count(), 0)
         # Add UserAggregate. NOTE: the last UserAggregate.date here needs to be
         # greater than the latest LinkEvent date in the setUp
-        UserAggregateFactory(full_date=date(2020, 1, 1))
+        UserAggregateFactory(full_date=date(2020, 1, 11))
         UserAggregateFactory(full_date=date(2020, 2, 12))
         UserAggregateFactory(full_date=date(2020, 2, 15))
         UserAggregateFactory(full_date=date(2020, 9, 10))
@@ -465,7 +465,7 @@ class UserAggregateCommandTest(TestCase):
             call_command("fill_user_aggregates", collections=[new_collection.pk])
 
 
-class PageProjectAggregateCommandTest(TestCase):
+class PageProjectAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -566,7 +566,7 @@ class PageProjectAggregateCommandTest(TestCase):
         self.assertEqual(PageProjectAggregate.objects.count(), 0)
         # Add PageProjectAggregates NOTE: the last PageProjectAggregate date here needs to be
         # greater than the latest LinkEvent date in the setUp
-        PageProjectAggregateFactory(full_date=date(2020, 1, 1))
+        PageProjectAggregateFactory(full_date=date(2020, 1, 11))
         PageProjectAggregateFactory(full_date=date(2020, 2, 12))
         PageProjectAggregateFactory(full_date=date(2020, 2, 15))
         PageProjectAggregateFactory(full_date=date(2020, 9, 10))
@@ -723,7 +723,7 @@ class PageProjectAggregateCommandTest(TestCase):
             call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
 
 
-class MonthlyLinkAggregateCommandTest(TestCase):
+class MonthlyLinkAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -743,7 +743,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 0)
 
             call_command("fill_monthly_link_aggregates")
@@ -759,7 +759,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             )
 
     def test_no_aggregation_when_no_new_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_link_aggregates")
 
             # Running it again should NOT create duplicate entries
@@ -767,10 +767,10 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
 
     def test_aggregate_next_month(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_link_aggregates")
 
-        with time_machine.travel(date(2024, 3, 1)):
+        with time_machine.travel(date(2024, 3, 11)):
             # Simulate next month by adding 5 more days to the next month
             next_total_added = 0
             next_total_removed = 0
@@ -794,7 +794,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             self.assertEqual(LinkAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             other_collection = CollectionFactory(
                 name="Other Collection", organisation=self.organisation
             )
@@ -833,7 +833,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
                 total_links_removed=day - 1,
             )
 
-        with time_machine.travel(date(2024, 5, 1)):
+        with time_machine.travel(date(2024, 5, 11)):
             call_command("fill_monthly_link_aggregates", year_month="2024-01")
 
             self.assertEqual(LinkAggregate.objects.filter(day=0).count(), 1)
@@ -847,7 +847,7 @@ class MonthlyLinkAggregateCommandTest(TestCase):
             )
 
 
-class MonthlyUserAggregateCommandTest(TestCase):
+class MonthlyUserAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -881,7 +881,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             self.assertEqual(UserAggregate.objects.filter(day=0).count(), 0)
 
             call_command("fill_monthly_user_aggregates")
@@ -899,7 +899,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
     def test_no_aggregation_when_no_new_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_user_aggregates")
 
             # Running it again should NOT create duplicate entries
@@ -910,7 +910,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
         """
         Simulating running the script again, in case we receive new data
         """
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_user_aggregates")
 
             # Adding more data to the same month should add up to the totals
@@ -943,10 +943,10 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_next_month(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_user_aggregates")
 
-        with time_machine.travel(date(2024, 3, 1)):
+        with time_machine.travel(date(2024, 3, 11)):
             # Simulate next month by adding 5 more days to the next month
             next_total_added = 0
             next_total_removed = 0
@@ -973,7 +973,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
             self.assertEqual(UserAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             other_collection = CollectionFactory(
                 name="Other Collection", organisation=self.organisation
             )
@@ -1014,7 +1014,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
                 total_links_removed=day - 1,
             )
 
-        with time_machine.travel(date(2024, 5, 1)):
+        with time_machine.travel(date(2024, 5, 11)):
             call_command("fill_monthly_user_aggregates", year_month="2024-01")
 
             self.assertEqual(UserAggregate.objects.filter(day=0).count(), 2)
@@ -1035,7 +1035,7 @@ class MonthlyUserAggregateCommandTest(TestCase):
             )
 
 
-class MonthlyPageProjectAggregateCommandTest(TestCase):
+class MonthlyPageProjectAggregateCommandTest(TransactionTestCase):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -1073,7 +1073,7 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_monthly_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 0)
 
             call_command("fill_monthly_pageproject_aggregates")
@@ -1095,7 +1095,7 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             )
 
     def test_no_aggregation_when_no_new_data(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_pageproject_aggregates")
 
             # Running it again should NOT create duplicate entries
@@ -1106,7 +1106,7 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
         """
         Simulating running the script again, in case we receive new data
         """
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_pageproject_aggregates")
 
             # Adding more data to the same month should add up to the totals
@@ -1141,10 +1141,10 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             )
 
     def test_aggregate_next_month(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             call_command("fill_monthly_pageproject_aggregates")
 
-        with time_machine.travel(date(2024, 3, 1)):
+        with time_machine.travel(date(2024, 3, 11)):
             # Simulate next month by adding 5 more days to the next month
             next_total_added = 0
             next_total_removed = 0
@@ -1176,7 +1176,7 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
             self.assertEqual(PageProjectAggregate.objects.exclude(day=0).count(), 0)
 
     def test_specific_collection_aggregation(self):
-        with time_machine.travel(date(2024, 2, 1)):
+        with time_machine.travel(date(2024, 2, 11)):
             other_collection = CollectionFactory(
                 name="Other Collection", organisation=self.organisation
             )
@@ -1221,7 +1221,7 @@ class MonthlyPageProjectAggregateCommandTest(TestCase):
                 total_links_removed=day - 1,
             )
 
-        with time_machine.travel(date(2024, 5, 1)):
+        with time_machine.travel(date(2024, 5, 11)):
             call_command("fill_monthly_pageproject_aggregates", year_month="2024-01")
 
             self.assertEqual(PageProjectAggregate.objects.filter(day=0).count(), 2)

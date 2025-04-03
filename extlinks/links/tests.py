@@ -3,7 +3,7 @@ import json, tempfile, glob, gzip, os
 from datetime import datetime, date, timezone
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django_cron.models import CronJobLog
 
 from unittest import mock
@@ -272,7 +272,7 @@ class LinkEventsCollectCommandTest(TestCase):
         self.assertEqual(LinkEvent.objects.count(), 2)
 
 
-class LinkEventsArchiveCommandTest(TestCase):
+class LinkEventsArchiveCommandTest(TransactionTestCase):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
 
@@ -879,7 +879,7 @@ class LinkEventsArchiveCommandTest(TestCase):
         )
 
 
-class EZProxyRemovalCommandTest(TestCase):
+class EZProxyRemovalCommandTest(TransactionTestCase):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
 
@@ -986,7 +986,7 @@ class EZProxyRemovalCommandTest(TestCase):
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
 
 
-class FixOnUserListCommandTest(TestCase):
+class FixOnUserListCommandTest(TransactionTestCase):
     def setUp(self):
         self.user1 = UserFactory(username="jonsnow")
 
