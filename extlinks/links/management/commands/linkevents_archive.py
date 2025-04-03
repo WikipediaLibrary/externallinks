@@ -3,12 +3,17 @@ import gzip, logging, datetime, os
 from typing import List, Optional
 
 from django.core import serializers
-from django.core.management import BaseCommand, call_command
+from extlinks.common.management.commands import BaseCommand
+from django.core.management import call_command
 from django.db import close_old_connections
 from django.db.models import Q, Max
-from django_cron.models import CronJobLog
 
 from extlinks.links.models import LinkEvent
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    UserAggregate,
+    PageProjectAggregate,
+)
 
 logger = logging.getLogger("django")
 
@@ -17,6 +22,17 @@ CHUNK_SIZE = 10_000
 
 class Command(BaseCommand):
     help = "dump & delete or load LinkEvents"
+
+    def get_most_recent(self):
+        most_recent = []
+        for aggregate in [LinkAggregate, UserAggregate, PageProjectAggregate]:
+            try:
+                most_recent.append(
+                    aggregate.objects.latest("full_date").full_date
+                )
+            except aggregate.DoesNotExist:
+                pass
+        return most_recent
 
     def dump(self, date: Optional[datetime.date] = None, output: Optional[str] = None):
         """
@@ -33,21 +49,10 @@ class Command(BaseCommand):
         if date is None:
             # We don't want to archive link events that haven't been processed by
             # the aggregate jobs yet. Find the start time for the most recent
-            # successful aggregate job run grouped by the job name.
-            most_recent_aggregates = list(
-                CronJobLog.objects.values("code")
-                .annotate(last_run=Max("start_time"))
-                .filter(
-                    Q(
-                        code__in=[
-                            "aggregates.link_aggregates_cron",
-                            "aggregates.user_aggregates_cron",
-                            "aggregates.pageproject_aggregates_cron",
-                        ]
-                    )
-                    & Q(is_success=True)
-                )
-            )
+            # aggregates.
+
+            most_recent_aggregates = self.get_most_recent()
+
             if len(most_recent_aggregates) != 3:
                 logger.info("All of the aggregate jobs have not been run yet")
                 return
@@ -56,11 +61,8 @@ class Command(BaseCommand):
             # link events before this date have already been aggregated and are
             # safe to be archived.
             archive_start_time = min(
-                map(
-                    lambda result: result["last_run"],
-                    most_recent_aggregates,
-                )
-            ).date()
+                most_recent_aggregates,
+            )
         else:
             archive_start_time = date + datetime.timedelta(days=1)
 
@@ -167,7 +169,7 @@ class Command(BaseCommand):
             help="The directory that the archives containing the LinkEvents should be written to.",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         action = options["action"][0]
         if action == "dump":
             self.dump(date=options["date"], output=options["output"])

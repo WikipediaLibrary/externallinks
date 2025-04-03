@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 from django.core.management import call_command
 
 from extlinks.aggregates.models import (
@@ -12,7 +12,7 @@ from extlinks.links.models import LinkEvent
 class Command(BaseCommand):
     help = "Fixes all those proxy linkevents that aren't in the user list"
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         proxy_not_on_user_list_linkevents = LinkEvent.objects.filter(
             link__contains="wikipedialibrary.idm.oclc", on_user_list=False
         )

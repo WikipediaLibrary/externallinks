@@ -1,11 +1,17 @@
 from datetime import timedelta
+import os
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.utils.timezone import now
 from django.views.decorators.cache import cache_page
-from django_cron.models import CronJobLog
-from extlinks.links.models import LinkEvent
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    UserAggregate,
+    PageProjectAggregate,
+)
+from extlinks.links.models import LinkEvent, LinkSearchTotal
+from extlinks.organisations.models import Organisation
 
 
 @method_decorator(cache_page(60 * 1), name="dispatch")
@@ -39,30 +45,23 @@ class AggregatesCronHealthCheckView(View):
     Healthcheck that passes only if the link aggregate jobs have all run successfully in the last 2 days
     """
 
+    def get_most_recent(self, aggregate, monthly=False):
+        try:
+            if monthly:
+                aggregate.objects.filter(day=0).latest("full_date").full_date
+            else:
+                aggregate.objects.exclude(day=0).latest("full_date").full_date
+        except aggregate.DoesNotExist:
+            pass
+
     def get(self, request, *args, **kwargs):
         status_code = 500
         status_msg = "error"
         try:
-            latest_link_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.link_aggregates_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
-            )
-            latest_user_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.user_aggregates_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
-            )
-            latest_pageproject_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.pageproject_aggregates_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
+            latest_link_aggregates_cron_endtime = self.get_most_recent(LinkAggregate)
+            latest_user_aggregates_cron_endtime = self.get_most_recent(UserAggregate)
+            latest_pageproject_aggregates_cron_endtime = self.get_most_recent(
+                PageProjectAggregate
             )
             cutoff_datetime = now() - timedelta(days=2)
             if latest_link_aggregates_cron_endtime < cutoff_datetime:
@@ -74,7 +73,7 @@ class AggregatesCronHealthCheckView(View):
             else:
                 status_code = 200
                 status_msg = "ok"
-        except CronJobLog.DoesNotExist:
+        except:
             status_code = 404
             status_msg = "not found"
         response = JsonResponse({"status": status_msg})
@@ -92,27 +91,14 @@ class MonthlyAggregatesCronHealthCheckView(View):
         status_code = 500
         status_msg = "error"
         try:
-            latest_link_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.monthly_link_aggregates_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
+            latest_link_aggregates_cron_endtime = self.get_most_recent(
+                LinkAggregate, True
             )
-            latest_user_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.monthly_user_aggregates_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
+            latest_user_aggregates_cron_endtime = self.get_most_recent(
+                UserAggregate, True
             )
-            latest_pageproject_aggregates_cron_endtime = (
-                CronJobLog.objects.filter(
-                    code="aggregates.monthly_pageproject_aggregates_cron",
-                    is_success=True,
-                )
-                .latest("end_time")
-                .end_time
+            latest_pageproject_aggregates_cron_endtime = self.get_most_recent(
+                PageProjectAggregate, True
             )
             # Monthly jobs may take some time to run, let's give 35 days to make sure
             cutoff_datetime = now() - timedelta(days=35)
@@ -125,7 +111,7 @@ class MonthlyAggregatesCronHealthCheckView(View):
             else:
                 status_code = 200
                 status_msg = "ok"
-        except CronJobLog.DoesNotExist:
+        except:
             status_code = 404
             status_msg = "not found"
         response = JsonResponse({"status": status_msg})
@@ -136,27 +122,21 @@ class MonthlyAggregatesCronHealthCheckView(View):
 @method_decorator(cache_page(60 * 1), name="dispatch")
 class CommonCronHealthCheckView(View):
     """
-    Healthcheck that passes only if the common jobs have all run successfully in the last 3 days
+    Healthcheck that passes only if a backup file has been created in the last 3 days
     """
 
     def get(self, request, *args, **kwargs):
         status_code = 500
         status_msg = "error"
-        try:
-            latest_common_backup_endtime = (
-                CronJobLog.objects.filter(code="common.backup", is_success=True)
-                .latest("end_time")
-                .end_time
-            )
-            cutoff_datetime = now() - timedelta(days=3)
-            if latest_common_backup_endtime < cutoff_datetime:
-                status_msg = "out of date"
-            else:
+        status_msg = "out of date"
+        for i in range(3):
+            date = now() - timedelta(days=i)
+            filename = "links_linkevent_{}.json.gz".format(date.strftime("%Y%m%d"))
+            file = os.path.join(os.environ["HOST_BACKUP_DIR"], filename)
+            if os.path.isfile(file):
                 status_code = 200
                 status_msg = "ok"
-        except CronJobLog.DoesNotExist:
-            status_code = 404
-            status_msg = "not found"
+                break
         response = JsonResponse({"status": status_msg})
         response.status_code = status_code
         return response
@@ -172,20 +152,14 @@ class LinksCronHealthCheckView(View):
         status_code = 500
         status_msg = "error"
         try:
-            latest_total_links_endtime = (
-                CronJobLog.objects.filter(
-                    code="links.total_links_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
-            )
-            cutoff_datetime = now() - timedelta(days=9)
+            latest_total_links_endtime = LinkSearchTotal.objects.latest("date").date
+            cutoff_datetime = now().date() - timedelta(days=9)
             if latest_total_links_endtime < cutoff_datetime:
                 status_msg = "out of date"
             else:
                 status_code = 200
                 status_msg = "ok"
-        except CronJobLog.DoesNotExist:
+        except:
             status_code = 404
             status_msg = "not found"
         response = JsonResponse({"status": status_msg})
@@ -203,20 +177,16 @@ class OrganizationsCronHealthCheckView(View):
         status_code = 500
         status_msg = "error"
         try:
-            latest_user_lists_endtime = (
-                CronJobLog.objects.filter(
-                    code="organisations.user_lists_cron", is_success=True
-                )
-                .latest("end_time")
-                .end_time
-            )
+            latest_user_lists_endtime = Organisation.objects.latest(
+                "username_list_updated"
+            ).username_list_updated
             cutoff_datetime = now() - timedelta(hours=2)
             if latest_user_lists_endtime < cutoff_datetime:
                 status_msg = "out of date"
             else:
                 status_code = 200
                 status_msg = "ok"
-        except CronJobLog.DoesNotExist:
+        except:
             status_code = 404
             status_msg = "not found"
         response = JsonResponse({"status": status_msg})
