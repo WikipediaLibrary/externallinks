@@ -257,13 +257,46 @@ class Command(BaseCommand):
             )
             return False
 
+    def upload(self, filenames: List[str]):
+        """
+        Upload existing LinkEvent archives to Swift.
+
+        Parameters
+        ----------
+        filenames : List[str]
+            List of archive file paths to upload.
+
+        Returns
+        -------
+        None
+        """
+        if not filenames:
+            self.log_msg("No link event archives specified for upload.")
+            return
+
+        for filepath in sorted(filenames):
+            if not os.path.isfile(filepath):
+                self.log_msg(f"File {filepath} does not exist. Skipping.", level="error")
+                continue
+
+            filename = os.path.basename(filepath)
+
+            self.log_msg(f"Uploading {filepath} to Swift container {SWIFT_CONTAINER_NAME}")
+
+            if self.upload_to_swift(filepath, filename, SWIFT_CONTAINER_NAME):
+                self.log_msg(f"Successfully uploaded {filename} to Swift.")
+            else:
+                self.log_msg(f"Failed to upload {filename} to Swift.", level="error")
+
     def add_arguments(self, parser):
         parser.add_argument(
             "action",
             nargs=1,
             type=str,
-            choices=["dump", "load"],
-            help="dump: Export LinkEvents to gzipped JSON files, then delete them from the database. load: Import LinkEvents from gzipped JSON files.",
+            choices=["dump", "load", "upload"],
+            help="dump: Export LinkEvents to gzipped JSON files, then delete them from the database. "
+            "load: Import LinkEvents from gzipped JSON files. "
+            "upload: Upload existing LinkEvents archives to Swift.",
         )
         parser.add_argument(
             "filenames",
@@ -301,3 +334,5 @@ class Command(BaseCommand):
             )
         if action == "load":
             self.load(filenames=options["filenames"])
+        if action == "upload":
+            self.upload(filenames=options["filenames"])

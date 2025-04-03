@@ -1,4 +1,4 @@
-import tempfile, glob, os
+import json, tempfile, glob, gzip, os
 
 from datetime import datetime, date, timezone
 
@@ -793,6 +793,90 @@ class LinkEventsArchiveCommandTest(TestCase):
 
             for file in glob.glob(pattern):
                 os.remove(file)
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_successful(self, mock_swift_connection):
+        """
+        Test that we can upload a LinkEvents archive to Swift.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20210116_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.jstor.org/something_16",
+                    "timestamp": "2021-01-16T00:00:00Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": None,
+                    "object_id": None,
+                    "username": 1,
+                    "rev_id": None,
+                    "user_id": None,
+                    "page_title": "Page",
+                    "page_namespace": 0,
+                    "event_id": "event-id-1",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "fakehash",
+                    "change": 1,
+                    "on_user_list": False,
+                    "url": [123],
+                },
+            }
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                archive_path,
+            )
+            mock_conn.put_object.assert_called_once()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_skip_non_existent_file(self, mock_swift_connection):
+        """
+        Test that non-existent files are skipped.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        fake_path = "/tmp/nonexistent_file.json.gz"
+
+        with self.assertLogs("django", level="ERROR") as cm:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                fake_path,
+            )
+
+        self.assertTrue(
+            any(
+                f"File {fake_path} does not exist. Skipping" in msg for msg in cm.output
+            )
+        )
 
 
 class EZProxyRemovalCommandTest(TestCase):
