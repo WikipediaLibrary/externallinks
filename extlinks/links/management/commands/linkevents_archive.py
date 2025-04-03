@@ -17,9 +17,11 @@ logger = logging.getLogger("django")
 
 CHUNK_SIZE = 10_000
 # Authentication for Swift Object Store
-AUTH_URL = os.environ["OPENSTACK_AUTH_URL"]
-APPLICATION_CREDENTIAL_ID = os.environ["SWIFT_APPLICATION_CREDENTIAL_ID"]
-APPLICATION_CREDENTIAL_SECRET = os.environ["SWIFT_APPLICATION_CREDENTIAL_SECRET"]
+AUTH_URL = os.environ.get("OPENSTACK_AUTH_URL", None)
+APPLICATION_CREDENTIAL_ID = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_ID", None)
+APPLICATION_CREDENTIAL_SECRET = os.environ.get(
+    "SWIFT_APPLICATION_CREDENTIAL_SECRET", None
+)
 USER_DOMAIN_ID = "default"
 SWIFT_CONTAINER_NAME = os.environ.get(
     "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
@@ -147,7 +149,7 @@ class Command(BaseCommand):
             with gzip.open(local_filepath, "wt", encoding="utf-8") as archive:
                 archive.write(serializers.serialize("json", linkevents_by_date))
 
-            # Upload to Swift
+            # Try to upload to Swift, remove local archive if flag is on and upload was successful
             if (
                 self.upload_to_swift(local_filepath, filename, SWIFT_CONTAINER_NAME)
                 and object_storage_only
