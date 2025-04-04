@@ -113,6 +113,10 @@ def build_queryset_filters(form_data, collection_or_organisations):
         collection_or_organisation_filter = Q(
             organisation__in=collection_or_organisations["organisations"]
         )
+    elif "program" in collection_or_organisations:
+        collection_or_organisation_filter = Q(
+            program=collection_or_organisations["program"]
+        )
     elif "linkevents" in collection_or_organisations:
         collection_or_organisation_filter = Q()
     else:
