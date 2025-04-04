@@ -119,39 +119,45 @@ class ProgramDetailView(DetailView):
         eventstream_dates = []
         eventstream_net_change = []
         current_date = date.today()
-        filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
 
-        if filtered_link_aggregate.exists():
-            earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
+        # Query program-level totals from top organisations since it is the
+        # smallest totals table that's available.
+        filtered_totals = ProgramTopOrganisationsTotal.objects.filter(queryset_filter)
+
+        if filtered_totals.exists():
+            earliest_total_date = filtered_totals.earliest("full_date").full_date
         else:
             # No link information from that collection, so setting earliest_link_date
             # to the first of the current month
-            earliest_link_date = current_date.replace(day=1)
+            earliest_total_date = current_date.replace(day=1)
 
-        links_aggregated_date = (
-            LinkAggregate.objects.filter(queryset_filter)
-            .values("month", "year")
+        # We can GROUP BY 'full_date' as if it was just year and month as
+        # program totals always set the day to the last day of the month.
+        program_totals = (
+            filtered_totals.values("full_date")
             .annotate(
                 net_change=Sum("total_links_added") - Sum("total_links_removed"),
             )
-            .order_by("year", "month")
+            .order_by("full_date")
         )
 
         # Filling an array of dates that should be in the chart
-        while current_date >= earliest_link_date:
+        while current_date >= earliest_total_date:
             dates.append(current_date.strftime("%Y-%m"))
             # Figure out what the last month is regardless of today's date
             current_date = current_date.replace(day=1) - timedelta(days=1)
 
         dates = dates[::-1]
 
-        for link in links_aggregated_date:
-            if link["month"] < 10:
-                date_combined = f"{link['year']}-0{link['month']}"
+        for total in program_totals:
+            year = total["full_date"].year
+            month = total["full_date"].month
+            if month < 10:
+                date_combined = f"{year}-0{month}"
             else:
-                date_combined = f"{link['year']}-{link['month']}"
+                date_combined = f"{year}-{month}"
 
-            existing_link_aggregates[date_combined] = link["net_change"]
+            existing_link_aggregates[date_combined] = total["net_change"]
 
         for month_year in dates:
             eventstream_dates.append(month_year)
