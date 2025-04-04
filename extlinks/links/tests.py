@@ -910,7 +910,14 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             )
         )
 
-    # Not mocking os.environ here so it assumes None to cred vars
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "",
+        },
+    )
     @mock.patch("swiftclient.client.Connection")
     def test_swift_credentials_not_set(self, mock_swift_connection):
         """
