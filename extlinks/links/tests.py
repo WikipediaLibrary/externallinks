@@ -1,10 +1,12 @@
-import tempfile, glob, os
+import json, tempfile, glob, gzip, os
 
 from datetime import datetime, date, timezone
 
 from django.core.management import call_command
 from django.test import TestCase, TransactionTestCase
 from django_cron.models import CronJobLog
+
+from unittest import mock
 
 from extlinks.aggregates.models import (
     LinkAggregate,
@@ -282,12 +284,15 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
         self.jstor_url_pattern.collections.add(self.jstor_collection)
         self.jstor_url_pattern.save()
 
-    def test_dump_with_date(self):
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_with_date(self, mock_swift_connection):
         """
         Test that LinkEvents are dumped and removed from the database when
         using the 'linkevents_archive' management command. LinkEvent dumps
         should be grouped together by date.
         """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = ({}, [])
 
         # Add the LinkEvent data that will be dumped.
 
@@ -351,12 +356,15 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    def test_dump_without_date(self):
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_without_date(self, mock_swift_connection):
         """
         Test that LinkEvents are dumped and removed from the database when
         using the 'linkevents_archive' management command even when a date
         option is not provided. A date should be inferred from the job logs.
         """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = ({}, [])
 
         # Add the LinkEvent data that will be dumped.
 
@@ -437,10 +445,13 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    def test_dump_with_partial_jobs(self):
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_with_partial_jobs(self, mock_swift_connection):
         """
         Test that no links are archived if not all of the jobs have run yet.
         """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = ({}, [])
 
         # Add the LinkEvent data that will be dumped.
 
@@ -504,10 +515,13 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    def test_dump_with_no_jobs(self):
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_with_no_jobs(self, mock_swift_connection):
         """
         Test that no links are archived if none of the jobs have run yet.
         """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = ({}, [])
 
         # Add the LinkEvent data that will be dumped.
 
@@ -557,12 +571,212 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    def test_load(self):
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_creates_swift_container(self, mock_swift_connection):
+        """
+        Test that Swift container is created if missing
+        """
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        mock_conn = mock_swift_connection.return_value
+        # Simulate different containers
+        mock_conn.get_account.return_value = (
+            {},
+            [
+                {"name": "linkevents-backup-202012"},
+                {"name": "linkevents-backup-202102"},
+            ],
+        )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events only for the 16th.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                date=date(year=2021, month=1, day=16),
+                output=temp_dir,
+            )
+
+            # Ensure `put_container` was called
+            mock_conn.put_container.assert_called_with("archive-linkevents")
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_does_not_create_swift_container(self, mock_swift_connection):
+        """
+        Test that Swift container creation should not be called if
+        container already exists
+        """
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        mock_conn = mock_swift_connection.return_value
+        # Simulate existing container
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-linkevents"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events only for the 16th.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                date=date(year=2021, month=1, day=16),
+                output=temp_dir,
+            )
+
+            # Ensure `put_container` was NOT called
+            mock_conn.put_container.assert_not_called()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_creates_file_object_in_swift(self, mock_swift_connection):
+        """
+        Test that Swift object is created
+        """
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        mock_conn = mock_swift_connection.return_value
+        # Simulate existing container
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events only for the 16th.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                date=date(year=2021, month=1, day=16),
+                output=temp_dir,
+            )
+
+            # Ensure `put_object` was called
+            mock_conn.put_object.assert_called()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_dump_deletes_local_file(self, mock_swift_connection):
+        """
+        Test that local file is deleted if --object_storage_only flag
+        is True
+        """
+        for i in range(5):
+            LinkEventFactory(
+                content_object=self.jstor_url_pattern,
+                link=f"www.jstor.org/something_16_{i}",
+                timestamp=datetime(2021, 1, 16, 0, 0, 0, tzinfo=timezone.utc),
+                page_title=f"Page_{i}",
+                username=self.user,
+            )
+
+        mock_conn = mock_swift_connection.return_value
+        # Simulate existing container
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+
+        try:
+            # Call the command which dumps the events only for the 16th.
+            call_command(
+                "linkevents_archive",
+                "dump",
+                "--object-storage-only",
+                date=date(year=2021, month=1, day=16),
+                output=temp_dir,
+            )
+
+            jan_16_archive = os.path.join(
+                temp_dir, "links_linkevent_20210116_0.json.gz"
+            )
+            self.assertFalse(os.path.isfile(jan_16_archive))
+
+        finally:
+            # Just ensure cleanup
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_load(self, mock_swift_connection):
         """
         Test that we can load LinkEvents from an archive in the filesystem.
         Generate and dump some test data and, load it, and verify it looks as
         we expect it to.
         """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = ({}, [])
 
         # Generate some test data that we'll be dumping and loading.
 
@@ -598,6 +812,168 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
 
             # Verify that the expected amount of LinkEvents now exist.
             self.assertEqual(LinkEvent.objects.count(), 5)
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_successful(self, mock_swift_connection):
+        """
+        Test that we can upload a LinkEvents archive to Swift.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20210116_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.jstor.org/something_16",
+                    "timestamp": "2021-01-16T00:00:00Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": None,
+                    "object_id": None,
+                    "username": 1,
+                    "rev_id": None,
+                    "user_id": None,
+                    "page_title": "Page",
+                    "page_namespace": 0,
+                    "event_id": "event-id-1",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "fakehash",
+                    "change": 1,
+                    "on_user_list": False,
+                    "url": [123],
+                },
+            }
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                archive_path,
+            )
+            mock_conn.put_object.assert_called_once()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_skip_non_existent_file(self, mock_swift_connection):
+        """
+        Test that non-existent files are skipped.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        fake_path = "/tmp/nonexistent_file.json.gz"
+
+        with self.assertLogs("django", level="ERROR") as cm:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                fake_path,
+            )
+
+        self.assertTrue(
+            any(
+                f"File {fake_path} does not exist. Skipping" in msg for msg in cm.output
+            )
+        )
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_swift_credentials_not_set(self, mock_swift_connection):
+        """
+        Test that non-existent Swift credentials should output a message a skip upload.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20210116_test.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.jstor.org/something_16",
+                    "timestamp": "2021-01-16T00:00:00Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": None,
+                    "object_id": None,
+                    "username": 1,
+                    "rev_id": None,
+                    "user_id": None,
+                    "page_title": "Page",
+                    "page_namespace": 0,
+                    "event_id": "event-id-1",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "fakehash",
+                    "change": 1,
+                    "on_user_list": False,
+                    "url": [123],
+                },
+            }
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            with self.assertLogs("django", level="INFO") as cm:
+                # Load the LinkEvents from the archive we just created into the db.
+                call_command(
+                    "linkevents_archive",
+                    "upload",
+                    archive_path,
+                )
+                self.assertTrue(
+                    any(
+                        "Swift credentials not provided. Skipping upload." in msg
+                        for msg in cm.output
+                    )
+                )
         finally:
             pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
 

@@ -1,3 +1,5 @@
+import os
+
 from django_cron import CronJobBase, Schedule
 
 from django.core.management import call_command
@@ -28,4 +30,12 @@ class ArchiveLinksCron(CronJobBase):
     code = "links.archive_links_cron"
 
     def do(self):
-        call_command("linkevents_archive")
+        use_object_storage_only = (
+            os.getenv("LINKEVENTS_ARCHIVE_OBJECT_STORAGE_ONLY", "false").lower()
+            == "true"
+        )
+        command_args = ["linkevents_archive"]
+        if use_object_storage_only:
+            command_args.append("--object-storage-only")
+
+        call_command(*command_args)
