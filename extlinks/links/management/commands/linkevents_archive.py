@@ -16,13 +16,6 @@ from extlinks.links.models import LinkEvent
 logger = logging.getLogger("django")
 
 CHUNK_SIZE = 10_000
-# Authentication for Swift Object Store
-AUTH_URL = os.environ.get("OPENSTACK_AUTH_URL", None)
-APPLICATION_CREDENTIAL_ID = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_ID", None)
-APPLICATION_CREDENTIAL_SECRET = os.environ.get(
-    "SWIFT_APPLICATION_CREDENTIAL_SECRET", None
-)
-USER_DOMAIN_ID = "default"
 SWIFT_CONTAINER_NAME = os.environ.get(
     "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
 )
@@ -193,6 +186,21 @@ class Command(BaseCommand):
             # loaddata supports gzipped fixtures and handles relationships properly
             call_command("loaddata", filename)
 
+    def get_swift_credentials(self):
+        """
+        Get Swift credentials from env vars.
+        """
+        return {
+            "auth_url": os.environ.get("OPENSTACK_AUTH_URL", None),
+            "application_credential_id": os.environ.get(
+                "SWIFT_APPLICATION_CREDENTIAL_ID", None
+            ),
+            "application_credential_secret": os.environ.get(
+                "SWIFT_APPLICATION_CREDENTIAL_SECRET", None
+            ),
+            "user_domain_id": "default",
+        }
+
     def upload_to_swift(self, local_filepath, remote_filename, container_name):
         """
         Upload a file to Swift object storage, ensuring the container exists.
@@ -213,12 +221,24 @@ class Command(BaseCommand):
         -------
         None
         """
+        credentials = self.get_swift_credentials()
+        if (
+            not credentials
+            or not credentials["auth_url"]
+            or not credentials["application_credential_id"]
+            or not credentials["application_credential_secret"]
+        ):
+            self.log_msg("Swift credentials not provided. Skipping upload.")
+            return False
+
         try:
             auth = ApplicationCredential(
-                auth_url=AUTH_URL,
-                application_credential_id=APPLICATION_CREDENTIAL_ID,
-                application_credential_secret=APPLICATION_CREDENTIAL_SECRET,
-                user_domain_id=USER_DOMAIN_ID,
+                auth_url=credentials["auth_url"],
+                application_credential_id=credentials["application_credential_id"],
+                application_credential_secret=credentials[
+                    "application_credential_secret"
+                ],
+                user_domain_id=credentials["user_domain_id"],
             )
             session = keystone_session.Session(auth=auth)
             conn = swiftclient.Connection(session=session)
@@ -276,12 +296,16 @@ class Command(BaseCommand):
 
         for filepath in sorted(filenames):
             if not os.path.isfile(filepath):
-                self.log_msg(f"File {filepath} does not exist. Skipping.", level="error")
+                self.log_msg(
+                    f"File {filepath} does not exist. Skipping.", level="error"
+                )
                 continue
 
             filename = os.path.basename(filepath)
 
-            self.log_msg(f"Uploading {filepath} to Swift container {SWIFT_CONTAINER_NAME}")
+            self.log_msg(
+                f"Uploading {filepath} to Swift container {SWIFT_CONTAINER_NAME}"
+            )
 
             if self.upload_to_swift(filepath, filename, SWIFT_CONTAINER_NAME):
                 self.log_msg(f"Successfully uploaded {filename} to Swift.")
