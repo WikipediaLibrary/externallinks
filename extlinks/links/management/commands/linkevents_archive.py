@@ -64,9 +64,7 @@ class Command(BaseCommand):
         most_recent = []
         for aggregate in [LinkAggregate, UserAggregate, PageProjectAggregate]:
             try:
-                most_recent.append(
-                    aggregate.objects.latest("full_date").full_date
-                )
+                most_recent.append(aggregate.objects.latest("full_date").full_date)
             except aggregate.DoesNotExist:
                 pass
         return most_recent
@@ -171,7 +169,7 @@ class Command(BaseCommand):
         # failing when dealing with a lot of records.
         query_set = LinkEvent.objects.filter(timestamp__lt=archive_start_time)
         while query_set.exists():
-            delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
+            delete_query_set = query_set.values_list("id", flat=True)[:CHUNK_SIZE]
             LinkEvent.objects.filter(pk__in=list(delete_query_set)).delete()
 
     def load(self, filenames: List[str]):
