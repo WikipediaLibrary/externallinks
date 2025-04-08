@@ -395,28 +395,41 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 username=self.user,
             )
 
-        # Add cron job log entries since these are needed to automatically
+        # Add aggregate entries since these are needed to automatically
         # determine safe dates for the job to filter by.
 
-        CronJobLog(
-            code="aggregates.link_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 18, 0, 0),
-            end_time=datetime(2025, 1, 18, 18, 0, 0),
-            is_success=True,
+        LinkAggregate(
+            organisation=self.jstor_organisation,
+            collection=self.jstor_collection,
+            day=18,
+            month=1,
+            year=2025,
+            full_date=date(2025, 1, 18),
+            total_links_added=10,
+            total_links_removed=5,
         ).save()
-
-        CronJobLog(
-            code="aggregates.user_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 19, 0, 0),
-            end_time=datetime(2025, 1, 18, 19, 0, 0),
-            is_success=True,
+        UserAggregate(
+            organisation=self.jstor_organisation,
+            collection=self.jstor_collection,
+            username=self.user.username,
+            day=19,
+            month=1,
+            year=2025,
+            full_date=date(2025, 1, 19),
+            total_links_added=10,
+            total_links_removed=5,
         ).save()
-
-        CronJobLog(
-            code="aggregates.pageproject_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 20, 0, 0),
-            end_time=datetime(2025, 1, 18, 20, 0, 0),
-            is_success=True,
+        PageProjectAggregate(
+            organisation=self.jstor_organisation,
+            collection=self.jstor_collection,
+            project_name="Project",
+            page_name="Page",
+            day=20,
+            month=1,
+            year=2025,
+            full_date=date(2025, 1, 20),
+            total_links_added=10,
+            total_links_removed=5,
         ).save()
 
         temp_dir = tempfile.gettempdir()

@@ -1,4 +1,9 @@
 import gzip, logging, datetime, os
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    PageProjectAggregate,
+    UserAggregate,
+)
 from keystoneauth1.identity.v3 import ApplicationCredential
 from keystoneauth1 import session as keystone_session
 from swiftclient import client as swiftclient
@@ -8,8 +13,6 @@ from typing import List, Optional
 from django.core import serializers
 from django.core.management import BaseCommand, call_command
 from django.db import close_old_connections
-from django.db.models import Q, Max
-from django_cron.models import CronJobLog
 
 from extlinks.links.models import LinkEvent
 
@@ -73,36 +76,40 @@ class Command(BaseCommand):
         output_dir = output if output and os.path.isdir(output) else "backup"
 
         if date is None:
-            # We don't want to archive link events that haven't been processed by
-            # the aggregate jobs yet. Find the start time for the most recent
-            # successful aggregate job run grouped by the job name.
-            most_recent_aggregates = list(
-                CronJobLog.objects.values("code")
-                .annotate(last_run=Max("start_time"))
-                .filter(
-                    Q(
-                        code__in=[
-                            "aggregates.link_aggregates_cron",
-                            "aggregates.user_aggregates_cron",
-                            "aggregates.pageproject_aggregates_cron",
-                        ]
-                    )
-                    & Q(is_success=True)
-                )
+            # We don't want to archive link events that haven't been processed
+            # by the aggregate jobs yet. Find the dates of the most recent
+            # aggregates from each aggregates table.
+            most_recent_link_aggregate = (
+                LinkAggregate.objects.values_list("full_date", flat=True)
+                .order_by("-full_date")
+                .first()
             )
-            if len(most_recent_aggregates) != 3:
+            most_recent_user_aggregate = (
+                UserAggregate.objects.values_list("full_date", flat=True)
+                .order_by("-full_date")
+                .first()
+            )
+            most_recent_pageproject_aggregate = (
+                PageProjectAggregate.objects.values_list("full_date", flat=True)
+                .order_by("-full_date")
+                .first()
+            )
+            if (
+                not most_recent_link_aggregate
+                or not most_recent_user_aggregate
+                or not most_recent_pageproject_aggregate
+            ):
                 self.log_msg("All of the aggregate jobs have not been run yet")
                 return
 
-            # Find the oldest start time of the 3 jobs start datetimes we have. All
-            # link events before this date have already been aggregated and are
-            # safe to be archived.
+            # Find the oldest of the dates. All records on or before this day
+            # are safe to archive as it's already been aggregated.
             archive_start_time = min(
-                map(
-                    lambda result: result["last_run"],
-                    most_recent_aggregates,
-                )
-            ).date()
+                most_recent_link_aggregate,
+                most_recent_user_aggregate,
+                most_recent_pageproject_aggregate,
+            )
+            self.log_msg(f"{archive_start_time}")
         else:
             archive_start_time = date + datetime.timedelta(days=1)
 
