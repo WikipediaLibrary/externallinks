@@ -36,10 +36,14 @@ def get_archive_list(prefix: str, expiration=DEFAULT_EXPIRATION_SECS) -> List[Di
         return json.loads(archives)
 
     # Download and cache the archive list if one wasn't available in the cache.
-    archives = get_object_list(
-        swift_connection(), os.environ["ARCHIVE_CONTAINER"], f"{prefix}_"
-    )
-    cache.set(key, json.dumps(archives), expiration)
+    try:
+        archives = get_object_list(
+            swift_connection(), os.environ["ARCHIVE_CONTAINER"], f"{prefix}_"
+        )
+        cache.set(key, json.dumps(archives), expiration)
+    except RuntimeError:
+        # Swift is optional so return an empty list if it's not set up.
+        return []
 
     return archives
 

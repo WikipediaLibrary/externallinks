@@ -21,22 +21,24 @@ def swift_connection() -> swiftclient.Connection:
 
     try:
         return swiftclient.Connection(
-            auth_version=os.environ["SWIFT_AUTH_VERSION"],
-            authurl=os.environ["SWIFT_AUTH_URL"],
+            auth_version=os.environ["OPENSTACK_AUTH_VERSION"],
+            authurl=os.environ["OPENSTACK_AUTH_URL"],
             user=os.environ.get("SWIFT_USERNAME"),
             key=os.environ.get("SWIFT_KEY"),
             os_options={
-                "application_credential_id": os.environ.get("SWIFT_APP_CREDENTIAL_ID"),
+                "application_credential_id": os.environ.get(
+                    "SWIFT_APPLICATION_CREDENTIAL_ID"
+                ),
                 "application_credential_secret": os.environ.get(
-                    "SWIFT_APP_CREDENTIAL_SECRET"
+                    "SWIFT_APPLICATION_CREDENTIAL_SECRET"
                 ),
             },
         )
     except KeyError:
         raise RuntimeError(
-            "The 'SWIFT_AUTH_VERSION', 'SWIFT_AUTH_URL' and appropriate "
-            "credential environment variables must be defined to use the "
-            "Swift client"
+            "The 'OPENSTACK_AUTH_VERSION', 'OPENSTACK_AUTH_URL' and "
+            "appropriate credential environment variables must be defined to "
+            "use the Swift client"
         )
 
 
