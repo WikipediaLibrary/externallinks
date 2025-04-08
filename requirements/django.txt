@@ -5,7 +5,7 @@ factory_boy>=3.0.1
 faker==26.0.0
 mysqlclient==2.2.4
 pymemcache==4.0.0
-sentry-sdk==2.10.0
+sentry-sdk==2.17.0
 sseclient==0.0.27
 time_machine==2.14.2
 python-swiftclient>=4.6.0,<5.0.0
