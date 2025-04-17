@@ -29,7 +29,7 @@ services:
           cpus: "0.25"
           memory: "384M"
   crons:
-    image: quay.io/wikipedialibrary/externallinks_cron${EXTERNALLINKS_TAG}
+    image: quay.io/wikipedialibrary/externallinks_cron:${EXTERNALLINKS_TAG}
     build:
       context: .
       target: cron
