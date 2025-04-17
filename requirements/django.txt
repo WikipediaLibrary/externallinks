@@ -5,7 +5,9 @@ factory_boy>=3.0.1
 faker==26.0.0
 mysqlclient==2.2.4
 pymemcache==4.0.0
+python-dotenv==1.1.0
 sentry-sdk==2.10.0
 sseclient==0.0.27
 time_machine==2.14.2
 python-swiftclient==4.7.0
+keystoneauth1>=5.9.2,<6.0.0

@@ -1,2 +1,3 @@
 -r django.txt
 django-debug-toolbar==4.4.6
+pudb==2024.1.3
