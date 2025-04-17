@@ -69,6 +69,15 @@ class Command(BaseCommand):
                 pass
         return most_recent
 
+    def get_most_early(self):
+        most_recent = []
+        for aggregate in [LinkAggregate, UserAggregate, PageProjectAggregate]:
+            try:
+                most_recent.append(aggregate.objects.earliest("full_date").full_date)
+            except aggregate.DoesNotExist:
+                pass
+        return most_recent
+
     def dump(
         self,
         date: Optional[datetime.date] = None,
@@ -103,8 +112,11 @@ class Command(BaseCommand):
             archive_start_time = min(
                 most_recent_aggregates,
             )
+            most_early_aggregates = self.get_most_early()
+            earliest_date = min(most_early_aggregates)
         else:
             archive_start_time = date + datetime.timedelta(days=1)
+            earliest_date = None
 
         start = archive_start_time - datetime.timedelta(days=1)
         total = 0
@@ -126,6 +138,18 @@ class Command(BaseCommand):
                     timestamp__lt=start + datetime.timedelta(days=1),
                 ).all()[offset : limit + 1]
             )
+
+            # For scenario when a date is not given in the command and one day has no results:
+            # if there are more days remaining to be processed, decrease the start date and continue
+            if (
+                date is None
+                and len(results) == 0
+                and earliest_date is not None
+                and earliest_date < start
+            ):
+                start -= datetime.timedelta(days=1)
+                continue
+
             if len(results) == 0:
                 break
 
