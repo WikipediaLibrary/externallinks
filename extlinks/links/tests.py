@@ -453,10 +453,6 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 username=self.user,
             )
 
-        # Add cron job log entries since these are needed to automatically
-        # determine safe dates for the job to filter by. One of the required
-        # jobs is missing.
-
         # Call the commands to fill the aggregates tables
         call_command("fill_link_aggregates")
         call_command("fill_user_aggregates")
@@ -512,10 +508,6 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 page_title=f"Page_{i}",
                 username=self.user,
             )
-
-        # Add cron job log entries since these are needed to automatically
-        # determine safe dates for the job to filter by. None of the required
-        # jobs are present.
 
         temp_dir = tempfile.gettempdir()
 
