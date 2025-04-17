@@ -1,8 +1,9 @@
 import os
 import requests
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
+from django.utils.timezone import now
 
 from extlinks.organisations.models import Organisation, User
 
@@ -10,7 +11,7 @@ from extlinks.organisations.models import Organisation, User
 class Command(BaseCommand):
     help = "Updates organisation user lists who have a user_list_url"
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         user_list_orgs = Organisation.objects.filter(username_list_url__isnull=False)
 
         for organisation in user_list_orgs:
@@ -36,5 +37,8 @@ class Command(BaseCommand):
                 user_object, _ = User.objects.get_or_create(username=username)
 
                 organisation.username_list.add(user_object)
+            # Useful for health check
+            organisation.username_list_updated = now()
+            organisation.save()
 
         close_old_connections()

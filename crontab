@@ -1,0 +1,35 @@
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/app/bin/cronlog.sh
+PATH=/app/bin:/usr/bin:/bin
+
+# Example of job definition:
+#.---------------- minute (0 - 59)
+#|	.------------- hour (0 - 23)
+#|	|	.---------- day of month (1 - 31)
+#|	|	|	.------- month (1 - 12) OR jan,feb,mar,apr ...
+#|	|	|	|	.---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+#|	|	|	|	|
+#*	*	*	*	*	user	command to be executed
+30	6	*/2	*	*	root	python backup.py
+# from extlinks/aggregates/cron.py
+# daily
+0	0	*	*	*	root	python manage.py fill_link_aggregates
+5	0	*	*	*	root	python manage.py fill_user_aggregates
+45	0	*	*	*	root	python manage.py fill_pageproject_aggregates
+0	3	*	*	*	root	python manage.py fill_monthly_link_aggregates
+10	3	*	*	*	root	python manage.py fill_monthly_user_aggregates
+50	3	*	*	*	root	python manage.py fill_monthly_pageproject_aggregates
+# from extlinks/links/cron.py
+# weekly
+10	5	*	*	1	root	python manage.py linksearchtotal_collect
+# daily
+0	2	*	*	*	root	python manage.py archive_links_cron
+# from extlinks/organisations/cron.py
+# hourly (was every 65 minutes for some reason?)
+5	*	*	*	*	root	python manage.py users_update_lists
+

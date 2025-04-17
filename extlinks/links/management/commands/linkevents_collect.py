@@ -9,7 +9,7 @@ from sseclient import SSEClient as EventSource
 from urllib.parse import unquote
 from zoneinfo import ZoneInfo
 
-from django.core.management.base import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 
 from extlinks.links.helpers import link_is_tracked
 from extlinks.links.models import LinkEvent, URLPattern
@@ -34,7 +34,7 @@ class Command(BaseCommand):
             help="Test the command without having to access the stream. Passes a json event",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         base_stream_url = "https://stream.wikimedia.org/v2/stream/page-links-change"
 
         if options["test"]:
@@ -202,7 +202,8 @@ class Command(BaseCommand):
             event_id=event_data["meta"]["id"],
             change=change,
             on_user_list=on_user_list,
-            user_is_bot=event_data["performer"]["user_is_bot"])
+            user_is_bot=event_data["performer"]["user_is_bot"],
+        )
         for url_pattern in url_patterns:
             url_pattern.link_events.add(link_event)
             url_pattern.save()

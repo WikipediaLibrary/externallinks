@@ -4,7 +4,6 @@ from datetime import datetime, date, timezone
 
 from django.core.management import call_command
 from django.test import TestCase, TransactionTestCase
-from django_cron.models import CronJobLog
 
 from unittest import mock
 
@@ -395,29 +394,10 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 username=self.user,
             )
 
-        # Add cron job log entries since these are needed to automatically
-        # determine safe dates for the job to filter by.
-
-        CronJobLog(
-            code="aggregates.link_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 18, 0, 0),
-            end_time=datetime(2025, 1, 18, 18, 0, 0),
-            is_success=True,
-        ).save()
-
-        CronJobLog(
-            code="aggregates.user_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 19, 0, 0),
-            end_time=datetime(2025, 1, 18, 19, 0, 0),
-            is_success=True,
-        ).save()
-
-        CronJobLog(
-            code="aggregates.pageproject_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 20, 0, 0),
-            end_time=datetime(2025, 1, 18, 20, 0, 0),
-            is_success=True,
-        ).save()
+        # Call the commands to fill the aggregates tables
+        call_command("fill_link_aggregates")
+        call_command("fill_pageproject_aggregates")
+        call_command("fill_user_aggregates")
 
         temp_dir = tempfile.gettempdir()
 
@@ -473,23 +453,9 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 username=self.user,
             )
 
-        # Add cron job log entries since these are needed to automatically
-        # determine safe dates for the job to filter by. One of the required
-        # jobs is missing.
-
-        CronJobLog(
-            code="aggregates.link_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 18, 0, 0),
-            end_time=datetime(2025, 1, 18, 18, 0, 0),
-            is_success=True,
-        ).save()
-
-        CronJobLog(
-            code="aggregates.user_aggregates_cron",
-            start_time=datetime(2025, 1, 18, 19, 0, 0),
-            end_time=datetime(2025, 1, 18, 19, 0, 0),
-            is_success=True,
-        ).save()
+        # Call the commands to fill the aggregates tables
+        call_command("fill_link_aggregates")
+        call_command("fill_user_aggregates")
 
         temp_dir = tempfile.gettempdir()
 
@@ -542,10 +508,6 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 page_title=f"Page_{i}",
                 username=self.user,
             )
-
-        # Add cron job log entries since these are needed to automatically
-        # determine safe dates for the job to filter by. None of the required
-        # jobs are present.
 
         temp_dir = tempfile.gettempdir()
 

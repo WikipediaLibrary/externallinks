@@ -1,7 +1,7 @@
 import random
 from faker import Faker
 
-from django.core.management import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 
 from extlinks.links.models import URLPattern
 from extlinks.organisations.models import Organisation, Collection, User
@@ -14,7 +14,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("num", nargs="+", type=int)
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         num_programs = options["num"][0]
 
         fake = Faker()

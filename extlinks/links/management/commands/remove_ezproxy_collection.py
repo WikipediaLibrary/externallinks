@@ -1,5 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
-from django.core.management.base import BaseCommand
+from extlinks.common.management.commands import BaseCommand
 from django.core.management import call_command
 
 from extlinks.aggregates.models import (
@@ -14,7 +14,7 @@ from extlinks.organisations.models import Organisation, Collection
 class Command(BaseCommand):
     help = "Deletes the EZProxy collection and organisation and reassigns those LinkEvents to new URLPatterns"
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         ezproxy_org = self._get_ezproxy_organisation()
         ezproxy_collection = self._get_ezproxy_collection()
         url_patterns = ezproxy_collection.get_url_patterns().all()
@@ -24,9 +24,7 @@ class Command(BaseCommand):
             linkevents.filter(object_id=url_pattern.id)
         collections = Collection.objects.all()
         self._process_linkevents_collections(linkevents, collections)
-        self._delete_aggregates_ezproxy(
-            ezproxy_org, ezproxy_collection, url_patterns
-        )
+        self._delete_aggregates_ezproxy(ezproxy_org, ezproxy_collection, url_patterns)
 
     def _get_ezproxy_organisation(self):
         """

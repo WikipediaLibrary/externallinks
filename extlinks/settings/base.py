@@ -27,15 +27,9 @@ INSTALLED_APPS = [
     "extlinks.links",
     "extlinks.organisations",
     "extlinks.programs",
-    "django_cron",
     "extlinks.aggregates",
     "django_extensions",
 ]
-
-# Fixing django_cron migration warning
-MIGRATION_MODULES = {
-    "django_cron": "extlinks.django_cron_migrations",
-}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -145,19 +139,6 @@ CACHES = {
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
-
-# Cron config
-DJANGO_CRON_LOCK_BACKEND = "django_cron.backends.lock.database.DatabaseLock"
-CRON_CLASSES = [
-    "extlinks.organisations.cron.UserListsCron",
-    "extlinks.aggregates.cron.LinkAggregatesCron",
-    "extlinks.aggregates.cron.UserAggregatesCron",
-    "extlinks.aggregates.cron.PageProjectAggregatesCron",
-    "extlinks.aggregates.cron.MonthlyLinkAggregatesCron",
-    "extlinks.aggregates.cron.MonthlyUserAggregatesCron",
-    "extlinks.aggregates.cron.MonthlyPageProjectAggregatesCron",
-]
-# DJANGO_CRON_DELETE_LOGS_OLDER_THAN = 90  # Leave only the last 3 month's logs
 
 # EMAIL CONFIGURATION
 # ------------------------------------------------------------------------------

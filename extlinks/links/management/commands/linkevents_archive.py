@@ -6,12 +6,17 @@ from swiftclient import client as swiftclient
 from typing import List, Optional
 
 from django.core import serializers
-from django.core.management import BaseCommand, call_command
+from extlinks.common.management.commands import BaseCommand
+from django.core.management import call_command
 from django.db import close_old_connections
 from django.db.models import Q, Max
-from django_cron.models import CronJobLog
 
 from extlinks.links.models import LinkEvent
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    UserAggregate,
+    PageProjectAggregate,
+)
 
 logger = logging.getLogger("django")
 
@@ -55,6 +60,24 @@ class Command(BaseCommand):
             self.stdout.write(formatted_msg)
             self.stdout.flush()
 
+    def get_most_recent(self):
+        most_recent = []
+        for aggregate in [LinkAggregate, UserAggregate, PageProjectAggregate]:
+            try:
+                most_recent.append(aggregate.objects.latest("full_date").full_date)
+            except aggregate.DoesNotExist:
+                pass
+        return most_recent
+
+    def get_most_early(self):
+        most_recent = []
+        for aggregate in [LinkAggregate, UserAggregate, PageProjectAggregate]:
+            try:
+                most_recent.append(aggregate.objects.earliest("full_date").full_date)
+            except aggregate.DoesNotExist:
+                pass
+        return most_recent
+
     def dump(
         self,
         date: Optional[datetime.date] = None,
@@ -75,21 +98,10 @@ class Command(BaseCommand):
         if date is None:
             # We don't want to archive link events that haven't been processed by
             # the aggregate jobs yet. Find the start time for the most recent
-            # successful aggregate job run grouped by the job name.
-            most_recent_aggregates = list(
-                CronJobLog.objects.values("code")
-                .annotate(last_run=Max("start_time"))
-                .filter(
-                    Q(
-                        code__in=[
-                            "aggregates.link_aggregates_cron",
-                            "aggregates.user_aggregates_cron",
-                            "aggregates.pageproject_aggregates_cron",
-                        ]
-                    )
-                    & Q(is_success=True)
-                )
-            )
+            # aggregates.
+
+            most_recent_aggregates = self.get_most_recent()
+
             if len(most_recent_aggregates) != 3:
                 self.log_msg("All of the aggregate jobs have not been run yet")
                 return
@@ -98,13 +110,13 @@ class Command(BaseCommand):
             # link events before this date have already been aggregated and are
             # safe to be archived.
             archive_start_time = min(
-                map(
-                    lambda result: result["last_run"],
-                    most_recent_aggregates,
-                )
-            ).date()
+                most_recent_aggregates,
+            )
+            most_early_aggregates = self.get_most_early()
+            earliest_date = min(most_early_aggregates)
         else:
             archive_start_time = date + datetime.timedelta(days=1)
+            earliest_date = None
 
         start = archive_start_time - datetime.timedelta(days=1)
         total = 0
@@ -126,6 +138,18 @@ class Command(BaseCommand):
                     timestamp__lt=start + datetime.timedelta(days=1),
                 ).all()[offset : limit + 1]
             )
+
+            # For scenario when a date is not given in the command and one day has no results:
+            # if there are more days remaining to be processed, decrease the start date and continue
+            if (
+                date is None
+                and len(results) == 0
+                and earliest_date is not None
+                and earliest_date < start
+            ):
+                start -= datetime.timedelta(days=1)
+                continue
+
             if len(results) == 0:
                 break
 
@@ -169,7 +193,7 @@ class Command(BaseCommand):
         # failing when dealing with a lot of records.
         query_set = LinkEvent.objects.filter(timestamp__lt=archive_start_time)
         while query_set.exists():
-            delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
+            delete_query_set = query_set.values_list("id", flat=True)[:CHUNK_SIZE]
             LinkEvent.objects.filter(pk__in=list(delete_query_set)).delete()
 
     def load(self, filenames: List[str]):
@@ -348,7 +372,7 @@ class Command(BaseCommand):
             help="If enabled, archives will only be stored in Swift and deleted from local storage after upload.",
         )
 
-    def handle(self, *args, **options):
+    def _handle(self, *args, **options):
         action = options["action"][0]
         if action == "dump":
             self.dump(
