@@ -28,7 +28,7 @@ PATH=/app/bin:/usr/bin:/bin
 # weekly
 10	5	*	*	1	root	python manage.py linksearchtotal_collect
 # daily
-0	2	*	*	*	root	python manage.py archive_links_cron
+0	2	*	*	*	root	python manage.py linkevents_archive dump
 # from extlinks/organisations/cron.py
 # hourly (was every 65 minutes for some reason?)
 5	*	*	*	*	root	python manage.py users_update_lists
