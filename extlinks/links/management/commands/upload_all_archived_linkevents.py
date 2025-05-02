@@ -10,8 +10,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--dir",
-            nargs=1,
             help="The directory from which to upload archives.",
+            type=str
         )
 
     def _handle(self, *args, **options):
