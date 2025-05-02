@@ -17,7 +17,7 @@ class Command(BaseCommand):
     def _handle(self, *args, **options):
         path = options['dir']
         for filename in os.listdir(path):
-            if filename.endswith('.json.gz'):
+            if filename.endswith('.json.gz') and filename.startswith('links_linkevent_'):
                 file_path = os.path.join(path, filename)
                 if os.path.isfile(file_path):
                     call_command("linkevents_archive", "upload", file_path)
