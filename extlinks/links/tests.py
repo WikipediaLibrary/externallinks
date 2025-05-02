@@ -655,6 +655,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
+        mock_conn.get_object.return_value = ()
 
         temp_dir = tempfile.gettempdir()
 
@@ -798,6 +799,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
+        mock_conn.get_object.return_value = ()
 
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20210116_0.json.gz"
@@ -871,6 +873,32 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 f"File {fake_path} does not exist. Skipping" in msg for msg in cm.output
             )
         )
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_skip_already_uploaded_file(self, mock_swift_connection):
+        """
+        Test that files that have been uploaded already are skipped.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+        mock_conn.get_object.return_value = (
+            {},
+            [{"name": "links_linkevent_existing.json.gz"}],
+        )
+
+        fake_path = "/tmp/links_linkevent_existing.json.gz"
+
+        with self.assertLogs("django", level="ERROR") as cm:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                fake_path,
+            )
+        mock_conn.put_object.assert_not_called()
 
     @mock.patch.dict(
         os.environ,
@@ -1191,6 +1219,8 @@ class UploadAllArchivedTestCase(TestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
+        mock_conn.get_object.return_value = ()
+        ## need to figure out how to mock out the client exception error
 
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20210116_0.json.gz"
