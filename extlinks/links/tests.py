@@ -1175,7 +1175,7 @@ class FixOnUserListCommandTest(TransactionTestCase):
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
 
-class UploadAllArchivedLinkEventsTestCase(TestCase):
+class UploadAllArchivedTestCase(TestCase):
     @mock.patch.dict(
         os.environ,
         {
@@ -1225,7 +1225,7 @@ class UploadAllArchivedLinkEventsTestCase(TestCase):
 
         try:
             call_command(
-                "upload_all_archived_linkevents",
+                "upload_all_archived",
                 dir=temp_dir
             )
             mock_conn.put_object.assert_called_once()
@@ -1261,7 +1261,42 @@ class UploadAllArchivedLinkEventsTestCase(TestCase):
             json.dump({}, f)
         try:
             call_command(
-                "upload_all_archived_linkevents",
+                "upload_all_archived",
+                dir=temp_dir
+            )
+            mock_conn.put_object.assert_not_called()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_uploads_all_files_successfully_does_not_upload_non_linkevent_archived_files(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "test_*.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump({}, f)
+        try:
+            call_command(
+                "upload_all_archived",
                 dir=temp_dir
             )
             mock_conn.put_object.assert_not_called()
