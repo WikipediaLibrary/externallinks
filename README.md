@@ -30,6 +30,26 @@ After cloning the repository to your directory of choice:
 
 You should now be able to access the tool via `localhost`.
 
+## Running tests
+
+The tests can be run within the container using docker exec. The following command will run the test suite:
+
+```bash
+docker exec -ti externallinks-externallinks-1 python manage.py test
+```
+
+If you would like to generate a coverage report as well, you can invoke the test runner using `coverage run` instead:
+
+```bash
+docker exec -ti externallinks-externallinks-1 coverage run manage.py test
+```
+
+You can view this report in your browser (located at `htmlcov/index.html`) by running the following command:
+
+```bash
+docker exec -ti externallinks-externallinks-1 coverage html
+```
+
 ## Swift object store - local setup (separate container)
 
 IMPORTANT: This setup should NOT be used in production! It is only suitable for local testing.
