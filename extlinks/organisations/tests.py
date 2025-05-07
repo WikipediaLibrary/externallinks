@@ -302,6 +302,56 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top pages CSV returns the expected data when
+        incorporating archived data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 2",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 3",
+                "full_date": "2021-01-01",
+                "total_links_added": 1,
+                "total_links_removed": 2,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_page_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVPageTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Page title,Project,Links added,Links removed,Net Change\r\n"
+            "Event 1,en.wikipedia.org,2,0,2\r\n"
+            "Event 2,en.wikipedia.org,3,2,1\r\n"
+            "Event 3,en.wikipedia.org,1,2,-1\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
     @mock.patch("swiftclient.Connection")
     def test_top_projects_csv(self, mock_swift_connection):
         """
@@ -353,6 +403,53 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top projects CSV returns the expected data when
+        incorporating archived data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "fr.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 3,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_project_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVProjectTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Project,Links added,Links removed,Net Change\r\n"
+            "en.wikipedia.org,5,2,3\r\n"
+            "fr.wikipedia.org,2,3,-1\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
     @mock.patch("swiftclient.Connection")
     def test_top_users_csv(self, mock_swift_connection):
         """
@@ -400,6 +497,53 @@ class OrganisationDetailTest(TransactionTestCase):
 
         expected_output = (
             "Username,Links added,Links removed,Net Change\r\n" "Jim,2,0,2\r\n"
+        )
+        self.assertEqual(csv_content, expected_output)
+
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top users CSV returns the expected data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "username": "Jim",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "username": "Alice",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 4,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_user_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVUserTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Username,Links added,Links removed,Net Change\r\n"
+            "Jim,4,1,3\r\n"
+            "Mary,1,0,1\r\n"
+            "Bob,0,1,-1\r\n"
+            "Alice,2,4,-2\r\n"
         )
         self.assertEqual(csv_content, expected_output)
 
