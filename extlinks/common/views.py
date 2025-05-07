@@ -5,6 +5,8 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.views.generic import View
 
+import extlinks.aggregates.storage as storage
+
 from extlinks.aggregates.models import (
     PageProjectAggregate,
     ProgramTopOrganisationsTotal,
@@ -12,7 +14,6 @@ from extlinks.aggregates.models import (
     ProgramTopUsersTotal,
     UserAggregate,
 )
-from extlinks.aggregates.storage import calculate_totals, download_aggregates
 from extlinks.common.helpers import build_queryset_filters, last_day
 from extlinks.organisations.models import Collection
 from extlinks.programs.models import Program
@@ -98,8 +99,8 @@ class CSVPageTotals(_CSVDownloadView):
             to_date = earliest_aggregate_date - relativedelta(months=1)
             to_date = to_date.replace(day=last_day(to_date))
 
-        totals = calculate_totals(
-            download_aggregates(
+        totals = storage.calculate_totals(
+            storage.download_aggregates(
                 prefix="aggregates_pageprojectaggregate",
                 queryset_filter=queryset_filter,
                 to_date=to_date,
@@ -178,8 +179,8 @@ class CSVProjectTotals(_CSVDownloadView):
                 to_date = earliest_aggregate_date - relativedelta(months=1)
                 to_date = to_date.replace(day=last_day(to_date))
 
-            totals = calculate_totals(
-                download_aggregates(
+            totals = storage.calculate_totals(
+                storage.download_aggregates(
                     prefix="aggregates_pageprojectaggregate",
                     queryset_filter=queryset_filter,
                     to_date=to_date,
@@ -255,8 +256,8 @@ class CSVUserTotals(_CSVDownloadView):
                 to_date = earliest_aggregate_date - relativedelta(months=1)
                 to_date = to_date.replace(day=last_day(to_date))
 
-            totals = calculate_totals(
-                download_aggregates(
+            totals = storage.calculate_totals(
+                storage.download_aggregates(
                     prefix="aggregates_useraggregate",
                     queryset_filter=queryset_filter,
                     to_date=to_date,
