@@ -14,7 +14,6 @@ from extlinks.aggregates.models import (
     ProgramTopUsersTotal,
     UserAggregate,
 )
-from extlinks.aggregates.storage import calculate_totals, download_aggregates
 from extlinks.common.helpers import build_queryset_filters, last_day
 from extlinks.organisations.models import Collection
 from extlinks.programs.models import Program
