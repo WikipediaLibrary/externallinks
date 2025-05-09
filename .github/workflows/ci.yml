@@ -26,7 +26,7 @@ jobs:
           cp template.env .env
           docker compose up -d --build
       - name: Install everything, run the tests, produce the .coverage file
-        run:  docker compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py coverage run manage.py test
+        run:  docker compose exec -T externallinks /app/bin/django_wait_for_db.sh python django_wait_for_migrations.py test
           
       - name: Coverage comment
         id: coverage_comment
