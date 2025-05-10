@@ -22,7 +22,7 @@ jobs:
       # Gives the action the necessary permissions for looking up the
       # workflow that launched this workflow, and download the related
       # artifact that contains the comment to be published
-      actions: write
+      actions: read
     steps:
       # DO NOT run actions/checkout here, for security reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
@@ -31,6 +31,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}
+          ACTIONS_RUNNER_DEBUG: true
           # Update those if you changed the default values:
           # COMMENT_ARTIFACT_NAME: python-coverage-comment-action
           # COMMENT_FILENAME: python-coverage-comment-action.txt
