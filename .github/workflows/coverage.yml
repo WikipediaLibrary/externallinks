@@ -22,7 +22,7 @@ jobs:
       # Gives the action the necessary permissions for looking up the
       # workflow that launched this workflow, and download the related
       # artifact that contains the comment to be published
-      actions: read
+      actions: write
     steps:
       # DO NOT run actions/checkout here, for security reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
