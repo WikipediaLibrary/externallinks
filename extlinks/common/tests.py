@@ -1,14 +1,27 @@
+import os
+import shutil
+import tempfile
+
 from datetime import date, datetime, timezone
-import time_machine
 from unittest import mock
+
+import swiftclient
+import time_machine
 
 from django.test import TestCase
 
+import extlinks.common.swift as swift
+
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import get_linksearchtotal_data_by_time
-
 from extlinks.links.factories import LinkSearchTotalFactory, URLPatternFactory
 from extlinks.links.models import LinkSearchTotal
+
+SWIFT_TEST_CREDENTIALS = {
+    "OPENSTACK_AUTH_URL": "fakeurl",
+    "SWIFT_USERNAME": "fakeuser",
+    "SWIFT_KEY": "fakekey",
+}
 
 
 class LinkSearchDataByTimeTest(TestCase):
@@ -101,3 +114,86 @@ class FilterFormTest(TestCase):
         form = FilterForm(data={"end_date": "2025-02-01"})
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["end_date"], date(2025, 2, 28))
+
+
+class SwiftConnectionTest(TestCase):
+    @mock.patch.dict(os.environ, SWIFT_TEST_CREDENTIALS, clear=True)
+    def test_swift_connection(self):
+        conn = swift.swift_connection()
+        self.assertIsInstance(conn, swiftclient.Connection)
+
+    @mock.patch.dict(os.environ, {}, clear=True)
+    def test_swift_connection_validation(self):
+        with self.assertRaises(RuntimeError):
+            swift.swift_connection()
+
+
+class SwiftUploadTest(TestCase):
+    def setUp(self):
+        self.tmpdir = os.path.join(tempfile.gettempdir(), "SwiftUploadTest")
+        os.mkdir(self.tmpdir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def write_file(self, path: str, contents="placeholder"):
+        """
+        Writes a text file to the temporary directory.
+        """
+
+        full_path = os.path.join(self.tmpdir, path)
+        with open(full_path, "w") as f:
+            f.write(contents)
+
+        return full_path
+
+    @mock.patch("swiftclient.Connection")
+    @mock.patch.dict(os.environ, SWIFT_TEST_CREDENTIALS, clear=True)
+    def test_swift_upload(self, mock_swift_connection):
+        """
+        Test that we can upload a file to Swift using the helper methods.
+        """
+
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.put_object.return_value = ""
+
+        swift.upload_file(
+            swift.swift_connection(), "fakecontainer", self.write_file("file.txt")
+        )
+        mock_conn.put_object.assert_called_once_with(
+            "fakecontainer", "file.txt", contents=mock.ANY, content_type=mock.ANY
+        )
+
+    @mock.patch("swiftclient.Connection")
+    @mock.patch.dict(os.environ, SWIFT_TEST_CREDENTIALS, clear=True)
+    def test_swift_batch_upload(self, mock_swift_connection):
+        """
+        Test that we can upload a batch of files to Swift.
+        """
+
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.put_object.return_value = ""
+
+        files = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        for file in files:
+            self.write_file(os.path.join(self.tmpdir, file))
+
+        conn = swift.swift_connection()
+        swift.batch_upload_files(
+            conn,
+            "fakecontainer",
+            (os.path.join(self.tmpdir, file) for file in files),
+            max_workers=3,
+        )
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    file,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for file in files
+            ),
+            any_order=True,
+        )

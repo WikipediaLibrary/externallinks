@@ -3,7 +3,7 @@ import logging
 import os
 import swiftclient
 
-from typing import List, Tuple
+from typing import Iterable, List, Tuple
 
 logger = logging.getLogger("django")
 
@@ -59,7 +59,7 @@ def upload_file(conn: swiftclient.Connection, container: str, path: str):
 def batch_upload_files(
     conn: swiftclient.Connection,
     container: str,
-    files: List[str],
+    files: Iterable[str],
     max_workers=10,
 ) -> Tuple[List[str], List[str]]:
     """

@@ -3,14 +3,14 @@ import gzip
 import logging
 import os
 
-import swiftclient
-import swiftclient.exceptions
-
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
-
 from typing import List, Optional, Type, cast
+
+import swiftclient
+import swiftclient.exceptions
+
 from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
@@ -282,18 +282,18 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         Deletes the given month's aggregates.
         """
 
-        logger.info(
-            "Deleting %s records for the month of %s from the database",
-            self.name,
-            date.strftime("%Y-%m"),
-        )
-
         AggregateModel = self.get_model()
 
         query_set = AggregateModel.objects.filter(
             full_date__gte=date, full_date__lt=date + relativedelta(months=1)
         )
         while query_set.exists():
+            logger.info(
+                "Deleting %s records for the month of %s from the database",
+                self.name,
+                date.strftime("%Y-%m"),
+            )
+
             delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
             AggregateModel.objects.filter(pk__in=list(delete_query_set)).delete()
 
