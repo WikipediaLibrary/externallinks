@@ -1,9 +1,13 @@
 import concurrent.futures
 import logging
 import os
-import swiftclient
 
 from typing import Iterable, List, Tuple
+
+import swiftclient
+
+import keystoneauth1.identity.v3 as identity
+import keystoneauth1.session as session
 
 logger = logging.getLogger("django")
 
@@ -18,23 +22,24 @@ def swift_connection() -> swiftclient.Connection:
 
     try:
         return swiftclient.Connection(
-            auth_version=os.environ.get("OPENSTACK_AUTH_VERSION", "3"),
-            authurl=os.environ["OPENSTACK_AUTH_URL"],
-            key=os.environ.get("SWIFT_KEY"),
-            user=os.environ.get("SWIFT_USERNAME"),
-            os_options={
-                "application_credential_id": os.environ.get(
-                    "SWIFT_APPLICATION_CREDENTIAL_ID"
-                ),
-                "application_credential_secret": os.environ.get(
-                    "SWIFT_APPLICATION_CREDENTIAL_SECRET"
-                ),
-            },
+            session=session.Session(
+                auth=identity.ApplicationCredential(
+                    auth_url=os.environ["OPENSTACK_AUTH_URL"],
+                    application_credential_id=os.environ[
+                        "SWIFT_APPLICATION_CREDENTIAL_ID"
+                    ],
+                    application_credential_secret=os.environ[
+                        "SWIFT_APPLICATION_CREDENTIAL_SECRET"
+                    ],
+                    user_domain_id="default",
+                )
+            )
         )
     except KeyError:
         raise RuntimeError(
-            "The 'OPENSTACK_AUTH_URL' and other appropriate credential "
-            "environment variables must be defined to use the Swift client"
+            "The 'OPENSTACK_AUTH_URL', 'SWIFT_APPLICATION_CREDENTIAL_ID' and "
+            "'SWIFT_APPLICATION_CREDENTIAL_SECRET' environment variables must "
+            "be defined to use the Swift client"
         )
 
 

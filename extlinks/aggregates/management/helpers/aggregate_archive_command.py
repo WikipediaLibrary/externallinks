@@ -287,13 +287,14 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         query_set = AggregateModel.objects.filter(
             full_date__gte=date, full_date__lt=date + relativedelta(months=1)
         )
-        while query_set.exists():
+        if query_set.exists():
             logger.info(
                 "Deleting %s records for the month of %s from the database",
                 self.name,
                 date.strftime("%Y-%m"),
             )
 
+        while query_set.exists():
             delete_query_set = query_set[:CHUNK_SIZE].values_list("id", flat=True)
             AggregateModel.objects.filter(pk__in=list(delete_query_set)).delete()
 

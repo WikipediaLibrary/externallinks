@@ -18,9 +18,9 @@ from extlinks.links.factories import LinkSearchTotalFactory, URLPatternFactory
 from extlinks.links.models import LinkSearchTotal
 
 SWIFT_TEST_CREDENTIALS = {
-    "OPENSTACK_AUTH_URL": "fakeurl",
-    "SWIFT_USERNAME": "fakeuser",
-    "SWIFT_KEY": "fakekey",
+    "OPENSTACK_AUTH_URL": "fakeauthurl",
+    "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredentialid",
+    "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredentialsecret",
 }
 
 
