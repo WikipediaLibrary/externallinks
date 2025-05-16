@@ -297,12 +297,12 @@ class Command(BaseCommand):
                         f"Failed to locate {local_filepath} in Swift container {container_name}"
                     )
                     pass
-            conn.put_object(
-                container_name,
-                remote_filename,
-                contents=f,
-                content_type="application/gzip",
-            )
+                conn.put_object(
+                    container_name,
+                    remote_filename,
+                    contents=f,
+                    content_type="application/gzip",
+                )
             self.log_msg(
                 f"Successfully uploaded {local_filepath} to Swift container {container_name}"
             )
