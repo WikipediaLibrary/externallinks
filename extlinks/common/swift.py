@@ -104,6 +104,22 @@ def get_object_list(
 ) -> List[Dict]:
     """
     Gets a list of all objects in a container matching an optional prefix.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to get the objects from.
+
+    prefix : str|None
+        An optional prefix to filter the objects by.
+
+    Returns
+    -------
+    List[Dict]
+        A list of dictionaries containing information about each object.
     """
 
     objects = []
@@ -133,7 +149,7 @@ def upload_file(
     container: str,
     path: str,
     content_type="application/octet-stream",
-):
+) -> str:
     """
     Uploads a file on the local filesystem to the provided Swift container.
 
@@ -286,6 +302,25 @@ def batch_download_files(
 ) -> Dict[str, bytes]:
     """
     Downloads a batch of multiple files from the given Swift container.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to download the files from.
+
+    objects : Iterable[str]
+        An iterable of file names to download.
+
+    max_workers : int
+        The maximum number of concurrent downloads to perform.
+
+    Returns
+    -------
+    Dict[str, bytes]
+        A dictionary of file names and their contents.
     """
 
     result: Dict[str, bytes] = {}
