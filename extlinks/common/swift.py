@@ -156,6 +156,22 @@ def get_object_list(
 ) -> List[Dict]:
     """
     Gets a list of all objects in a container matching an optional prefix.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to get the objects from.
+
+    prefix : str|None
+        An optional prefix to filter the objects by.
+
+    Returns
+    -------
+    List[Dict]
+        A list of dictionaries containing information about each object.
     """
 
     objects = []
