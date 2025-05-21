@@ -38,7 +38,7 @@ def get_archive_list(prefix: str, expiration=DEFAULT_EXPIRATION_SECS) -> List[Di
     # Download and cache the archive list if one wasn't available in the cache.
     try:
         archives = get_object_list(
-            swift_connection(), os.environ["ARCHIVE_CONTAINER"], f"{prefix}_"
+            swift_connection(), os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates"), f"{prefix}_"
         )
         cache.set(key, json.dumps(archives), expiration)
     except RuntimeError:
@@ -68,7 +68,7 @@ def get_archives(
     # Download and cache missing archives.
     if len(missing) > 0:
         downloaded_archives = batch_download_files(
-            swift_connection(), os.environ["ARCHIVE_CONTAINER"], archives
+            swift_connection(), os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates"), archives
         )
         cache.set_many(downloaded_archives, expiration)
         result |= downloaded_archives
