@@ -17,3 +17,5 @@ db.json
 
 .coverage
 htmlcov/
+
+.DS_Store
