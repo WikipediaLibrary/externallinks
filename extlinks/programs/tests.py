@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
 import json
+
+from datetime import datetime, timezone
 
 from django.test import TestCase, RequestFactory, TransactionTestCase
 from django.urls import reverse
 from django.core.management import call_command
+from django.utils.http import urlencode
 
 from extlinks.common.views import (
     CSVOrgTotals,
@@ -17,10 +19,14 @@ from extlinks.organisations.factories import (
     OrganisationFactory,
     CollectionFactory,
 )
+
 from .factories import ProgramFactory
 from .views import (
     ProgramListView,
     ProgramDetailView,
+    get_top_organisations,
+    get_top_projects,
+    get_top_users,
 )
 
 
@@ -114,6 +120,9 @@ class ProgramDetailTest(TransactionTestCase):
         call_command("fill_link_aggregates")
         call_command("fill_pageproject_aggregates")
         call_command("fill_user_aggregates")
+        call_command("fill_top_organisations_totals")
+        call_command("fill_top_projects_totals")
+        call_command("fill_top_users_totals")
 
     def test_program_detail_view(self):
         """
@@ -131,19 +140,11 @@ class ProgramDetailTest(TransactionTestCase):
         Test that we're counting the correct total number of added links
         for this program.
         """
-        factory = RequestFactory()
-
-        request = factory.get(self.url1)
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -155,15 +156,10 @@ class ProgramDetailTest(TransactionTestCase):
         for this program.
         """
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -175,34 +171,39 @@ class ProgramDetailTest(TransactionTestCase):
         for this program.
         """
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:editor_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
         self.assertEqual(json.loads(response.content)["editor_count"], 3)
+
+    def test_program_detail_total_projects(self):
+        """
+        Test that we're counting the correct total number of projects
+        for this program.
+        """
+        form_data = "{}"
+
+        url = reverse("programs:project_count")
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
+        )
+        response = self.client.get(url_with_params)
+
+        self.assertEqual(json.loads(response.content)["project_count"], 1)
 
     def test_program_detail_date_form(self):
         """
         Test that the date limiting form works on the program detail page.
         """
         form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -214,15 +215,10 @@ class ProgramDetailTest(TransactionTestCase):
         Test that the user list limiting form works on the program detail page.
         """
         form_data = '{"limit_to_user_list": true}'
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -244,6 +240,37 @@ class ProgramDetailTest(TransactionTestCase):
 
         self.assertEqual(response.context_data["total_added"], 1)
         self.assertEqual(response.context_data["total_removed"], 0)
+
+    def test_top_organisations(self):
+        """
+        Test that the top organisations view returns the expected data.
+        """
+
+        params = {
+            "program": self.program1.pk,
+            "collection": self.collection1.pk,
+            "form_data": "{}",
+        }
+        url = reverse("programs:top_organisations") + "?" + urlencode(params)
+
+        factory = RequestFactory()
+        request = factory.get(url)
+        response = get_top_organisations(request)
+
+        self.assertDictEqual(
+            json.loads(response.content),
+            {
+                "top_organisations": json.dumps(
+                    [
+                        {
+                            "organisation__pk": self.organisation1.pk,
+                            "organisation__name": "Org 1",
+                            "links_diff": 2,
+                        },
+                    ],
+                ),
+            },
+        )
 
     def test_top_organisations_csv(self):
         """
@@ -285,6 +312,33 @@ class ProgramDetailTest(TransactionTestCase):
         )
 
         self.assertEqual(csv_content, expected_output)
+
+    def test_top_projects(self):
+        """
+        Test that the top projects view returns the expected data.
+        """
+
+        params = {
+            "program": self.program1.pk,
+            "collection": self.collection1.pk,
+            "form_data": "{}",
+        }
+        url = reverse("programs:top_projects") + "?" + urlencode(params)
+
+        factory = RequestFactory()
+        request = factory.get(url)
+        response = get_top_projects(request)
+
+        self.assertDictEqual(
+            json.loads(response.content),
+            {
+                "top_projects": json.dumps(
+                    [
+                        {"project_name": "en.wikipedia.org", "links_diff": 2},
+                    ],
+                ),
+            },
+        )
 
     def test_top_projects_csv(self):
         """
@@ -328,6 +382,35 @@ class ProgramDetailTest(TransactionTestCase):
         )
 
         self.assertEqual(csv_content, expected_output)
+
+    def test_top_users(self):
+        """
+        Test that the top users view returns the expected data.
+        """
+
+        params = {
+            "program": self.program1.pk,
+            "collection": self.collection1.pk,
+            "form_data": "{}",
+        }
+        url = reverse("programs:top_users") + "?" + urlencode(params)
+
+        factory = RequestFactory()
+        request = factory.get(url)
+        response = get_top_users(request)
+
+        self.assertDictEqual(
+            json.loads(response.content),
+            {
+                "top_users": json.dumps(
+                    [
+                        {"username": "Jim", "links_diff": 2},
+                        {"username": "Mary", "links_diff": 1},
+                        {"username": "Bob", "links_diff": -1},
+                    ],
+                ),
+            },
+        )
 
     def test_top_users_csv(self):
         """
