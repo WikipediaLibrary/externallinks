@@ -14,3 +14,8 @@ static/debug_toolbar
 static/django_extensions
 
 db.json
+
+.coverage
+htmlcov/
+
+.DS_Store

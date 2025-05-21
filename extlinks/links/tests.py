@@ -655,6 +655,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
+        mock_conn.get_object.return_value = ()
 
         temp_dir = tempfile.gettempdir()
 
@@ -798,6 +799,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
+        mock_conn.get_object.return_value = ()
 
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20210116_0.json.gz"
@@ -871,6 +873,32 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
                 f"File {fake_path} does not exist. Skipping" in msg for msg in cm.output
             )
         )
+
+    @mock.patch("swiftclient.client.Connection")
+    def test_upload_skip_already_uploaded_file(self, mock_swift_connection):
+        """
+        Test that files that have been uploaded already are skipped.
+        """
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+        mock_conn.get_object.return_value = (
+            {},
+            [{"name": "links_linkevent_existing.json.gz"}],
+        )
+
+        fake_path = "/tmp/links_linkevent_existing.json.gz"
+
+        with self.assertLogs("django", level="ERROR") as cm:
+            # Load the LinkEvents from the archive we just created into the db.
+            call_command(
+                "linkevents_archive",
+                "upload",
+                fake_path,
+            )
+        mock_conn.put_object.assert_not_called()
 
     @mock.patch.dict(
         os.environ,
@@ -1174,3 +1202,138 @@ class FixOnUserListCommandTest(TransactionTestCase):
         self.assertEqual(LinkAggregate.objects.count(), 2)
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
+
+class UploadAllArchivedTestCase(TestCase):
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_uploads_all_files_successfully(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+        mock_conn.get_object.return_value = ()
+        ## need to figure out how to mock out the client exception error
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20210116_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.jstor.org/something_16",
+                    "timestamp": "2021-01-16T00:00:00Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": None,
+                    "object_id": None,
+                    "username": 1,
+                    "rev_id": None,
+                    "user_id": None,
+                    "page_title": "Page",
+                    "page_namespace": 0,
+                    "event_id": "event-id-1",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "fakehash",
+                    "change": 1,
+                    "on_user_list": False,
+                    "url": [123],
+                },
+            }
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "upload_all_archived",
+                dir=temp_dir
+            )
+            mock_conn.put_object.assert_called_once()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_uploads_all_files_successfully_does_not_upload_non_archived_files(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20210116_0.txt"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump({}, f)
+        try:
+            call_command(
+                "upload_all_archived",
+                dir=temp_dir
+            )
+            mock_conn.put_object.assert_not_called()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.client.Connection")
+    def test_uploads_all_files_successfully_does_not_upload_non_linkevent_archived_files(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "linkevents-backup-202101"}],
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "test_*.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump({}, f)
+        try:
+            call_command(
+                "upload_all_archived",
+                dir=temp_dir
+            )
+            mock_conn.put_object.assert_not_called()
+
+        finally:
+            pattern = os.path.join(temp_dir, "links_linkevent_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)
+
