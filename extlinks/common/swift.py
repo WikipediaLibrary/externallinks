@@ -56,6 +56,22 @@ def get_object_list(
 ) -> List[Dict]:
     """
     Gets a list of all objects in a container matching an optional prefix.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to get the objects from.
+
+    prefix : str|None
+        An optional prefix to filter the objects by.
+
+    Returns
+    -------
+    List[Dict]
+        A list of dictionaries containing information about each object.
     """
 
     objects = []
@@ -80,7 +96,60 @@ def get_object_list(
     return objects
 
 
-def upload_file(conn: swiftclient.Connection, container: str, path: str) -> str:
+def get_containers(conn: swiftclient.Connection) -> List[dict]:
+    """
+    Retrieves a list of containers from object storage.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    Returns
+    -------
+    List[dict]
+        A list of dictionaries containing information about each container.
+    """
+
+    response = conn.get_account()
+    if not response or len(response) < 2:
+        raise RuntimeError("Failed to retrieve container list from Swift account.")
+
+    return response[1]
+
+
+def ensure_container_exists(conn: swiftclient.Connection, container: str) -> bool:
+    """
+    Creates a new container in object storage if it doesn't already exist.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to create.
+
+    Returns
+    -------
+    bool
+        True if the container was created, False if it already existed.
+    """
+
+    containers = (c["name"] for c in get_containers(conn))
+    if container not in containers:
+        conn.put_container(container)
+        return True
+
+    return False
+
+
+def upload_file(
+    conn: swiftclient.Connection,
+    container: str,
+    path: str,
+    content_type="application/octet-stream",
+) -> str:
     """
     Uploads a file on the local filesystem to the provided Swift container.
 
@@ -233,6 +302,25 @@ def batch_download_files(
 ) -> Dict[str, bytes]:
     """
     Downloads a batch of multiple files from the given Swift container.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to download the files from.
+
+    objects : Iterable[str]
+        An iterable of file names to download.
+
+    max_workers : int
+        The maximum number of concurrent downloads to perform.
+
+    Returns
+    -------
+    Dict[str, bytes]
+        A dictionary of file names and their contents.
     """
 
     result: Dict[str, bytes] = {}
