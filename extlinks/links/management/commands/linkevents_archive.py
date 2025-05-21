@@ -1,15 +1,14 @@
 import gzip, logging, datetime, os
-from keystoneauth1.identity.v3 import ApplicationCredential
-from keystoneauth1 import session as keystone_session
-from swiftclient import client as swiftclient, ClientException
+
+from swiftclient import ClientException
 
 from typing import List, Optional
 
 from django.core import serializers
+from extlinks.common import swift
 from extlinks.common.management.commands import BaseCommand
 from django.core.management import call_command
 from django.db import close_old_connections
-from django.db.models import Q, Max
 
 from extlinks.links.models import LinkEvent
 from extlinks.aggregates.models import (
@@ -168,7 +167,7 @@ class Command(BaseCommand):
 
             # Try to upload to Swift, remove local archive if flag is on and upload was successful
             if (
-                self.upload_to_swift(local_filepath, filename, SWIFT_CONTAINER_NAME)
+                self.upload_to_swift(local_filepath, SWIFT_CONTAINER_NAME)
                 and object_storage_only
             ):
                 os.remove(local_filepath)
@@ -210,22 +209,7 @@ class Command(BaseCommand):
             # loaddata supports gzipped fixtures and handles relationships properly
             call_command("loaddata", filename)
 
-    def get_swift_credentials(self):
-        """
-        Get Swift credentials from env vars.
-        """
-        return {
-            "auth_url": os.environ.get("OPENSTACK_AUTH_URL", None),
-            "application_credential_id": os.environ.get(
-                "SWIFT_APPLICATION_CREDENTIAL_ID", None
-            ),
-            "application_credential_secret": os.environ.get(
-                "SWIFT_APPLICATION_CREDENTIAL_SECRET", None
-            ),
-            "user_domain_id": "default",
-        }
-
-    def upload_to_swift(self, local_filepath, remote_filename, container_name):
+    def upload_to_swift(self, local_filepath, container_name):
         """
         Upload a file to Swift object storage, ensuring the container exists.
 
@@ -236,78 +220,54 @@ class Command(BaseCommand):
         local_file_path : str
             The backup file path to be uploaded to Swift
 
-        remote_filename : str
-            The file name to be created in Swift
-
         container_name : str
             The Swift container to upload the file
+
         Returns
         -------
         None
         """
-        credentials = self.get_swift_credentials()
-        if (
-            not credentials
-            or not credentials["auth_url"]
-            or not credentials["application_credential_id"]
-            or not credentials["application_credential_secret"]
-        ):
+
+        try:
+            conn = swift.swift_connection()
+        except RuntimeError:
             self.log_msg("Swift credentials not provided. Skipping upload.")
             return False
 
         try:
-            auth = ApplicationCredential(
-                auth_url=credentials["auth_url"],
-                application_credential_id=credentials["application_credential_id"],
-                application_credential_secret=credentials[
-                    "application_credential_secret"
-                ],
-                user_domain_id=credentials["user_domain_id"],
-            )
-            session = keystone_session.Session(auth=auth)
-            conn = swiftclient.Connection(session=session)
+            # Ensure the container exists before uploading.
+            try:
+                was_created = swift.ensure_container_exists(conn, container_name)
+                if was_created:
+                    self.log_msg(f"Created new container: {container_name}")
+            except RuntimeError as e:
+                self.log_msg(str(e), level="error")
+                return False
 
-            # Ensure the container exists before uploading
-            account_info = conn.get_account()
-            if not account_info or len(account_info) < 2:
+            # Skip uploading the file if it already exists in Swift.
+            object_name = os.path.basename(local_filepath)
+            try:
+                if swift.file_exists(conn, container_name, object_name):
+                    self.log_msg(f"Skipping upload {object_name} - already uploaded")
+                    return True
+            except ClientException as e:
                 self.log_msg(
-                    "Failed to retrieve container list from Swift account.",
-                    level="error",
+                    f"Failed to locate {object_name} in Swift container "
+                    f"{container_name} due to an unexpected error: {e}"
                 )
                 return False
 
-            existing_containers = [container["name"] for container in account_info[1]]
-            if container_name not in existing_containers:
-                self.log_msg(f"Creating new container: {container_name}")
-                conn.put_container(container_name)  # Create the container
+            swift.upload_file(
+                conn,
+                container_name,
+                local_filepath,
+                content_type="application/gzip",
+            )
 
-            # Retrieve a file if exists otherwise upload the file
-            with open(local_filepath, "rb") as f:
-                try:
-                    existing_archive = conn.get_object(
-                        container_name,
-                        remote_filename)
-                    if existing_archive:
-                        self.log_msg(
-                            f"Skipping upload {local_filepath} - already uploaded"
-                        )
-                        return True
-                except ClientException as e:
-                    self.log_msg(
-                        f"Failed to locate {local_filepath} in Swift container {container_name}"
-                    )
-                    pass
-                conn.put_object(
-                    container_name,
-                    remote_filename,
-                    contents=f,
-                    content_type="application/gzip",
-                )
             self.log_msg(
                 f"Successfully uploaded {local_filepath} to Swift container {container_name}"
             )
             return True
-
         except Exception as e:
             self.log_msg(
                 f"Failed to upload {local_filepath} to Swift: {e}", level="error"
@@ -344,7 +304,7 @@ class Command(BaseCommand):
                 f"Uploading {filepath} to Swift container {SWIFT_CONTAINER_NAME}"
             )
 
-            if self.upload_to_swift(filepath, filename, SWIFT_CONTAINER_NAME):
+            if self.upload_to_swift(filepath, SWIFT_CONTAINER_NAME):
                 self.log_msg(f"Successfully uploaded {filename} to Swift.")
             else:
                 self.log_msg(f"Failed to upload {filename} to Swift.", level="error")
