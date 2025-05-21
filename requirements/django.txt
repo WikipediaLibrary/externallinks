@@ -11,3 +11,4 @@ sseclient==0.0.27
 time_machine==2.14.2
 python-swiftclient>=4.6.0,<5.0.0
 keystoneauth1>=5.9.2,<6.0.0
+coverage==7.8.0

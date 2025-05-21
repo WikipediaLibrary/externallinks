@@ -1,9 +1,12 @@
 import concurrent.futures
 import logging
 import os
-import swiftclient
 
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, cast
+
+import swiftclient
+import keystoneauth1.identity.v3 as identity
+import keystoneauth1.session as session
 
 logger = logging.getLogger("django")
 
@@ -15,30 +18,35 @@ def swift_connection() -> swiftclient.Connection:
     """
     Creates a swiftclient Connection configured using environment variables.
 
-    This method works with v1 username & password authentication and v3
-    application credentials authentication.
+    This method works with v3 application credentials authentication only.
+
+    Returns
+    -------
+    swiftclient.Connection
+        A connection to the Swift object storage.
     """
 
-    try:
-        return swiftclient.Connection(
-            auth_version=os.environ.get("OPENSTACK_AUTH_VERSION", "3"),
-            authurl=os.environ["OPENSTACK_AUTH_URL"],
-            key=os.environ.get("SWIFT_KEY"),
-            user=os.environ.get("SWIFT_USERNAME"),
-            os_options={
-                "application_credential_id": os.environ.get(
-                    "SWIFT_APPLICATION_CREDENTIAL_ID"
-                ),
-                "application_credential_secret": os.environ.get(
-                    "SWIFT_APPLICATION_CREDENTIAL_SECRET"
-                ),
-            },
-        )
-    except KeyError:
+    auth_url = os.environ.get("OPENSTACK_AUTH_URL")
+    credential_id = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_ID")
+    credential_secret = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_SECRET")
+
+    if not auth_url or not credential_id or not credential_secret:
         raise RuntimeError(
-            "The 'OPENSTACK_AUTH_URL' and other appropriate credential "
-            "environment variables must be defined to use the Swift client"
+            "The 'OPENSTACK_AUTH_URL', 'SWIFT_APPLICATION_CREDENTIAL_ID' and "
+            "'SWIFT_APPLICATION_CREDENTIAL_SECRET' environment variables must "
+            "be defined to use the Swift client"
         )
+
+    return swiftclient.Connection(
+        session=session.Session(
+            auth=identity.ApplicationCredential(
+                auth_url=auth_url,
+                application_credential_id=credential_id,
+                application_credential_secret=credential_secret,
+                user_domain_id="default",
+            )
+        )
+    )
 
 
 def get_object_list(
@@ -75,6 +83,25 @@ def get_object_list(
 def upload_file(conn: swiftclient.Connection, container: str, path: str) -> str:
     """
     Uploads a file on the local filesystem to the provided Swift container.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to upload the file to.
+
+    path : str
+        The path to the file on the local filesystem.
+
+    content_type : str
+        The content type of the file.
+
+    Returns
+    -------
+    str
+        The name of the object in Swift.
     """
 
     object_name = os.path.basename(path)
@@ -84,7 +111,7 @@ def upload_file(conn: swiftclient.Connection, container: str, path: str) -> str:
             container,
             object_name,
             contents=f,
-            content_type="application/octet-stream",
+            content_type=content_type,
         )
 
     return object_name
@@ -93,11 +120,58 @@ def upload_file(conn: swiftclient.Connection, container: str, path: str) -> str:
 def download_file(conn: swiftclient.Connection, container: str, object: str) -> bytes:
     """
     Downloads a file from object storage.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to download the file from.
+
+    object : str
+        The name of the object to download.
+
+    Returns
+    -------
+    bytes
+        The contents of the object.
     """
 
     _, response = conn.get_object(container, object)
 
     return cast(bytes, response)
+
+
+def file_exists(conn: swiftclient.Connection, container: str, object: str) -> bool:
+    """
+    Checks if a file exists in Swift.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to check.
+
+    object : str
+        The name of the object to check.
+
+    Returns
+    -------
+    bool
+        True if the file exists, False if it doesn't.
+    """
+
+    try:
+        conn.head_object(container, object)
+        return True
+    except swiftclient.ClientException as e:
+        if e.http_status == 404:
+            return False
+        else:
+            raise e
 
 
 def batch_upload_files(
@@ -108,6 +182,27 @@ def batch_upload_files(
 ) -> Tuple[List[str], List[str]]:
     """
     Uploads a batch of multiple files to the given Swift container.
+
+    Parameters
+    ----------
+    conn : swiftclient.Connection
+        A connection to the Swift object storage.
+
+    container : str
+        The name of the container to upload the files to.
+
+    files : Iterable[str]
+        An iterable of file paths to upload.
+
+    max_workers : int
+        The maximum number of concurrent uploads to perform.
+
+    Returns
+    -------
+    Tuple[List[str], List[str]]
+        A tuple containing two lists. The first list contains the names of the
+        files that were successfully uploaded. The second list contains the
+        names of the files that failed to upload.
     """
 
     successful = []
