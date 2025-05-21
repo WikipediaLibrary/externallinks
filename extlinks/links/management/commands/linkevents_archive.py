@@ -1,7 +1,7 @@
 import gzip, logging, datetime, os
 from keystoneauth1.identity.v3 import ApplicationCredential
 from keystoneauth1 import session as keystone_session
-from swiftclient import client as swiftclient
+from swiftclient import client as swiftclient, ClientException
 
 from typing import List, Optional
 
@@ -281,15 +281,28 @@ class Command(BaseCommand):
                 self.log_msg(f"Creating new container: {container_name}")
                 conn.put_container(container_name)  # Create the container
 
-            # Upload the file
+            # Retrieve a file if exists otherwise upload the file
             with open(local_filepath, "rb") as f:
+                try:
+                    existing_archive = conn.get_object(
+                        container_name,
+                        remote_filename)
+                    if existing_archive:
+                        self.log_msg(
+                            f"Skipping upload {local_filepath} - already uploaded"
+                        )
+                        return True
+                except ClientException as e:
+                    self.log_msg(
+                        f"Failed to locate {local_filepath} in Swift container {container_name}"
+                    )
+                    pass
                 conn.put_object(
                     container_name,
                     remote_filename,
                     contents=f,
                     content_type="application/gzip",
                 )
-
             self.log_msg(
                 f"Successfully uploaded {local_filepath} to Swift container {container_name}"
             )
