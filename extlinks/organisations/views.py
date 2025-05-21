@@ -10,15 +10,12 @@ from django.db.models.functions import Cast
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 
+import extlinks.aggregates.storage as storage
+
 from extlinks.aggregates.models import (
     LinkAggregate,
     PageProjectAggregate,
     UserAggregate,
-)
-from extlinks.aggregates.storage import (
-    find_unique,
-    calculate_totals,
-    download_aggregates,
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (
@@ -209,8 +206,8 @@ class OrganisationDetailView(DetailView):
 
         # Download aggregates from object storage and calculate totals grouped
         # by year and month.
-        totals = calculate_totals(
-            download_aggregates(
+        totals = storage.calculate_totals(
+            storage.download_aggregates(
                 prefix="aggregates_linkaggregate",
                 queryset_filter=queryset_filter,
                 to_date=to_date,
@@ -289,8 +286,8 @@ def get_editor_count(request):
 
     # Add unique usernames from the archived aggregates.
     usernames.update(
-        find_unique(
-            download_aggregates(
+        storage.find_unique(
+            storage.download_aggregates(
                 prefix="aggregates_useraggregate",
                 queryset_filter=queryset_filter,
                 to_date=to_date,
@@ -326,8 +323,8 @@ def get_project_count(request):
 
     # Add unique project names from the archived aggregates.
     projects.update(
-        find_unique(
-            download_aggregates(
+        storage.find_unique(
+            storage.download_aggregates(
                 prefix="aggregates_pageprojectaggregate",
                 queryset_filter=queryset_filter,
                 to_date=to_date,
@@ -369,8 +366,8 @@ def get_links_count(request):
         to_date = to_date.replace(day=last_day(to_date))
 
     # Mix in archive totals with the database totals.
-    totals = calculate_totals(
-        download_aggregates(
+    totals = storage.calculate_totals(
+        storage.download_aggregates(
             prefix="aggregates_linkaggregate",
             queryset_filter=queryset_filter,
             to_date=to_date,
@@ -420,8 +417,8 @@ def get_top_pages(request):
         to_date = to_date.replace(day=last_day(to_date))
 
     # Calculate top pages from archive data and merge it with the DB totals.
-    totals = calculate_totals(
-        download_aggregates(
+    totals = storage.calculate_totals(
+        storage.download_aggregates(
             prefix="aggregates_pageprojectaggregate",
             queryset_filter=queryset_filter,
             to_date=to_date,
@@ -477,8 +474,8 @@ def get_top_projects(request):
         to_date = to_date.replace(day=last_day(to_date))
 
     # Calculate top pages from archive data and merge it with the DB totals.
-    totals = calculate_totals(
-        download_aggregates(
+    totals = storage.calculate_totals(
+        storage.download_aggregates(
             prefix="aggregates_pageprojectaggregate",
             queryset_filter=queryset_filter,
             to_date=to_date,
@@ -536,8 +533,8 @@ def get_top_users(request):
         to_date = to_date.replace(day=last_day(to_date))
 
     # Calculate top pages from archive data and merge it with the DB totals.
-    totals = calculate_totals(
-        download_aggregates(
+    totals = storage.calculate_totals(
+        storage.download_aggregates(
             prefix="aggregates_useraggregate",
             queryset_filter=queryset_filter,
             to_date=to_date,
