@@ -130,6 +130,20 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
         Dump aggregate data to gzipped JSON files that are grouped by month,
         and then delete them from the database.
+
+        Parameters
+        ----------
+        start : datetime.date
+            The start date for the dump (inclusive).
+
+        end : datetime.date, optional
+            The end date for the dump (inclusive).
+
+        output : str, optional
+            The directory to write the archive files to.
+
+        container : str, optional
+            The Swift container to upload the archive files to.
         """
 
         if end:
@@ -164,6 +178,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def load(self, filenames: List[str]):
         """
         Import data from gzipped JSON files.
+
+        Parameters
+        ----------
+        filenames : List[str]
+            The list of archive filenames to load into the database.
         """
 
         if not filenames:
@@ -179,6 +198,14 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def upload(self, container: str, filenames: List[str]):
         """
         Upload the given files to object storage.
+
+        Parameters
+        ----------
+        container : str
+            The name of the Swift container to upload to.
+
+        filenames : List[str]
+            The paths of the files to upload.
         """
 
         if len(filenames) == 0:
@@ -215,11 +242,24 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
         Archives a month's worth of data defined by 'date' and returns a list
         of archives that were generated.
+
+        Parameters
+        ----------
+        date : datetime.date
+            The date to archive aggregates for.
+
+        output : str, optional
+            The directory to output the archives to. If not provided, the
+            archives will be output to $HOST_BACKUP_DIR.
         """
 
         AggregateModel = self.get_model()
 
-        output_dir = output if output and os.path.isdir(output) else "backup"
+        output_dir = (
+            output
+            if output and os.path.isdir(output)
+            else os.environ.get("HOST_BACKUP_DIR", "backup")
+        )
         archives: List[str] = []
 
         results = list(
@@ -280,6 +320,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def delete(self, date: datetime.date):
         """
         Deletes the given month's aggregates.
+
+        Parameters
+        ----------
+        date : datetime.date
+            The date of the month to delete aggregates for in the database.
         """
 
         AggregateModel = self.get_model()
@@ -302,6 +347,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def get_model(self) -> Type[models.Model]:
         """
         Returns the model containing aggregate data.
+
+        Returns
+        -------
+        Type[models.Model]
+            The model representing the aggregate data being archived.
         """
 
         raise NotImplementedError
