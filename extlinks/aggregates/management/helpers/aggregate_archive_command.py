@@ -74,6 +74,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             type=str,
             help=f"The Swift container to upload {self.name} archives to. If left unspecified then nothing will be uploaded.",
         )
+        dump_parser.add_argument(
+            "--object-storage-only",
+            action="store_true",
+            help="If enabled, archives will only be stored in Swift and deleted from local storage after upload.",
+        )
 
         load_parser = subparsers.add_parser(
             "load",
@@ -114,6 +119,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 end=options["to"],
                 output=options["output"],
                 container=options["container"],
+                object_storage_only=options["object_storage_only"],
             )
         elif subcommand == "load":
             self.load(filenames=options["filenames"])
@@ -126,6 +132,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         end: Optional[datetime.date] = None,
         output: Optional[str] = None,
         container: Optional[str] = None,
+        object_storage_only=False,
     ):
         """
         Dump aggregate data to gzipped JSON files that are grouped by month,
@@ -144,6 +151,10 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
         container : str, optional
             The Swift container to upload the archive files to.
+
+        object_storage_only : bool, optional
+            If enabled, archives will only be stored in Swift and deleted from
+            local storage after upload.
         """
 
         if end:
@@ -156,12 +167,18 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 # Upload archives to object storage if a container was specified.
                 if container and len(archives) > 0:
                     self.upload(container, archives)
+
+                    if object_storage_only:
+                        self._remove_archives(archives)
         else:
             archives = self.archive(start, output=output)
 
             # Upload archives to object storage if a container was specified.
             if container and len(archives) > 0:
                 self.upload(container, archives)
+
+                if object_storage_only:
+                    self._remove_archives(archives)
 
         # Delete only after everything is archived as some archives need to
         # contain duplicate records for use by the frontend's filters and
@@ -355,3 +372,17 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
 
         raise NotImplementedError
+
+    def _remove_archives(self, paths: List[str]):
+        """
+        Deletes all archives in the given list of paths.
+
+        Parameters
+        ----------
+        paths : List[str]
+            A list of paths to delete.
+        """
+
+        for path in paths:
+            logger.info("Deleting local archive: %s", path)
+            os.remove(path)
