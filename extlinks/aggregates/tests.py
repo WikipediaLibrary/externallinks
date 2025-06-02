@@ -1291,7 +1291,16 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
     def tearDown(self):
         shutil.rmtree(self.output_dir)
 
-    def test_archive_link_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_archive_link_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         self.assertEqual(LinkAggregate.objects.count(), 3)
 
         call_command(
@@ -1317,7 +1326,16 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
 
         self.assertEqual(LinkAggregate.objects.count(), 0)
 
-    def test_load_link_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_load_link_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         call_command(
             "archive_link_aggregates",
             "dump",
@@ -1346,7 +1364,11 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_link_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(
@@ -1392,7 +1414,11 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(
@@ -1473,7 +1499,16 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
     def tearDown(self):
         shutil.rmtree(self.output_dir)
 
-    def test_archive_user_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_archive_user_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         self.assertEqual(UserAggregate.objects.count(), 3)
 
         call_command(
@@ -1499,7 +1534,16 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
 
         self.assertEqual(UserAggregate.objects.count(), 0)
 
-    def test_load_user_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_load_user_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         call_command(
             "archive_user_aggregates",
             "dump",
@@ -1528,7 +1572,11 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_user_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(
@@ -1574,7 +1622,11 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(
@@ -1659,7 +1711,16 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
     def tearDown(self):
         shutil.rmtree(self.output_dir)
 
-    def test_archive_pageproject_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_archive_pageproject_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         self.assertEqual(PageProjectAggregate.objects.count(), 3)
 
         call_command(
@@ -1685,7 +1746,16 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
 
         self.assertEqual(PageProjectAggregate.objects.count(), 0)
 
-    def test_load_pageproject_aggregates(self):
+    @mock.patch("swiftclient.Connection")
+    def test_load_pageproject_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
         call_command(
             "archive_pageproject_aggregates",
             "dump",
@@ -1714,7 +1784,11 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_pageproject_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(
@@ -1760,7 +1834,11 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
-        mock_conn.get_container.return_value = ({}, [])
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
         mock_conn.put_object.return_value = ""
 
         call_command(

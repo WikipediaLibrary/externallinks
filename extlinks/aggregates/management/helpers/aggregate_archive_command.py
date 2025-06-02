@@ -8,15 +8,12 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 from typing import List, Optional, Type, cast
 
-import swiftclient
-import swiftclient.exceptions
-
 from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import models
 
-from extlinks.common.swift import swift_connection, batch_upload_files
+from extlinks.common import swift
 
 logger = logging.getLogger("django")
 
@@ -101,7 +98,6 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             nargs="?",
             type=str,
             help=f"The Swift container to upload {self.name} archives to.",
-            required=True,
         )
         upload_parser.add_argument(
             "filenames",
@@ -156,6 +152,9 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             If enabled, archives will only be stored in Swift and deleted from
             local storage after upload.
         """
+
+        if not container:
+            container = os.environ.get("SWIFT_CONTAINER_NAME")
 
         if end:
             cursor = start
@@ -229,27 +228,21 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             raise CommandError("Filenames must be provided to the upload command")
 
         logger.info("Uploading %d archives to object storage", len(filenames))
-        conn = swift_connection()
 
-        try:
-            conn.get_container(container)
-        except swiftclient.exceptions.ClientException as exc:
-            if exc.http_status == 404:
-                logger.error(
-                    "Cannot upload archives to Swift. The container '%s' "
-                    "doesn't exist",
-                    container,
-                )
-
-            raise
-
-        successful, _ = batch_upload_files(conn, container, filenames)
+        conn = swift.swift_connection()
+        swift.ensure_container_exists(conn, container)
+        successful, failed = swift.batch_upload_files(conn, container, filenames)
 
         logger.info(
-            "Successfully uploaded %d/%d archives to object storage",
+            "Uploaded %d/%d archives to object storage",
             len(successful),
             len(filenames),
         )
+
+        if len(failed) > 0:
+            raise CommandError(
+                f"The following {failed} archives failed to upload: {','.join(failed)}"
+            )
 
     def archive(
         self,
