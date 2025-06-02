@@ -84,6 +84,8 @@ Reference: https://github.com/CSCfi/docker-keystone-swift
     ```
   - To make calls from Django to Swift (locally), you can now use the URL `http://externallinks-swift:{port}`
     - The env var `OPENSTACK_AUTH_URL` can now be set to `http://externallinks-swift:5001/v3` (in the Django app)
+    - Also set the env var `SWIFT_CONTAINER_NAME` to the name of the Swift container you want to use, e.g. 'wikilink'
+      - You do not need to create this Swift container yourself as it will be created automatically
 - Setup the new container
   - Access the running container
     ```
@@ -124,7 +126,7 @@ Reference: https://github.com/CSCfi/docker-keystone-swift
     ```
     openstack role add --project wikilink --user djangouser admin
     ```
-  - Update the variables to start using the created user and project
+  - Update the environment variables in your current bash session (not .env) to start using the created user and project
     ```
     export OS_USERNAME=djangouser
     export OS_PASSWORD=djangopass

@@ -8,15 +8,12 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 from typing import List, Optional, Type, cast
 
-import swiftclient
-import swiftclient.exceptions
-
 from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import models
 
-from extlinks.common.swift import swift_connection, batch_upload_files
+from extlinks.common import swift
 
 logger = logging.getLogger("django")
 
@@ -74,6 +71,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             type=str,
             help=f"The Swift container to upload {self.name} archives to. If left unspecified then nothing will be uploaded.",
         )
+        dump_parser.add_argument(
+            "--object-storage-only",
+            action="store_true",
+            help="If enabled, archives will only be stored in Swift and deleted from local storage after upload.",
+        )
 
         load_parser = subparsers.add_parser(
             "load",
@@ -96,7 +98,6 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             nargs="?",
             type=str,
             help=f"The Swift container to upload {self.name} archives to.",
-            required=True,
         )
         upload_parser.add_argument(
             "filenames",
@@ -114,6 +115,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 end=options["to"],
                 output=options["output"],
                 container=options["container"],
+                object_storage_only=options["object_storage_only"],
             )
         elif subcommand == "load":
             self.load(filenames=options["filenames"])
@@ -126,11 +128,33 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         end: Optional[datetime.date] = None,
         output: Optional[str] = None,
         container: Optional[str] = None,
+        object_storage_only=False,
     ):
         """
         Dump aggregate data to gzipped JSON files that are grouped by month,
         and then delete them from the database.
+
+        Parameters
+        ----------
+        start : datetime.date
+            The start date for the dump (inclusive).
+
+        end : datetime.date, optional
+            The end date for the dump (inclusive).
+
+        output : str, optional
+            The directory to write the archive files to.
+
+        container : str, optional
+            The Swift container to upload the archive files to.
+
+        object_storage_only : bool, optional
+            If enabled, archives will only be stored in Swift and deleted from
+            local storage after upload.
         """
+
+        if not container:
+            container = os.environ.get("SWIFT_CONTAINER_NAME")
 
         if end:
             cursor = start
@@ -142,12 +166,18 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 # Upload archives to object storage if a container was specified.
                 if container and len(archives) > 0:
                     self.upload(container, archives)
+
+                    if object_storage_only:
+                        self._remove_archives(archives)
         else:
             archives = self.archive(start, output=output)
 
             # Upload archives to object storage if a container was specified.
             if container and len(archives) > 0:
                 self.upload(container, archives)
+
+                if object_storage_only:
+                    self._remove_archives(archives)
 
         # Delete only after everything is archived as some archives need to
         # contain duplicate records for use by the frontend's filters and
@@ -164,6 +194,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def load(self, filenames: List[str]):
         """
         Import data from gzipped JSON files.
+
+        Parameters
+        ----------
+        filenames : List[str]
+            The list of archive filenames to load into the database.
         """
 
         if not filenames:
@@ -179,33 +214,35 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def upload(self, container: str, filenames: List[str]):
         """
         Upload the given files to object storage.
+
+        Parameters
+        ----------
+        container : str
+            The name of the Swift container to upload to.
+
+        filenames : List[str]
+            The paths of the files to upload.
         """
 
         if len(filenames) == 0:
             raise CommandError("Filenames must be provided to the upload command")
 
         logger.info("Uploading %d archives to object storage", len(filenames))
-        conn = swift_connection()
 
-        try:
-            conn.get_container(container)
-        except swiftclient.exceptions.ClientException as exc:
-            if exc.http_status == 404:
-                logger.error(
-                    "Cannot upload archives to Swift. The container '%s' "
-                    "doesn't exist",
-                    container,
-                )
-
-            raise
-
-        successful, _ = batch_upload_files(conn, container, filenames)
+        conn = swift.swift_connection()
+        swift.ensure_container_exists(conn, container)
+        successful, failed = swift.batch_upload_files(conn, container, filenames)
 
         logger.info(
-            "Successfully uploaded %d/%d archives to object storage",
+            "Uploaded %d/%d archives to object storage",
             len(successful),
             len(filenames),
         )
+
+        if len(failed) > 0:
+            raise CommandError(
+                f"The following {failed} archives failed to upload: {','.join(failed)}"
+            )
 
     def archive(
         self,
@@ -215,11 +252,24 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
         Archives a month's worth of data defined by 'date' and returns a list
         of archives that were generated.
+
+        Parameters
+        ----------
+        date : datetime.date
+            The date to archive aggregates for.
+
+        output : str, optional
+            The directory to output the archives to. If not provided, the
+            archives will be output to $HOST_BACKUP_DIR.
         """
 
         AggregateModel = self.get_model()
 
-        output_dir = output if output and os.path.isdir(output) else "backup"
+        output_dir = (
+            output
+            if output and os.path.isdir(output)
+            else os.environ.get("HOST_BACKUP_DIR", "backup")
+        )
         archives: List[str] = []
 
         results = list(
@@ -280,6 +330,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def delete(self, date: datetime.date):
         """
         Deletes the given month's aggregates.
+
+        Parameters
+        ----------
+        date : datetime.date
+            The date of the month to delete aggregates for in the database.
         """
 
         AggregateModel = self.get_model()
@@ -302,6 +357,25 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     def get_model(self) -> Type[models.Model]:
         """
         Returns the model containing aggregate data.
+
+        Returns
+        -------
+        Type[models.Model]
+            The model representing the aggregate data being archived.
         """
 
         raise NotImplementedError
+
+    def _remove_archives(self, paths: List[str]):
+        """
+        Deletes all archives in the given list of paths.
+
+        Parameters
+        ----------
+        paths : List[str]
+            A list of paths to delete.
+        """
+
+        for path in paths:
+            logger.info("Deleting local archive: %s", path)
+            os.remove(path)
