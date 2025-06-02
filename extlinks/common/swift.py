@@ -77,6 +77,8 @@ def get_object_list(
     objects = []
     marker = None
 
+    ensure_container_exists(conn, container)
+
     while True:
         _, objects_page = conn.get_container(
             container,
