@@ -5,7 +5,6 @@ on:
     # Publish `master` as Docker `latest` image.
     branches:
       - master
-      - staging
 
   # Run tests for any PRs.
   pull_request:
