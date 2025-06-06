@@ -7,6 +7,8 @@ from django.test import TestCase, TransactionTestCase
 
 from unittest import mock
 
+import swiftclient
+
 from extlinks.aggregates.models import (
     LinkAggregate,
     PageProjectAggregate,
@@ -283,7 +285,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
         self.jstor_url_pattern.collections.add(self.jstor_collection)
         self.jstor_url_pattern.save()
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_with_date(self, mock_swift_connection):
         """
         Test that LinkEvents are dumped and removed from the database when
@@ -355,7 +357,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_without_date(self, mock_swift_connection):
         """
         Test that LinkEvents are dumped and removed from the database when
@@ -425,7 +427,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_with_partial_jobs(self, mock_swift_connection):
         """
         Test that no links are archived if not all of the jobs have run yet.
@@ -481,7 +483,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_with_no_jobs(self, mock_swift_connection):
         """
         Test that no links are archived if none of the jobs have run yet.
@@ -541,7 +543,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_creates_swift_container(self, mock_swift_connection):
         """
         Test that Swift container is created if missing
@@ -585,7 +587,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_does_not_create_swift_container(self, mock_swift_connection):
         """
         Test that Swift container creation should not be called if
@@ -635,7 +637,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_creates_file_object_in_swift(self, mock_swift_connection):
         """
         Test that Swift object is created
@@ -655,7 +657,12 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
-        mock_conn.get_object.return_value = ()
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
 
         temp_dir = tempfile.gettempdir()
 
@@ -685,7 +692,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_dump_deletes_local_file(self, mock_swift_connection):
         """
         Test that local file is deleted if --object_storage_only flag
@@ -731,7 +738,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_load(self, mock_swift_connection):
         """
         Test that we can load LinkEvents from an archive in the filesystem.
@@ -789,7 +796,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_upload_successful(self, mock_swift_connection):
         """
         Test that we can upload a LinkEvents archive to Swift.
@@ -799,7 +806,12 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             {},
             [{"name": "linkevents-backup-202101"}],
         )
-        mock_conn.get_object.return_value = ()
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
 
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20210116_0.json.gz"
@@ -847,7 +859,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             for file in glob.glob(pattern):
                 os.remove(file)
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_upload_skip_non_existent_file(self, mock_swift_connection):
         """
         Test that non-existent files are skipped.
@@ -874,7 +886,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             )
         )
 
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_upload_skip_already_uploaded_file(self, mock_swift_connection):
         """
         Test that files that have been uploaded already are skipped.
@@ -908,7 +920,7 @@ class LinkEventsArchiveCommandTest(TransactionTestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_swift_credentials_not_set(self, mock_swift_connection):
         """
         Test that non-existent Swift credentials should output a message a skip upload.
@@ -1203,6 +1215,7 @@ class FixOnUserListCommandTest(TransactionTestCase):
         self.assertEqual(UserAggregate.objects.count(), 2)
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
 
+
 class UploadAllArchivedTestCase(TestCase):
     @mock.patch.dict(
         os.environ,
@@ -1212,15 +1225,19 @@ class UploadAllArchivedTestCase(TestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
+    @mock.patch("swiftclient.Connection")
     def test_uploads_all_files_successfully(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
         mock_conn.get_account.return_value = (
             {},
             [{"name": "linkevents-backup-202101"}],
         )
-        mock_conn.get_object.return_value = ()
-        ## need to figure out how to mock out the client exception error
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
 
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20210116_0.json.gz"
@@ -1254,10 +1271,7 @@ class UploadAllArchivedTestCase(TestCase):
             json.dump(json_data, f)
 
         try:
-            call_command(
-                "upload_all_archived",
-                dir=temp_dir
-            )
+            call_command("upload_all_archived", dir=temp_dir)
             mock_conn.put_object.assert_called_once()
 
         finally:
@@ -1265,7 +1279,6 @@ class UploadAllArchivedTestCase(TestCase):
 
             for file in glob.glob(pattern):
                 os.remove(file)
-
 
     @mock.patch.dict(
         os.environ,
@@ -1275,8 +1288,10 @@ class UploadAllArchivedTestCase(TestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
-    def test_uploads_all_files_successfully_does_not_upload_non_archived_files(self, mock_swift_connection):
+    @mock.patch("swiftclient.Connection")
+    def test_uploads_all_files_successfully_does_not_upload_non_archived_files(
+        self, mock_swift_connection
+    ):
         mock_conn = mock_swift_connection.return_value
         mock_conn.get_account.return_value = (
             {},
@@ -1290,10 +1305,7 @@ class UploadAllArchivedTestCase(TestCase):
         with gzip.open(archive_path, "wt", encoding="utf-8") as f:
             json.dump({}, f)
         try:
-            call_command(
-                "upload_all_archived",
-                dir=temp_dir
-            )
+            call_command("upload_all_archived", dir=temp_dir)
             mock_conn.put_object.assert_not_called()
 
         finally:
@@ -1310,8 +1322,10 @@ class UploadAllArchivedTestCase(TestCase):
             "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
         },
     )
-    @mock.patch("swiftclient.client.Connection")
-    def test_uploads_all_files_successfully_does_not_upload_non_linkevent_archived_files(self, mock_swift_connection):
+    @mock.patch("swiftclient.Connection")
+    def test_uploads_all_files_successfully_does_not_upload_non_linkevent_archived_files(
+        self, mock_swift_connection
+    ):
         mock_conn = mock_swift_connection.return_value
         mock_conn.get_account.return_value = (
             {},
@@ -1325,10 +1339,7 @@ class UploadAllArchivedTestCase(TestCase):
         with gzip.open(archive_path, "wt", encoding="utf-8") as f:
             json.dump({}, f)
         try:
-            call_command(
-                "upload_all_archived",
-                dir=temp_dir
-            )
+            call_command("upload_all_archived", dir=temp_dir)
             mock_conn.put_object.assert_not_called()
 
         finally:
@@ -1336,4 +1347,3 @@ class UploadAllArchivedTestCase(TestCase):
 
             for file in glob.glob(pattern):
                 os.remove(file)
-

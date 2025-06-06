@@ -1,8 +1,18 @@
 from datetime import datetime, date, timedelta, timezone
+import os
+import shutil
+import tempfile
+from unittest import mock
 import time_machine
 
 from django.core.management import call_command, CommandError
 from django.test import TransactionTestCase
+
+from extlinks.aggregates.management.helpers import (
+    validate_link_aggregate_archive,
+    validate_pageproject_aggregate_archive,
+    validate_user_aggregate_archive,
+)
 
 from .factories import (
     LinkAggregateFactory,
@@ -1241,3 +1251,627 @@ class MonthlyPageProjectAggregateCommandTest(TransactionTestCase):
             self.assertEqual(
                 self.expected_total_removed, monthly_aggregate.total_links_removed
             )
+
+
+class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
+    def setUp(self):
+        self.organisation = OrganisationFactory(name="JSTOR")
+        self.collection = CollectionFactory(
+            name="JSTOR",
+            organisation=self.organisation,
+        )
+        self.output_dir = os.path.join(
+            tempfile.gettempdir(), "ArchiveLinkAggregatesCommandTest"
+        )
+
+        os.mkdir(self.output_dir)
+
+        self.jan_aggregate = LinkAggregateFactory(
+            full_date=date(2025, 1, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=1,
+            total_links_removed=0,
+        )
+        self.feb_aggregate = LinkAggregateFactory(
+            full_date=date(2025, 2, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=5,
+            total_links_removed=3,
+        )
+        self.mar_aggregate = LinkAggregateFactory(
+            full_date=date(2025, 3, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=10,
+            total_links_removed=15,
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.output_dir)
+
+    @mock.patch("swiftclient.Connection")
+    def test_archive_link_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        self.assertEqual(LinkAggregate.objects.count(), 3)
+
+        call_command(
+            "archive_link_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_link_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_link_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_link_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        self.assertEqual(LinkAggregate.objects.count(), 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_load_link_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_link_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(LinkAggregate.objects.count(), 0)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_link_aggregates",
+            "load",
+            *archives,
+        )
+
+        self.assertEqual(LinkAggregate.objects.count(), 3)
+
+    @mock.patch("swiftclient.Connection")
+    def test_link_aggregate_upload(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_link_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_link_aggregates",
+            "upload",
+            "--container",
+            "fakecontainer",
+            *archives,
+        )
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in os.listdir(self.output_dir)
+            ),
+            any_order=True,
+        )
+
+    @mock.patch("swiftclient.Connection")
+    def test_link_aggregate_upload_with_object_storage_only(
+        self, mock_swift_connection
+    ):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_link_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+            "--container",
+            "fakecontainer",
+            "--object-storage-only",
+        )
+
+        expected_archives = [
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+        ]
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in expected_archives
+            ),
+            any_order=True,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 0)
+
+
+class ArchiveUserAggregatesCommandTest(TransactionTestCase):
+    def setUp(self):
+        self.user = UserFactory(username="jonsnow")
+        self.organisation = OrganisationFactory(name="JSTOR")
+        self.collection = CollectionFactory(
+            name="JSTOR",
+            organisation=self.organisation,
+        )
+        self.output_dir = os.path.join(
+            tempfile.gettempdir(), "ArchiveUserAggregatesCommandTest"
+        )
+
+        os.mkdir(self.output_dir)
+
+        self.jan_aggregate = UserAggregateFactory(
+            full_date=date(2025, 1, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=1,
+            total_links_removed=0,
+            username=self.user.username,
+        )
+        self.feb_aggregate = UserAggregateFactory(
+            full_date=date(2025, 2, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=5,
+            total_links_removed=3,
+            username=self.user.username,
+        )
+        self.mar_aggregate = UserAggregateFactory(
+            full_date=date(2025, 3, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=10,
+            total_links_removed=15,
+            username=self.user.username,
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.output_dir)
+
+    @mock.patch("swiftclient.Connection")
+    def test_archive_user_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        self.assertEqual(UserAggregate.objects.count(), 3)
+
+        call_command(
+            "archive_user_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_user_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_user_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_user_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        self.assertEqual(UserAggregate.objects.count(), 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_load_user_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_user_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(UserAggregate.objects.count(), 0)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_user_aggregates",
+            "load",
+            *archives,
+        )
+
+        self.assertEqual(UserAggregate.objects.count(), 3)
+
+    @mock.patch("swiftclient.Connection")
+    def test_user_aggregate_upload(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_user_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_user_aggregates",
+            "upload",
+            "--container",
+            "fakecontainer",
+            *archives,
+        )
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in os.listdir(self.output_dir)
+            ),
+            any_order=True,
+        )
+
+    @mock.patch("swiftclient.Connection")
+    def test_user_aggregate_upload_with_object_storage_only(
+        self, mock_swift_connection
+    ):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_user_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+            "--container",
+            "fakecontainer",
+            "--object-storage-only",
+        )
+
+        expected_archives = [
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+        ]
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in expected_archives
+            ),
+            any_order=True,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 0)
+
+
+class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
+    def setUp(self):
+        self.page = "TestPage"
+        self.project = "en.wikipedia.org"
+        self.organisation = OrganisationFactory(name="JSTOR")
+        self.collection = CollectionFactory(
+            name="JSTOR",
+            organisation=self.organisation,
+        )
+        self.output_dir = os.path.join(
+            tempfile.gettempdir(), "ArchivePageProjectAggregatesCommandTest"
+        )
+
+        os.mkdir(self.output_dir)
+
+        self.jan_aggregate = PageProjectAggregateFactory(
+            full_date=date(2025, 1, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=1,
+            total_links_removed=0,
+            project_name=self.project,
+            page_name=self.page,
+        )
+        self.feb_aggregate = PageProjectAggregateFactory(
+            full_date=date(2025, 2, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=5,
+            total_links_removed=3,
+            project_name=self.project,
+            page_name=self.page,
+        )
+        self.mar_aggregate = PageProjectAggregateFactory(
+            full_date=date(2025, 3, 1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=10,
+            total_links_removed=15,
+            project_name=self.project,
+            page_name=self.page,
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.output_dir)
+
+    @mock.patch("swiftclient.Connection")
+    def test_archive_pageproject_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        self.assertEqual(PageProjectAggregate.objects.count(), 3)
+
+        call_command(
+            "archive_pageproject_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        self.assertEqual(PageProjectAggregate.objects.count(), 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_load_pageproject_aggregates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_pageproject_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(PageProjectAggregate.objects.count(), 0)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_pageproject_aggregates",
+            "load",
+            *archives,
+        )
+
+        self.assertEqual(PageProjectAggregate.objects.count(), 3)
+
+    @mock.patch("swiftclient.Connection")
+    def test_pageproject_aggregate_upload(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_pageproject_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+
+        archives = (
+            os.path.join(self.output_dir, filename)
+            for filename in os.listdir(self.output_dir)
+        )
+        call_command(
+            "archive_pageproject_aggregates",
+            "upload",
+            "--container",
+            "fakecontainer",
+            *archives,
+        )
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in os.listdir(self.output_dir)
+            ),
+            any_order=True,
+        )
+
+    @mock.patch("swiftclient.Connection")
+    def test_pageproject_aggregate_upload_with_object_storage_only(
+        self, mock_swift_connection
+    ):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        call_command(
+            "archive_pageproject_aggregates",
+            "dump",
+            "--from",
+            "2025-01",
+            "--to",
+            "2025-03",
+            "--output",
+            self.output_dir,
+            "--container",
+            "fakecontainer",
+            "--object-storage-only",
+        )
+
+        expected_archives = [
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+        ]
+
+        mock_conn.put_object.assert_has_calls(
+            (
+                mock.call(
+                    "fakecontainer",
+                    filename,
+                    contents=mock.ANY,
+                    content_type=mock.ANY,
+                )
+                for filename in expected_archives
+            ),
+            any_order=True,
+        )
+
+        self.assertEqual(len(os.listdir(self.output_dir)), 0)
