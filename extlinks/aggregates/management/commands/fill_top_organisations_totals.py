@@ -2,7 +2,7 @@ import calendar
 import datetime
 import logging
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand, CommandError, CommandParser
@@ -54,6 +54,14 @@ class Command(BaseCommand):
     def calculate_totals(self, program: Program, start: datetime.date):
         """
         Calculate totals for the given program starting at the given date.
+
+        Parameters
+        ----------
+        program : Program
+            The program to calculate totals for.
+
+        start : datetime.date
+            The date to start calculating totals for (inclusive).
         """
 
         organisations = list(program.organisation_set.all())
@@ -111,9 +119,28 @@ class Command(BaseCommand):
             # Process the next month.
             start += relativedelta(months=1)
 
-    def upsert_total(self, program: Program, total: Dict[str, Any]):
+    def upsert_total(
+        self, program: Program, total: Dict[str, Any]
+    ) -> Tuple[
+        Optional[ProgramTopOrganisationsTotal], Optional[ProgramTopOrganisationsTotal]
+    ]:
         """
-        Update an existing total if one exists or create a new one if not.
+        Update an existing organisation total for a month if one exists, or
+        create a new one if one doesn't exist.
+
+        Parameters
+        ----------
+        program : Program
+            The program to update (or create) the total for.
+
+        total : Dict[str, Any]
+            The total to update or create.
+
+        Returns
+        -------
+        Tuple[Optional[ProgramTopOrganisationsTotal], Optional[ProgramTopOrganisationsTotal]]
+            The created and updated totals. Only one of the two returned values
+            in the tuple will contain a non-null value.
         """
 
         created = None
@@ -163,6 +190,20 @@ class Command(BaseCommand):
     ):
         """
         Bulk save totals to the database all at once to reduce round trips.
+
+        Parameters
+        ----------
+        program : Program
+            The program to the totals belong to.
+
+        date : datetime.date
+            The date the totals belong to.
+
+        new_totals : List[ProgramTopOrganisationsTotal]
+            New totals that don't already exist in the database to save.
+
+        existing_totals : List[ProgramTopOrganisationsTotal]
+            Existing totals that already exist in the database to update.
         """
 
         logger.info(
