@@ -1,18 +1,18 @@
 import csv
 
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q, Sum
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.views.generic import View
 
 from extlinks.aggregates.models import (
-    LinkAggregate,
     PageProjectAggregate,
+    ProgramTopOrganisationsTotal,
+    ProgramTopProjectsTotal,
+    ProgramTopUsersTotal,
     UserAggregate,
 )
 from extlinks.common.helpers import build_queryset_filters
-from extlinks.links.models import URLPattern, LinkEvent
-from extlinks.organisations.models import Collection, Organisation
+from extlinks.organisations.models import Collection
 from extlinks.programs.models import Program
 
 
@@ -48,7 +48,7 @@ class CSVOrgTotals(_CSVDownloadView):
         )
 
         top_orgs = (
-            LinkAggregate.objects.filter(queryset_filter)
+            ProgramTopOrganisationsTotal.objects.filter(queryset_filter)
             .values("organisation__pk", "organisation__name")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -111,12 +111,12 @@ class CSVPageTotals(_CSVDownloadView):
 class CSVProjectTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        queryset_filter = _get_queryset_filter(
-            pk, self.request.build_absolute_uri(), self.request.GET
-        )
+        uri = self.request.build_absolute_uri()
+        queryset_filter = _get_queryset_filter(pk, uri, self.request.GET)
+        Model = ProgramTopProjectsTotal if "/programs" in uri else PageProjectAggregate
 
         top_projects = (
-            PageProjectAggregate.objects.filter(queryset_filter)
+            Model.objects.filter(queryset_filter)
             .values("project_name")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -143,12 +143,12 @@ class CSVProjectTotals(_CSVDownloadView):
 class CSVUserTotals(_CSVDownloadView):
     def _write_data(self, response):
         pk = self.kwargs["pk"]
-        queryset_filter = _get_queryset_filter(
-            pk, self.request.build_absolute_uri(), self.request.GET
-        )
+        uri = self.request.build_absolute_uri()
+        queryset_filter = _get_queryset_filter(pk, uri, self.request.GET)
+        Model = ProgramTopUsersTotal if "/programs" in uri else UserAggregate
 
         top_users = (
-            UserAggregate.objects.filter(queryset_filter)
+            Model.objects.filter(queryset_filter)
             .values("username")
             .annotate(
                 links_added=Sum("total_links_added"),
@@ -200,9 +200,8 @@ def _get_queryset_filter(pk, uri, filters):
         collection = Collection.objects.get(pk=pk)
         queryset_filter = build_queryset_filters(filters, {"collection": collection})
     else:
-        program = Program.objects.prefetch_related("organisation_set").get(pk=pk)
         queryset_filter = build_queryset_filters(
-            filters, {"organisations": program.organisation_set.all()}
+            filters, {"program": Program.objects.get(pk=pk)}
         )
 
     return queryset_filter
