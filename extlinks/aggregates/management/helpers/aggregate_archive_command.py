@@ -47,7 +47,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             nargs="?",
             type=lambda arg: datetime.datetime.strptime(arg, "%Y-%m").date(),
             help="A date formatted as YYYY-MM to begin archiving from.",
-            required=True,
+            required=False,
         )
         dump_parser.add_argument(
             "-t",
@@ -124,7 +124,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
     def dump(
         self,
-        start: datetime.date,
+        start: Optional[datetime.date] = None,
         end: Optional[datetime.date] = None,
         output: Optional[str] = None,
         container: Optional[str] = None,
@@ -152,6 +152,23 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             If enabled, archives will only be stored in Swift and deleted from
             local storage after upload.
         """
+
+        # Pick the earliest possible date if one is not provided on the CLI.
+        if not start:
+            oldest = self.get_model().objects.order_by("full_date").first()
+            if not oldest:
+                raise CommandError(
+                    f"There are not {self.name} records to archive. Stopping..."
+                )
+
+            start = datetime.date(oldest.year, oldest.month, 1)
+
+            # If both start and end were not provided (happens with cron) then
+            # only archive aggregates that are older than a year. It's possible
+            # that end will be before start for fresh installs, but this is
+            # fine as the command will do nothing in that scenario.
+            if not end:
+                end = (datetime.date.today() - relativedelta(years=1)).replace(day=1)
 
         if not container:
             container = os.environ.get("SWIFT_CONTAINER_NAME")
