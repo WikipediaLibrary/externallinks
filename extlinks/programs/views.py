@@ -1,5 +1,9 @@
 from datetime import date, timedelta
 import json
+import json
+
+from datetime import date, timedelta, datetime
+from logging import getLogger
 
 from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
@@ -117,7 +121,13 @@ class ProgramDetailView(DetailView):
         existing_link_aggregates = {}
         eventstream_dates = []
         eventstream_net_change = []
-        current_date = date.today()
+
+        # Figure out what date the graph should end on.
+        date_cursor = self.request.GET.get("end_date")
+        if date_cursor:
+            date_cursor = datetime.strptime(date_cursor, "%Y-%m-%d").date()
+        else:
+            date_cursor = date.today()
 
         # Query program-level totals from top organisations since it is the
         # smallest totals table that's available.
@@ -128,7 +138,7 @@ class ProgramDetailView(DetailView):
         else:
             # No link information from that collection, so setting earliest_link_date
             # to the first of the current month
-            earliest_total_date = current_date.replace(day=1)
+            earliest_total_date = date_cursor.replace(day=1)
 
         # We can GROUP BY 'full_date' as if it was just year and month as
         # program totals always set the day to the last day of the month.
@@ -141,10 +151,10 @@ class ProgramDetailView(DetailView):
         )
 
         # Filling an array of dates that should be in the chart
-        while current_date >= earliest_total_date:
-            dates.append(current_date.strftime("%Y-%m"))
+        while date_cursor >= earliest_total_date:
+            dates.append(date_cursor.strftime("%Y-%m"))
             # Figure out what the last month is regardless of today's date
-            current_date = current_date.replace(day=1) - timedelta(days=1)
+            date_cursor = date_cursor.replace(day=1) - timedelta(days=1)
 
         dates = dates[::-1]
 
