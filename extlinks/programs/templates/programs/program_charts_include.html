@@ -48,14 +48,14 @@
 </div>
 <script type="text/javascript">
     var form_data = {{ form_data|safe }};
-    var orgs_values = {{ orgs_values|safe }};
+    var program_id = {{ program_id|safe }};
     document.body.onload = function() {
-      getEditorCount( orgs_values, form_data ),
-      getProjectCount( orgs_values, form_data ),
-      getLinksCount( orgs_values, form_data ),
-      getTopOrganisations( orgs_values, form_data ),
-      getTopProjects( orgs_values, form_data ),
-      getTopUsers( orgs_values, form_data )
+      getEditorCount( program_id, form_data ),
+      getProjectCount( program_id, form_data ),
+      getLinksCount( program_id, form_data ),
+      getTopOrganisations( program_id, form_data ),
+      getTopProjects( program_id, form_data ),
+      getTopUsers( program_id, form_data )
     };
     var ctx = document.getElementById('eventStreamChart').getContext('2d');
     var eventStreamChart = new Chart(ctx, {
@@ -83,9 +83,9 @@
         },
     })
 
-    function getLinksCount(org_values, form_data){
+    function getLinksCount(program_id, form_data){
       $.ajax({
-       url: "{% url 'programs:links_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+       url: "{% url 'programs:links_count' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
        beforeSend: function() {
          document.getElementById("links-added").innerHTML = "Loading...";
          document.getElementById("links-removed").innerHTML = "Loading...";
@@ -113,9 +113,9 @@
      });
     }
 
-    function getEditorCount(orgs_values, form_data){
+    function getEditorCount(program_id, form_data){
       $.ajax({
-       url: "{% url 'programs:editor_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+       url: "{% url 'programs:editor_count' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
        beforeSend: function() {
          document.getElementById("total-editors").innerHTML = "Loading...";
        },
@@ -131,9 +131,9 @@
      });
     }
 
-    function getProjectCount(orgs_values, form_data){
+    function getProjectCount(program_id, form_data){
       $.ajax({
-        url: "{% url 'programs:project_count' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        url: "{% url 'programs:project_count' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
         beforeSend: function() {
           document.getElementById("total-projects").innerHTML = "Loading...";
         },
@@ -149,9 +149,9 @@
       });
     }
 
-    function getTopOrganisations(orgs_values, form_data){
+    function getTopOrganisations(program_id, form_data){
       $.ajax({
-        url: "{% url 'programs:top_organisations' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        url: "{% url 'programs:top_organisations' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
         beforeSend: function() {
           // Show loading spinner
           var loadingSpinner = document.createElement("div");
@@ -189,9 +189,9 @@
       });
     }
 
-    function getTopProjects(orgs_values, form_data){
+    function getTopProjects(program_id, form_data){
       $.ajax({
-        url: "{% url 'programs:top_projects' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        url: "{% url 'programs:top_projects' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
         beforeSend: function() {
           // Show loading spinner
           var loadingSpinner = document.createElement("div");
@@ -226,9 +226,9 @@
       });
     }
 
-    function getTopUsers(orgs_values, form_data){
+    function getTopUsers(program_id, form_data){
       $.ajax({
-        url: "{% url 'programs:top_users' %}?organisations=" + orgs_values + "&form_data=" + JSON.stringify(form_data),
+        url: "{% url 'programs:top_users' %}?program=" + program_id + "&form_data=" + JSON.stringify(form_data),
         beforeSend: function() {
           //Show loading spinner
           var loadingSpinner = document.createElement("div");

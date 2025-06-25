@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import json
 
 from django.db.models import Sum, Count, Q
@@ -8,13 +8,12 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 
 from extlinks.aggregates.models import (
-    LinkAggregate,
-    PageProjectAggregate,
-    UserAggregate,
+    ProgramTopOrganisationsTotal,
+    ProgramTopProjectsTotal,
+    ProgramTopUsersTotal,
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import build_queryset_filters
-from extlinks.organisations.models import Organisation
 from .models import Program
 
 from logging import getLogger
@@ -45,7 +44,7 @@ class ProgramDetailView(DetailView):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
-        context["orgs_values"] = [org.pk for org in this_program_organisations]
+        context["program_id"] = self.object.pk
         form = self.form_class(self.request.GET)
         context["form"] = form
 
@@ -119,39 +118,45 @@ class ProgramDetailView(DetailView):
         eventstream_dates = []
         eventstream_net_change = []
         current_date = date.today()
-        filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
 
-        if filtered_link_aggregate.exists():
-            earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
+        # Query program-level totals from top organisations since it is the
+        # smallest totals table that's available.
+        filtered_totals = ProgramTopOrganisationsTotal.objects.filter(queryset_filter)
+
+        if filtered_totals.exists():
+            earliest_total_date = filtered_totals.earliest("full_date").full_date
         else:
             # No link information from that collection, so setting earliest_link_date
             # to the first of the current month
-            earliest_link_date = current_date.replace(day=1)
+            earliest_total_date = current_date.replace(day=1)
 
-        links_aggregated_date = (
-            LinkAggregate.objects.filter(queryset_filter)
-            .values("month", "year")
+        # We can GROUP BY 'full_date' as if it was just year and month as
+        # program totals always set the day to the last day of the month.
+        program_totals = (
+            filtered_totals.values("full_date")
             .annotate(
                 net_change=Sum("total_links_added") - Sum("total_links_removed"),
             )
-            .order_by("year", "month")
+            .order_by("full_date")
         )
 
         # Filling an array of dates that should be in the chart
-        while current_date >= earliest_link_date:
+        while current_date >= earliest_total_date:
             dates.append(current_date.strftime("%Y-%m"))
             # Figure out what the last month is regardless of today's date
             current_date = current_date.replace(day=1) - timedelta(days=1)
 
         dates = dates[::-1]
 
-        for link in links_aggregated_date:
-            if link["month"] < 10:
-                date_combined = f"{link['year']}-0{link['month']}"
+        for total in program_totals:
+            year = total["full_date"].year
+            month = total["full_date"].month
+            if month < 10:
+                date_combined = f"{year}-0{month}"
             else:
-                date_combined = f"{link['year']}-{link['month']}"
+                date_combined = f"{year}-{month}"
 
-            existing_link_aggregates[date_combined] = link["net_change"]
+            existing_link_aggregates[date_combined] = total["net_change"]
 
         for month_year in dates:
             eventstream_dates.append(month_year)
@@ -172,16 +177,11 @@ def get_editor_count(request):
     Ajax request for editor count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-
-    editor_count = UserAggregate.objects.filter(queryset_filter).aggregate(
+    editor_count = ProgramTopUsersTotal.objects.filter(queryset_filter).aggregate(
         editor_count=Count("username", distinct=True)
     )
 
@@ -195,16 +195,11 @@ def get_project_count(request):
     Ajax request for project count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-
-    project_count = PageProjectAggregate.objects.filter(queryset_filter).aggregate(
+    project_count = ProgramTopProjectsTotal.objects.filter(queryset_filter).aggregate(
         project_count=Count("project_name", distinct=True)
     )
 
@@ -218,15 +213,13 @@ def get_links_count(request):
     Ajax request for link events counts (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
-    links_added_removed = LinkAggregate.objects.filter(queryset_filter).aggregate(
+    links_added_removed = ProgramTopOrganisationsTotal.objects.filter(
+        queryset_filter
+    ).aggregate(
         links_added=Sum("total_links_added"),
         links_removed=Sum("total_links_removed"),
         links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -245,17 +238,12 @@ def get_top_organisations(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_organisations = (
-        LinkAggregate.objects.filter(queryset_filter)
+        ProgramTopOrganisationsTotal.objects.filter(queryset_filter)
         .values("organisation__pk", "organisation__name")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -275,17 +263,12 @@ def get_top_projects(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_projects = (
-        PageProjectAggregate.objects.filter(queryset_filter)
+        ProgramTopProjectsTotal.objects.filter(queryset_filter)
         .values("project_name")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),
@@ -305,17 +288,12 @@ def get_top_users(request):
     Ajax request to fill the top organisations table
     """
     form_data = json.loads(request.GET.get("form_data", None))
-    organisations = request.GET.get("organisations", None)
+    program = request.GET.get("program", None)
 
-    if organisations:
-        orgs = organisations.split(",")
-    else:
-        orgs = []
-
-    queryset_filter = build_queryset_filters(form_data, {"organisations": orgs})
+    queryset_filter = build_queryset_filters(form_data, {"program": program})
 
     top_users = (
-        UserAggregate.objects.filter(queryset_filter)
+        ProgramTopUsersTotal.objects.filter(queryset_filter)
         .values("username")
         .annotate(
             links_diff=Sum("total_links_added") - Sum("total_links_removed"),

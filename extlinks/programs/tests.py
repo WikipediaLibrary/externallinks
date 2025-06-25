@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import json
 
 from django.test import TestCase, RequestFactory, TransactionTestCase
@@ -114,6 +114,9 @@ class ProgramDetailTest(TransactionTestCase):
         call_command("fill_link_aggregates")
         call_command("fill_pageproject_aggregates")
         call_command("fill_user_aggregates")
+        call_command("fill_top_organisations_totals")
+        call_command("fill_top_projects_totals")
+        call_command("fill_top_users_totals")
 
     def test_program_detail_view(self):
         """
@@ -131,19 +134,11 @@ class ProgramDetailTest(TransactionTestCase):
         Test that we're counting the correct total number of added links
         for this program.
         """
-        factory = RequestFactory()
-
-        request = factory.get(self.url1)
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -155,15 +150,10 @@ class ProgramDetailTest(TransactionTestCase):
         for this program.
         """
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -175,15 +165,10 @@ class ProgramDetailTest(TransactionTestCase):
         for this program.
         """
         form_data = "{}"
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:editor_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -194,15 +179,10 @@ class ProgramDetailTest(TransactionTestCase):
         Test that the date limiting form works on the program detail page.
         """
         form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 
@@ -214,15 +194,10 @@ class ProgramDetailTest(TransactionTestCase):
         Test that the user list limiting form works on the program detail page.
         """
         form_data = '{"limit_to_user_list": true}'
-        organisations = self.program1.organisation_set.all()
-        org_values = [org.pk for org in organisations]
-        str_org_values = ",".join(map(str, org_values))
 
         url = reverse("programs:links_count")
-        url_with_params = (
-            "{url}?organisations={org_values}&form_data={form_data}".format(
-                url=url, org_values=str_org_values, form_data=form_data
-            )
+        url_with_params = "{url}?program={program}&form_data={form_data}".format(
+            url=url, program=self.program1.pk, form_data=form_data
         )
         response = self.client.get(url_with_params)
 

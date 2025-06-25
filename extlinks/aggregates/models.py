@@ -1,7 +1,8 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from extlinks.organisations.models import Collection, Organisation
+from extlinks.organisations.models import Collection, Organisation, User
+from extlinks.programs.models import Program
 
 
 class LinkAggregate(models.Model):
@@ -189,3 +190,57 @@ class PageProjectAggregate(models.Model):
                 message="PageProjectAggregate with this combination (organisation, collection, project_name, page_name, full_date, on_user_list) already exists.",
                 code="unique_together",
             )
+
+
+class ProgramTopOrganisationsTotal(models.Model):
+    class Meta:
+        app_label = "aggregates"
+        indexes = [
+            models.Index(fields=["program_id", "full_date", "organisation_id"]),
+            models.Index(fields=["program_id", "organisation_id"]),
+        ]
+
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
+    full_date = models.DateField()
+    on_user_list = models.BooleanField(default=False)
+    total_links_added = models.PositiveIntegerField()
+    total_links_removed = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class ProgramTopProjectsTotal(models.Model):
+    class Meta:
+        app_label = "aggregates"
+        indexes = [
+            models.Index(fields=["program_id", "full_date", "project_name"]),
+            models.Index(fields=["program_id", "project_name"]),
+        ]
+
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    project_name = models.CharField(max_length=32)
+    full_date = models.DateField()
+    on_user_list = models.BooleanField(default=False)
+    total_links_added = models.PositiveIntegerField()
+    total_links_removed = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class ProgramTopUsersTotal(models.Model):
+    class Meta:
+        app_label = "aggregates"
+        indexes = [
+            models.Index(fields=["program_id", "full_date", "username"]),
+            models.Index(fields=["program_id", "username"]),
+        ]
+
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    username = models.CharField(max_length=235)
+    full_date = models.DateField()
+    on_user_list = models.BooleanField(default=False)
+    total_links_added = models.PositiveIntegerField()
+    total_links_removed = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
