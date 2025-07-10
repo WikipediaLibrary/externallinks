@@ -282,11 +282,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
         AggregateModel = self.get_model()
 
-        output_dir = (
-            output
-            if output and os.path.isdir(output)
-            else os.environ.get("HOST_BACKUP_DIR", "backup")
-        )
+        output_dir = output if output and os.path.isdir(output) else "backup"
         archives: List[str] = []
 
         results = list(
@@ -336,11 +332,10 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 self.name,
                 filename,
             )
-
             # Serialize the records directly in the writer to conserve memory.
             with gzip.open(filename, "wt", encoding="utf-8") as archive:
                 archive.write(serializers.serialize("json", v))
-                archives.append(filename)
+            archives.append(filename)
 
         return archives
 
