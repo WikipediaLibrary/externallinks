@@ -246,7 +246,12 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
         logger.info("Uploading %d archives to object storage", len(filenames))
 
-        conn = swift.swift_connection()
+        try:
+            conn = swift.swift_connection()
+        except RuntimeError:
+            self.log_msg("Swift credentials not provided. Skipping upload.")
+            return False
+
         swift.ensure_container_exists(conn, container)
         successful, failed = swift.batch_upload_files(conn, container, filenames)
 
