@@ -249,10 +249,17 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         try:
             conn = swift.swift_connection()
         except RuntimeError:
-            self.log_msg("Swift credentials not provided. Skipping upload.")
+            logger.error("Swift credentials not provided. Skipping upload.")
             return False
 
-        swift.ensure_container_exists(conn, container)
+        try:
+            was_created = swift.ensure_container_exists(conn, container)
+            if was_created:
+                logger.info(f"Created new container: {container}")
+        except RuntimeError as e:
+            logger.error(str(e), level="error")
+            return False
+
         successful, failed = swift.batch_upload_files(conn, container, filenames)
 
         logger.info(
