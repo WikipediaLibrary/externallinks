@@ -202,7 +202,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 end = (datetime.date.today() - relativedelta(years=1)).replace(day=1)
 
         if not container:
-            container = os.environ.get("SWIFT_CONTAINER_NAME")
+            container = os.environ.get("SWIFT_CONTAINER_AGGREGATES")
 
         if end:
             cursor = start
@@ -280,7 +280,9 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         try:
             conn = swift.swift_connection()
         except RuntimeError:
-            self.log_msg("Swift credentials not provided. Skipping upload.", level="error")
+            self.log_msg(
+                "Swift credentials not provided. Skipping upload.", level="error"
+            )
             return False
 
         try:
