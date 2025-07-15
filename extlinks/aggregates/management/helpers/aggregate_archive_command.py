@@ -11,7 +11,7 @@ from typing import List, Optional, Type, cast
 from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
-from django.db import models
+from django.db import models, close_old_connections
 
 from extlinks.common import swift
 
@@ -153,6 +153,8 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         elif subcommand == "upload":
             self.upload(container=options["container"], filenames=options["filenames"])
 
+        close_old_connections()
+
     def dump(
         self,
         start: Optional[datetime.date] = None,
@@ -202,7 +204,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 end = (datetime.date.today() - relativedelta(years=1)).replace(day=1)
 
         if not container:
-            container = os.environ.get("SWIFT_CONTAINER_NAME")
+            container = os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates")
 
         if end:
             cursor = start
@@ -280,29 +282,37 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         try:
             conn = swift.swift_connection()
         except RuntimeError:
-            self.log_msg("Swift credentials not provided. Skipping upload.", level="error")
-            return False
-
-        try:
-            was_created = swift.ensure_container_exists(conn, container)
-            if was_created:
-                self.log_msg(f"Created new container: {container}")
-        except RuntimeError as e:
-            self.log_msg(str(e), level="error")
-            return False
-
-        successful, failed = swift.batch_upload_files(conn, container, filenames)
-
-        self.log_msg(
-            "Uploaded %d/%d archives to object storage",
-            len(successful),
-            len(filenames),
-        )
-
-        if len(failed) > 0:
-            raise CommandError(
-                f"The following {failed} archives failed to upload: {','.join(failed)}"
+            self.log_msg(
+                "Swift credentials not provided. Skipping upload.", level="error"
             )
+            return False
+        try:
+            # Ensure the container exists before uploading.
+            try:
+                was_created = swift.ensure_container_exists(conn, container)
+                if was_created:
+                    self.log_msg(f"Created new container: {container}")
+            except RuntimeError as e:
+                self.log_msg(str(e), level="error")
+                return False
+
+            successful, failed = swift.batch_upload_files(conn, container, filenames)
+
+            self.log_msg(
+                "Uploaded %d/%d archives to object storage",
+                len(successful),
+                len(filenames),
+            )
+
+            if len(failed) > 0:
+                raise CommandError(
+                    f"The following {failed} archives failed to upload: {','.join(failed)}"
+                )
+        except Exception as e:
+            self.log_msg(
+                f"Failed to upload to Swift: {e}", level="error"
+            )
+            return False
 
     def archive(
         self,
