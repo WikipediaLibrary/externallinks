@@ -123,3 +123,9 @@ hr {
     border-top-color: #9a9a9a;
     border-top-width: 4px;
 }
+
+.messages{
+    display: flex;
+    justify-content: center;
+    margin: 2rem;
+}
