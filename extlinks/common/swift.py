@@ -2,16 +2,13 @@ import concurrent.futures
 import logging
 import os
 
-from typing import Iterable, List, Tuple, cast, Dict, Optional
+from typing import Iterable, List, Tuple, cast
 
 import swiftclient
 import keystoneauth1.identity.v3 as identity
 import keystoneauth1.session as session
 
 logger = logging.getLogger("django")
-
-MAX_WORKERS = 10
-OBJECT_LIMIT = 1000
 
 
 def swift_connection() -> swiftclient.Connection:
@@ -47,55 +44,6 @@ def swift_connection() -> swiftclient.Connection:
             )
         )
     )
-
-
-def get_object_list(
-    conn: swiftclient.Connection,
-    container: str,
-    prefix: Optional[str] = None,
-) -> List[Dict]:
-    """
-    Gets a list of all objects in a container matching an optional prefix.
-
-    Parameters
-    ----------
-    conn : swiftclient.Connection
-        A connection to the Swift object storage.
-
-    container : str
-        The name of the container to get the objects from.
-
-    prefix : str|None
-        An optional prefix to filter the objects by.
-
-    Returns
-    -------
-    List[Dict]
-        A list of dictionaries containing information about each object.
-    """
-
-    objects = []
-    marker = None
-
-    ensure_container_exists(conn, container)
-
-    while True:
-        _, objects_page = conn.get_container(
-            container,
-            prefix=prefix,
-            marker=marker,
-            limit=OBJECT_LIMIT,
-        )
-        if not objects_page:
-            break
-
-        objects.extend(objects_page)
-        marker = objects_page[-1]["name"]
-
-        if len(objects_page) < OBJECT_LIMIT:
-            break
-
-    return objects
 
 
 def get_containers(conn: swiftclient.Connection) -> List[dict]:
@@ -154,7 +102,7 @@ def upload_file(
     container: str,
     path: str,
     content_type="application/octet-stream",
-) -> str:
+):
     """
     Uploads a file on the local filesystem to the provided Swift container.
 
@@ -252,7 +200,7 @@ def batch_upload_files(
     conn: swiftclient.Connection,
     container: str,
     files: Iterable[str],
-    max_workers=MAX_WORKERS,
+    max_workers=10,
 ) -> Tuple[List[str], List[str]]:
     """
     Uploads a batch of multiple files to the given Swift container.
@@ -297,56 +245,3 @@ def batch_upload_files(
                 failed.append(path)
 
     return successful, failed
-
-
-def batch_download_files(
-    conn: swiftclient.Connection,
-    container: str,
-    objects: Iterable[str],
-    max_workers=MAX_WORKERS,
-) -> Dict[str, bytes]:
-    """
-    Downloads a batch of multiple files from the given Swift container.
-
-    Parameters
-    ----------
-    conn : swiftclient.Connection
-        A connection to the Swift object storage.
-
-    container : str
-        The name of the container to download the files from.
-
-    objects : Iterable[str]
-        An iterable of file names to download.
-
-    max_workers : int
-        The maximum number of concurrent downloads to perform.
-
-    Returns
-    -------
-    Dict[str, bytes]
-        A dictionary of file names and their contents.
-    """
-
-    result: Dict[str, bytes] = {}
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(download_file, conn, container, o): o for o in objects
-        }
-
-        for future in concurrent.futures.as_completed(futures):
-            name = futures[future]
-
-            try:
-                value = future.result()
-                result[name] = value
-            except Exception as exc:
-                logging.error(
-                    "Unable to download '%s' from the '%s' container: %s",
-                    name,
-                    container,
-                    exc,
-                )
-
-    return result
