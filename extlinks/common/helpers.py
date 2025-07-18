@@ -1,7 +1,5 @@
-import calendar
 from datetime import date, timedelta
 from itertools import islice
-from typing import Any, Dict
 
 from django.db.models import Avg, Q
 from django.db.models.functions import TruncMonth
@@ -161,28 +159,6 @@ def build_queryset_filters(form_data, collection_or_organisations):
     )
 
 
-def extract_queryset_filter(queryset_filter: Q, filters=None) -> Dict[str, Any]:
-    """
-    Extract fields from a queryset filter that works for simple querysets.
-
-    This is used by functions that need to query from multiple different
-    datasources with the same filters. In-particular when querying data from
-    both the database and object storage.
-    """
-
-    if filters is None:
-        filters = {}
-
-    for child in queryset_filter.children:
-        if isinstance(child, Q):
-            extract_queryset_filter(child, filters=filters)
-        elif isinstance(child, tuple):
-            key, value = child
-            filters[key] = value
-
-    return filters
-
-
 def batch_iterator(iterable, size=1000):
     """
     This yields successive batches from an iterable (memory-efficient).
@@ -209,11 +185,3 @@ def batch_iterator(iterable, size=1000):
     iterator = iter(iterable)
     while batch := list(islice(iterator, size)):
         yield batch
-
-
-def last_day(date: date) -> int:
-    """
-    Finds the last day of the month for the given date.
-    """
-
-    return calendar.monthrange(date.year, date.month)[1]
