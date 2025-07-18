@@ -13,6 +13,15 @@
       </ul>
     </nav>
     <nav id="content" class="charts-body">
+      {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <h3>
+                    {{ message }}
+                </h3>
+            {% endfor %}
+        </div>
+    {% endif %}
       <div class="row">
         <div class="col-6">
           <h1>{{ object }}</h1>
