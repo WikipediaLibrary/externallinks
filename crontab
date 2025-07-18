@@ -24,9 +24,9 @@ PATH=/app/bin:/usr/bin:/bin
 0	3	*	*	*	root	python manage.py fill_monthly_link_aggregates
 10	3	*	*	*	root	python manage.py fill_monthly_user_aggregates
 50	3	*	*	*	root	python manage.py fill_monthly_pageproject_aggregates
-0	5	16	*	*	root	python manage.py archive_link_aggregates dump
-10	5	16	*	*	root	python manage.py archive_user_aggregates dump
-20	5	16	*	*	root	python manage.py archive_pageproject_aggregates dump
+0	5	10	*	*	root	python manage.py archive_link_aggregates dump
+10	5	10	*	*	root	python manage.py archive_user_aggregates dump
+20	5	10	*	*	root	python manage.py archive_pageproject_aggregates dump
 # from extlinks/links/cron.py
 # weekly
 10	5	*	*	1	root	python manage.py linksearchtotal_collect
