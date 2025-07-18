@@ -52,6 +52,7 @@ class OrganisationDetailView(DetailView):
             self.request,
             "We have modified where Wikilink obtains its data from. Since some of this work is "
             "still in flight, the data shown in Wikilink is currently erroneous. ",
+            fail_silently=True,
         )
         context = super(OrganisationDetailView, self).get_context_data(**kwargs)
         form = self.form_class(self.request.GET)

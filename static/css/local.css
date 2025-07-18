@@ -128,4 +128,8 @@ hr {
     display: flex;
     justify-content: center;
     margin: 2rem;
+    background-color: #fdf2d5;
+    border-style: solid;
+    border-width: 0.25em;
+    border-color: #fbe2a2;
 }
