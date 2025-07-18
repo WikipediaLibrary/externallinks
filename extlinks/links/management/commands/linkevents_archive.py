@@ -20,9 +20,7 @@ from extlinks.aggregates.models import (
 logger = logging.getLogger("django")
 
 CHUNK_SIZE = 10_000
-SWIFT_CONTAINER_NAME = os.environ.get(
-    "SWIFT_CONTAINER_LINKEVENTS_ARCHIVE", "archive-linkevents"
-)
+SWIFT_CONTAINER_NAME = os.environ.get("SWIFT_CONTAINER_NAME", "archive-linkevents")
 
 
 class Command(BaseCommand):

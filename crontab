@@ -27,6 +27,9 @@ PATH=/app/bin:/usr/bin:/bin
 0	4	*	*	*	root	python manage.py fill_top_organisations_totals
 10	4	*	*	*	root	python manage.py fill_top_projects_totals
 20	4	*	*	*	root	python manage.py fill_top_users_totals
+0	5	10	*	*	root	python manage.py archive_link_aggregates dump
+10	5	10	*	*	root	python manage.py archive_user_aggregates dump
+20	5	10	*	*	root	python manage.py archive_pageproject_aggregates dump
 # from extlinks/links/cron.py
 # weekly
 10	5	*	*	1	root	python manage.py linksearchtotal_collect

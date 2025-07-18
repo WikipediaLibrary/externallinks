@@ -60,8 +60,11 @@ def get_containers(conn: swiftclient.Connection) -> List[dict]:
     List[dict]
         A list of dictionaries containing information about each container.
     """
-
-    response = conn.get_account()
+    try:
+        response = conn.get_account()
+    except RuntimeError:
+        logger.error("Swift credentials not provided. Skipping upload.")
+        return False
     if not response or len(response) < 2:
         raise RuntimeError("Failed to retrieve container list from Swift account.")
 

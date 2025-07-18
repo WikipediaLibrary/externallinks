@@ -11,7 +11,7 @@ from typing import List, Optional, Type, cast
 from django.core import serializers
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError, CommandParser
-from django.db import models
+from django.db import models, close_old_connections
 
 from extlinks.common import swift
 
@@ -34,6 +34,37 @@ class AggregateArchiveCommand(ABC, BaseCommand):
     help = "Dump & delete or load data from aggregate tables"
     name = "aggregate"
 
+    def log_msg(self, msg, *args, level="info"):
+        """
+        Logs and prints messages so they are visible in both Docker
+        logs and cron job logs
+
+        Parameters
+        ----------
+        msg : str
+            The message to log
+
+        *args : tuple
+            Arguments to be lazily formatted into msg.
+
+        level : str
+            The log level ('info' or 'error'), defaults to 'info'
+
+        Returns
+        -------
+        None
+        """
+        if level == "error":
+            logger.error(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stderr.write(formatted_msg)
+            self.stderr.flush()
+        else:
+            logger.info(msg, *args)
+            formatted_msg = msg % args if args else msg
+            self.stdout.write(formatted_msg)
+            self.stdout.flush()
+
     def add_arguments(self, parser: CommandParser) -> None:
         subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -47,7 +78,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             nargs="?",
             type=lambda arg: datetime.datetime.strptime(arg, "%Y-%m").date(),
             help="A date formatted as YYYY-MM to begin archiving from.",
-            required=True,
+            required=False,
         )
         dump_parser.add_argument(
             "-t",
@@ -122,9 +153,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         elif subcommand == "upload":
             self.upload(container=options["container"], filenames=options["filenames"])
 
+        close_old_connections()
+
     def dump(
         self,
-        start: datetime.date,
+        start: Optional[datetime.date] = None,
         end: Optional[datetime.date] = None,
         output: Optional[str] = None,
         container: Optional[str] = None,
@@ -153,8 +186,25 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             local storage after upload.
         """
 
+        # Pick the earliest possible date if one is not provided on the CLI.
+        if not start:
+            oldest = self.get_model().objects.order_by("full_date").first()
+            if not oldest:
+                raise CommandError(
+                    f"There are not {self.name} records to archive. Stopping..."
+                )
+
+            start = datetime.date(oldest.year, oldest.month, 1)
+
+            # If both start and end were not provided (happens with cron) then
+            # only archive aggregates that are older than a year. It's possible
+            # that end will be before start for fresh installs, but this is
+            # fine as the command will do nothing in that scenario.
+            if not end:
+                end = (datetime.date.today() - relativedelta(years=1)).replace(day=1)
+
         if not container:
-            container = os.environ.get("SWIFT_CONTAINER_NAME")
+            container = os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates")
 
         if end:
             cursor = start
@@ -202,11 +252,11 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
 
         if not filenames:
-            logger.info("No %s archives specified", self.name)
+            self.log_msg("No %s archives specified", self.name)
             return
 
         for filename in sorted(filenames):
-            logger.info("Loading %s...", filename)
+            self.log_msg("Loading %s...", filename)
 
             # loaddata supports gzipped fixtures and handles relationships properly.
             call_command("loaddata", filename)
@@ -227,22 +277,43 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         if len(filenames) == 0:
             raise CommandError("Filenames must be provided to the upload command")
 
-        logger.info("Uploading %d archives to object storage", len(filenames))
+        self.log_msg("Uploading %d archives to object storage", len(filenames))
 
-        conn = swift.swift_connection()
-        swift.ensure_container_exists(conn, container)
-        successful, failed = swift.batch_upload_files(conn, container, filenames)
-
-        logger.info(
-            "Uploaded %d/%d archives to object storage",
-            len(successful),
-            len(filenames),
-        )
-
-        if len(failed) > 0:
-            raise CommandError(
-                f"The following {failed} archives failed to upload: {','.join(failed)}"
+        try:
+            conn = swift.swift_connection()
+        except RuntimeError:
+            self.log_msg(
+                "Swift credentials not provided. Skipping upload.", level="error"
             )
+            return False
+
+        try:
+            # Ensure the container exists before uploading.
+            try:
+                was_created = swift.ensure_container_exists(conn, container)
+                if was_created:
+                    self.log_msg(f"Created new container: {container}")
+            except RuntimeError as e:
+                self.log_msg(str(e), level="error")
+                return False
+
+            successful, failed = swift.batch_upload_files(conn, container, filenames)
+
+            self.log_msg(
+                "Uploaded %d/%d archives to object storage",
+                len(successful),
+                len(filenames),
+            )
+
+            if len(failed) > 0:
+                raise CommandError(
+                    f"The following {failed} archives failed to upload: {','.join(failed)}"
+                )
+        except Exception as e:
+            self.log_msg(
+                f"Failed to upload to Swift: {e}", level="error"
+            )
+            return False
 
     def archive(
         self,
@@ -265,11 +336,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
 
         AggregateModel = self.get_model()
 
-        output_dir = (
-            output
-            if output and os.path.isdir(output)
-            else os.environ.get("HOST_BACKUP_DIR", "backup")
-        )
+        output_dir = output if output and os.path.isdir(output) else "backup"
         archives: List[str] = []
 
         results = list(
@@ -279,7 +346,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             ).all()
         )
         if len(results) == 0:
-            logger.info(
+            self.log_msg(
                 "Unable to find aggregate data for the month of %s",
                 date.strftime("%Y-%m"),
             )
@@ -313,17 +380,16 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 output_dir,
                 f"aggregates_{self.name.lower()}_{params}.json.gz",
             )
-            logger.info(
+            self.log_msg(
                 "Dumping %d %s records into %s",
                 len(v),
                 self.name,
                 filename,
             )
-
             # Serialize the records directly in the writer to conserve memory.
             with gzip.open(filename, "wt", encoding="utf-8") as archive:
                 archive.write(serializers.serialize("json", v))
-                archives.append(filename)
+            archives.append(filename)
 
         return archives
 
@@ -343,7 +409,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
             full_date__gte=date, full_date__lt=date + relativedelta(months=1)
         )
         if query_set.exists():
-            logger.info(
+            self.log_msg(
                 "Deleting %s records for the month of %s from the database",
                 self.name,
                 date.strftime("%Y-%m"),
@@ -377,5 +443,5 @@ class AggregateArchiveCommand(ABC, BaseCommand):
         """
 
         for path in paths:
-            logger.info("Deleting local archive: %s", path)
+            self.log_msg("Deleting local archive: %s", path)
             os.remove(path)
