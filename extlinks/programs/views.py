@@ -1,5 +1,7 @@
-from datetime import date, timedelta
 import json
+
+from datetime import date, timedelta
+from logging import getLogger
 
 from django.contrib import messages
 from django.db.models import Sum, Count, Q
@@ -15,9 +17,8 @@ from extlinks.aggregates.models import (
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import build_queryset_filters
-from .models import Program
 
-from logging import getLogger
+from .models import Program
 
 logger = getLogger("django")
 
