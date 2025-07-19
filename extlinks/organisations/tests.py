@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+from unittest import mock
 
 from django.core.management import call_command
 from django.test import TestCase, RequestFactory, TransactionTestCase
@@ -113,10 +114,14 @@ class OrganisationDetailTest(TransactionTestCase):
         call_command("fill_pageproject_aggregates")
         call_command("fill_user_aggregates")
 
-    def test_organisation_detail_view(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_view(self, mock_swift_connection):
         """
         Test that we can simply load a organisation detail page successfully
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         request = factory.get(self.url1)
@@ -124,11 +129,15 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    def test_organisation_detail_links_added(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_links_added(self, mock_swift_connection):
         """
         Test that we're counting the correct total number of added links
         for this organisation.
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         form_data = "{}"
         collection_id = self.collection1.id
 
@@ -140,11 +149,15 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(json.loads(response.content)["links_added"], 3)
 
-    def test_organisation_detail_links_removed(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_links_removed(self, mock_swift_connection):
         """
         Test that we're counting the correct total number of removed links
         for this organisation.
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         form_data = "{}"
         collection_id = self.collection1.id
 
@@ -156,11 +169,15 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(json.loads(response.content)["links_removed"], 1)
 
-    def test_organisation_detail_total_editors(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_total_editors(self, mock_swift_connection):
         """
         Test that we're counting the correct total number of editors
         for this organisation.
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         form_data = "{}"
         collection_id = self.collection1.id
 
@@ -172,10 +189,14 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(json.loads(response.content)["editor_count"], 3)
 
-    def test_organisation_detail_date_form(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_date_form(self, mock_swift_connection):
         """
         Test that the date limiting form works on the organisation detail page.
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         form_data = '{"start_date": "2019-01-01", "end_date": "2019-02-01"}'
         collection_id = self.collection1.id
 
@@ -188,10 +209,14 @@ class OrganisationDetailTest(TransactionTestCase):
         self.assertEqual(json.loads(response.content)["links_added"], 2)
         self.assertEqual(json.loads(response.content)["links_removed"], 0)
 
-    def test_organisation_detail_user_list_form(self):
+    @mock.patch("swiftclient.Connection")
+    def test_organisation_detail_user_list_form(self, mock_swift_connection):
         """
         Test that the user list limiting form works on the organisation detail page.
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         form_data = '{"limit_to_user_list": true}'
         collection_id = self.collection1.id
 
@@ -225,10 +250,14 @@ class OrganisationDetailTest(TransactionTestCase):
             1,
         )
 
-    def test_top_pages_csv(self):
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_csv(self, mock_swift_connection):
         """
         Test that the top pages CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -247,10 +276,14 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
-    def test_top_pages_csv_filtered(self):
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_csv_filtered(self, mock_swift_connection):
         """
         Test that the top pages CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -269,10 +302,64 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
-    def test_top_projects_csv(self):
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top pages CSV returns the expected data when
+        incorporating archived data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 2",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 3",
+                "full_date": "2021-01-01",
+                "total_links_added": 1,
+                "total_links_removed": 2,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_page_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVPageTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Page title,Project,Links added,Links removed,Net Change\r\n"
+            "Event 1,en.wikipedia.org,2,0,2\r\n"
+            "Event 2,en.wikipedia.org,3,2,1\r\n"
+            "Event 3,en.wikipedia.org,1,2,-1\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_csv(self, mock_swift_connection):
         """
         Test that the top projects CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -290,10 +377,14 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
-    def test_top_projects_csv_filtered(self):
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_csv_filtered(self, mock_swift_connection):
         """
         Test that the top projects CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -312,10 +403,61 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertEqual(csv_content, expected_output)
 
-    def test_top_users_csv(self):
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top projects CSV returns the expected data when
+        incorporating archived data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "fr.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 3,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_project_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVProjectTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Project,Links added,Links removed,Net Change\r\n"
+            "en.wikipedia.org,5,2,3\r\n"
+            "fr.wikipedia.org,2,3,-1\r\n"
+        )
+
+        self.assertEqual(csv_content, expected_output)
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_csv(self, mock_swift_connection):
         """
         Test that the top users CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -334,10 +476,14 @@ class OrganisationDetailTest(TransactionTestCase):
         )
         self.assertEqual(csv_content, expected_output)
 
-    def test_top_users_csv_filtered(self):
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_csv_filtered(self, mock_swift_connection):
         """
         Test that the top users CSV returns the expected data
         """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
         factory = RequestFactory()
 
         csv_url = reverse(
@@ -351,6 +497,53 @@ class OrganisationDetailTest(TransactionTestCase):
 
         expected_output = (
             "Username,Links added,Links removed,Net Change\r\n" "Jim,2,0,2\r\n"
+        )
+        self.assertEqual(csv_content, expected_output)
+
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_csv_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top users CSV returns the expected data
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        mock_download_aggregates.return_value = [
+            {
+                "username": "Jim",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "username": "Alice",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 4,
+                "on_user_list": False,
+            },
+        ]
+
+        factory = RequestFactory()
+
+        csv_url = reverse(
+            "organisations:csv_user_totals", kwargs={"pk": self.collection1.pk}
+        )
+
+        request = factory.get(csv_url)
+        response = CSVUserTotals.as_view()(request, pk=self.collection1.pk)
+        csv_content = response.content.decode("utf-8")
+
+        expected_output = (
+            "Username,Links added,Links removed,Net Change\r\n"
+            "Jim,4,1,3\r\n"
+            "Mary,1,0,1\r\n"
+            "Bob,0,1,-1\r\n"
+            "Alice,2,4,-2\r\n"
         )
         self.assertEqual(csv_content, expected_output)
 
