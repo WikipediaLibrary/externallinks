@@ -1,10 +1,15 @@
-from datetime import timedelta
+import datetime
 import os
+import glob
+
+from datetime import timedelta
+
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.utils.timezone import now
 from django.views.decorators.cache import cache_page
+
 from extlinks.aggregates.models import (
     LinkAggregate,
     UserAggregate,
@@ -12,6 +17,16 @@ from extlinks.aggregates.models import (
 )
 from extlinks.links.models import LinkEvent, LinkSearchTotal
 from extlinks.organisations.models import Organisation
+
+
+def get_most_recent(aggregate, monthly=False) -> datetime.date | None:
+    try:
+        if monthly:
+            return aggregate.objects.filter(day=0).latest("full_date").full_date
+        else:
+            return aggregate.objects.exclude(day=0).latest("full_date").full_date
+    except aggregate.DoesNotExist:
+        pass
 
 
 @method_decorator(cache_page(60 * 1), name="dispatch")
@@ -45,25 +60,18 @@ class AggregatesCronHealthCheckView(View):
     Healthcheck that passes only if the link aggregate jobs have all run successfully in the last 2 days
     """
 
-    def get_most_recent(self, aggregate, monthly=False):
-        try:
-            if monthly:
-                aggregate.objects.filter(day=0).latest("full_date").full_date
-            else:
-                aggregate.objects.exclude(day=0).latest("full_date").full_date
-        except aggregate.DoesNotExist:
-            pass
-
     def get(self, request, *args, **kwargs):
         status_code = 500
         status_msg = "error"
+
         try:
-            latest_link_aggregates_cron_endtime = self.get_most_recent(LinkAggregate)
-            latest_user_aggregates_cron_endtime = self.get_most_recent(UserAggregate)
-            latest_pageproject_aggregates_cron_endtime = self.get_most_recent(
+            latest_link_aggregates_cron_endtime = get_most_recent(LinkAggregate)
+            latest_user_aggregates_cron_endtime = get_most_recent(UserAggregate)
+            latest_pageproject_aggregates_cron_endtime = get_most_recent(
                 PageProjectAggregate
             )
-            cutoff_datetime = now() - timedelta(days=2)
+
+            cutoff_datetime = (now() - timedelta(days=2)).date()
             if latest_link_aggregates_cron_endtime < cutoff_datetime:
                 status_msg = "out of date"
             elif latest_user_aggregates_cron_endtime < cutoff_datetime:
@@ -76,6 +84,7 @@ class AggregatesCronHealthCheckView(View):
         except:
             status_code = 404
             status_msg = "not found"
+
         response = JsonResponse({"status": status_msg})
         response.status_code = status_code
         return response
@@ -91,17 +100,13 @@ class MonthlyAggregatesCronHealthCheckView(View):
         status_code = 500
         status_msg = "error"
         try:
-            latest_link_aggregates_cron_endtime = self.get_most_recent(
-                LinkAggregate, True
-            )
-            latest_user_aggregates_cron_endtime = self.get_most_recent(
-                UserAggregate, True
-            )
-            latest_pageproject_aggregates_cron_endtime = self.get_most_recent(
+            latest_link_aggregates_cron_endtime = get_most_recent(LinkAggregate, True)
+            latest_user_aggregates_cron_endtime = get_most_recent(UserAggregate, True)
+            latest_pageproject_aggregates_cron_endtime = get_most_recent(
                 PageProjectAggregate, True
             )
             # Monthly jobs may take some time to run, let's give 35 days to make sure
-            cutoff_datetime = now() - timedelta(days=35)
+            cutoff_datetime = (now() - timedelta(days=35)).date()
             if latest_link_aggregates_cron_endtime < cutoff_datetime:
                 status_msg = "out of date"
             elif latest_user_aggregates_cron_endtime < cutoff_datetime:
@@ -127,16 +132,18 @@ class CommonCronHealthCheckView(View):
 
     def get(self, request, *args, **kwargs):
         status_code = 500
-        status_msg = "error"
         status_msg = "out of date"
+
         for i in range(3):
             date = now() - timedelta(days=i)
-            filename = "links_linkevent_{}.json.gz".format(date.strftime("%Y%m%d"))
-            file = os.path.join(os.environ["HOST_BACKUP_DIR"], filename)
-            if os.path.isfile(file):
+            filename = "links_linkevent_{}_*.json.gz".format(date.strftime("%Y%m%d"))
+            filepath = os.path.join(os.environ["HOST_BACKUP_DIR"], filename)
+
+            if bool(glob.glob(filepath)):
                 status_code = 200
                 status_msg = "ok"
                 break
+
         response = JsonResponse({"status": status_msg})
         response.status_code = status_code
         return response

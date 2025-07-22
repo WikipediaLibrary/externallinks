@@ -1,9 +1,11 @@
-from datetime import datetime, date, timedelta, timezone
 import os
 import shutil
 import tempfile
-from unittest import mock
 import time_machine
+
+from datetime import datetime, date, timedelta, timezone
+from dateutil.relativedelta import relativedelta
+from unittest import mock
 
 from django.core.management import call_command, CommandError
 from django.test import TransactionTestCase
@@ -1267,21 +1269,21 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         os.mkdir(self.output_dir)
 
         self.jan_aggregate = LinkAggregateFactory(
-            full_date=date(2025, 1, 1),
+            full_date=date(2023, 1, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=1,
             total_links_removed=0,
         )
         self.feb_aggregate = LinkAggregateFactory(
-            full_date=date(2025, 2, 1),
+            full_date=date(2023, 2, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=5,
             total_links_removed=3,
         )
         self.mar_aggregate = LinkAggregateFactory(
-            full_date=date(2025, 3, 1),
+            full_date=date(2023, 3, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=10,
@@ -1307,9 +1309,9 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
             "archive_link_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1340,9 +1342,9 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
             "archive_link_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1375,9 +1377,9 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
             "archive_link_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1425,9 +1427,9 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
             "archive_link_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
             "--container",
@@ -1436,9 +1438,9 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         )
 
         expected_archives = [
-            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
-            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
-            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2023-01-01_0.json.gz",
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2023-02-01_0.json.gz",
+            f"aggregates_linkaggregate_{self.organisation.id}_{self.collection.id}_2023-03-01_0.json.gz",
         ]
 
         mock_conn.put_object.assert_has_calls(
@@ -1456,6 +1458,49 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
 
         self.assertEqual(len(os.listdir(self.output_dir)), 0)
 
+    @mock.patch("swiftclient.Connection")
+    def test_archive_link_aggregates_no_dates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        # Add an additional aggregate that we won't expect to get archived as
+        # it was created too recently (less than a year ago).
+        LinkAggregateFactory(
+            full_date=(date.today() - relativedelta(months=11)).replace(day=1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=30,
+            total_links_removed=5,
+        )
+
+        self.assertEqual(LinkAggregate.objects.count(), 4)
+
+        call_command(
+            "archive_link_aggregates",
+            "dump",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_link_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_link_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_link_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        # Expect that the "recently" created aggregate was not archived.
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+        self.assertEqual(LinkAggregate.objects.count(), 1)
+
 
 class ArchiveUserAggregatesCommandTest(TransactionTestCase):
     def setUp(self):
@@ -1472,7 +1517,7 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         os.mkdir(self.output_dir)
 
         self.jan_aggregate = UserAggregateFactory(
-            full_date=date(2025, 1, 1),
+            full_date=date(2023, 1, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=1,
@@ -1480,7 +1525,7 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             username=self.user.username,
         )
         self.feb_aggregate = UserAggregateFactory(
-            full_date=date(2025, 2, 1),
+            full_date=date(2023, 2, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=5,
@@ -1488,7 +1533,7 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             username=self.user.username,
         )
         self.mar_aggregate = UserAggregateFactory(
-            full_date=date(2025, 3, 1),
+            full_date=date(2023, 3, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=10,
@@ -1515,9 +1560,9 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             "archive_user_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1548,9 +1593,9 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             "archive_user_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1583,9 +1628,9 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             "archive_user_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1633,9 +1678,9 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
             "archive_user_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
             "--container",
@@ -1644,9 +1689,9 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         )
 
         expected_archives = [
-            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
-            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
-            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2023-01-01_0.json.gz",
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2023-02-01_0.json.gz",
+            f"aggregates_useraggregate_{self.organisation.id}_{self.collection.id}_2023-03-01_0.json.gz",
         ]
 
         mock_conn.put_object.assert_has_calls(
@@ -1663,6 +1708,50 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         )
 
         self.assertEqual(len(os.listdir(self.output_dir)), 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_archive_user_aggregates_no_dates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        # Add an additional aggregate that we won't expect to get archived as
+        # it was created too recently (less than a year ago).
+        UserAggregateFactory(
+            full_date=(date.today() - relativedelta(months=11)).replace(day=1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=30,
+            total_links_removed=5,
+            username=self.user.username,
+        )
+
+        self.assertEqual(UserAggregate.objects.count(), 4)
+
+        call_command(
+            "archive_user_aggregates",
+            "dump",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_user_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_user_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_user_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        # Expect that the "recently" created aggregate was not archived.
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+        self.assertEqual(UserAggregate.objects.count(), 1)
 
 
 class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
@@ -1681,7 +1770,7 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         os.mkdir(self.output_dir)
 
         self.jan_aggregate = PageProjectAggregateFactory(
-            full_date=date(2025, 1, 1),
+            full_date=date(2023, 1, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=1,
@@ -1690,7 +1779,7 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             page_name=self.page,
         )
         self.feb_aggregate = PageProjectAggregateFactory(
-            full_date=date(2025, 2, 1),
+            full_date=date(2023, 2, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=5,
@@ -1699,7 +1788,7 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             page_name=self.page,
         )
         self.mar_aggregate = PageProjectAggregateFactory(
-            full_date=date(2025, 3, 1),
+            full_date=date(2023, 3, 1),
             organisation=self.organisation,
             collection=self.collection,
             total_links_added=10,
@@ -1727,9 +1816,9 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             "archive_pageproject_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1760,9 +1849,9 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             "archive_pageproject_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1795,9 +1884,9 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             "archive_pageproject_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
         )
@@ -1845,9 +1934,9 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
             "archive_pageproject_aggregates",
             "dump",
             "--from",
-            "2025-01",
+            "2023-01",
             "--to",
-            "2025-03",
+            "2023-03",
             "--output",
             self.output_dir,
             "--container",
@@ -1856,9 +1945,9 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         )
 
         expected_archives = [
-            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-01-01_0.json.gz",
-            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-02-01_0.json.gz",
-            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2025-03-01_0.json.gz",
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2023-01-01_0.json.gz",
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2023-02-01_0.json.gz",
+            f"aggregates_pageprojectaggregate_{self.organisation.id}_{self.collection.id}_2023-03-01_0.json.gz",
         ]
 
         mock_conn.put_object.assert_has_calls(
@@ -1875,3 +1964,48 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         )
 
         self.assertEqual(len(os.listdir(self.output_dir)), 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_archive_pageproject_aggregates_no_dates(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-test"}],
+        )
+        mock_conn.put_container.return_value = ({}, [])
+        mock_conn.put_object.return_value = ""
+
+        # Add an additional aggregate that we won't expect to get archived as
+        # it was created too recently (less than a year ago).
+        PageProjectAggregateFactory(
+            full_date=(date.today() - relativedelta(months=11)).replace(day=1),
+            organisation=self.organisation,
+            collection=self.collection,
+            total_links_added=30,
+            total_links_removed=5,
+            project_name=self.project,
+            page_name=self.page,
+        )
+
+        self.assertEqual(PageProjectAggregate.objects.count(), 4)
+
+        call_command(
+            "archive_pageproject_aggregates",
+            "dump",
+            "--output",
+            self.output_dir,
+        )
+
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.jan_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.feb_aggregate, self.output_dir)
+        )
+        self.assertTrue(
+            validate_pageproject_aggregate_archive(self.mar_aggregate, self.output_dir)
+        )
+
+        # Expect that the "recently" created aggregate was not archived.
+        self.assertEqual(len(os.listdir(self.output_dir)), 3)
+        self.assertEqual(PageProjectAggregate.objects.count(), 1)

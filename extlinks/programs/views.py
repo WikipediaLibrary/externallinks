@@ -1,10 +1,13 @@
-from datetime import date, timedelta
 import json
 import json
 
 from datetime import date, timedelta, datetime
 from logging import getLogger
 
+from datetime import date, timedelta
+from logging import getLogger
+
+from django.contrib import messages
 from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
@@ -18,9 +21,8 @@ from extlinks.aggregates.models import (
 )
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import build_queryset_filters
-from .models import Program
 
-from logging import getLogger
+from .models import Program
 
 logger = getLogger("django")
 
@@ -46,6 +48,12 @@ class ProgramDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ProgramDetailView, self).get_context_data(**kwargs)
+        messages.warning(
+            self.request,
+            "We have modified where Wikilink obtains its data from. Since some of this work is "
+            "still in flight, the data shown in Wikilink is currently erroneous. ",
+            fail_silently=True,
+        )
         this_program_organisations = self.object.organisation_set.all()
         context["organisations"] = this_program_organisations
         context["program_id"] = self.object.pk

@@ -5,6 +5,7 @@ from unittest import mock
 from django.core.management import call_command
 from django.test import TestCase, RequestFactory, TransactionTestCase
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from extlinks.common.views import (
     CSVPageTotals,
@@ -567,3 +568,342 @@ class OrganisationDetailTest(TransactionTestCase):
             response.context_data["collections"][self.collection1_key]["total_removed"],
             1,
         )
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects(self, mock_swift_connection):
+        """
+        Test that the top projects view returns the expected data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        url = reverse("organisations:top_projects")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        self.assertIn("top_projects", response_data)
+
+        top_projects = json.loads(response_data["top_projects"])
+
+        self.assertEqual(len(top_projects), 1)
+        self.assertEqual(top_projects[0]["project_name"], "en.wikipedia.org")
+        self.assertEqual(top_projects[0]["links_diff"], 2)
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_date_filtered(self, mock_swift_connection):
+        """
+        Test that the top projects view handles date filtering correctly.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        form_data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+
+        url = reverse("organisations:top_projects")
+        params = {"collection": self.collection1.id, "form_data": json.dumps(form_data)}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_projects = json.loads(response_data["top_projects"])
+
+        self.assertEqual(len(top_projects), 1)
+        self.assertEqual(top_projects[0]["project_name"], "en.wikipedia.org")
+        self.assertEqual(top_projects[0]["links_diff"], 2)
+
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_projects_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top projects view correctly merges database and archive data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        # Mock the return value of download_aggregates to simulate archived data
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "fr.wikipedia.org",
+                "full_date": "2021-01-01",
+                "total_links_added": 3,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+        ]
+
+        url = reverse("organisations:top_projects")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_projects = json.loads(response_data["top_projects"])
+
+        # We should have two projects now. 'en.wikipedia.org' from the database
+        # and archive data, and 'fr.wikipedia.org' from archive data.
+        self.assertEqual(len(top_projects), 2)
+
+        # Find each project in the results
+        en_project = next(
+            (p for p in top_projects if p["project_name"] == "en.wikipedia.org"), None
+        )
+        fr_project = next(
+            (p for p in top_projects if p["project_name"] == "fr.wikipedia.org"), None
+        )
+
+        # Verify project data. 'en.wikipedia' has both DB and archive data, and
+        # 'fr.wikipedia' only has archive data.
+        self.assertIsNotNone(en_project)
+        self.assertEqual(en_project["links_diff"], 3)  # 2 from DB + (2-1) from archive
+
+        self.assertIsNotNone(fr_project)
+        self.assertEqual(fr_project["links_diff"], 2)  # (3-1) from archive
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_users(self, mock_swift_connection):
+        """
+        Test that the top users view returns the expected data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        url = reverse("organisations:top_users")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        self.assertIn("top_users", response_data)
+
+        top_users = json.loads(response_data["top_users"])
+        self.assertEqual(len(top_users), 3)
+
+        # Find the users in the results.
+        jim = next((u for u in top_users if u["username"] == "Jim"), None)
+        mary = next((u for u in top_users if u["username"] == "Mary"), None)
+        bob = next((u for u in top_users if u["username"] == "Bob"), None)
+
+        self.assertIsNotNone(jim)
+        self.assertEqual(jim["links_diff"], 2)
+
+        self.assertIsNotNone(mary)
+        self.assertEqual(mary["links_diff"], 1)
+
+        self.assertIsNotNone(bob)
+        self.assertEqual(bob["links_diff"], -1)
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_date_filtered(self, mock_swift_connection):
+        """
+        Test that the top users view handles date filtering correctly.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        form_data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+
+        url = reverse("organisations:top_users")
+        params = {"collection": self.collection1.id, "form_data": json.dumps(form_data)}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_users = json.loads(response_data["top_users"])
+
+        # Only Jim should be in results due to the date filter.
+        self.assertEqual(len(top_users), 1)
+        self.assertEqual(top_users[0]["username"], "Jim")
+        self.assertEqual(top_users[0]["links_diff"], 2)
+
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_users_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top users view correctly merges database and archive data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        # Mock the return of 'download_aggregates' to simulate archived data.
+        mock_download_aggregates.return_value = [
+            {
+                "username": "Jim",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "username": "Alice",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 4,
+                "on_user_list": False,
+            },
+        ]
+
+        url = reverse("organisations:top_users")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_users = json.loads(response_data["top_users"])
+
+        # We should have four users now. Three from the database and one
+        # additional user (Alice) from archive data.
+        self.assertEqual(len(top_users), 4)
+
+        # Find users in the results.
+        jim = next((u for u in top_users if u["username"] == "Jim"), None)
+        mary = next((u for u in top_users if u["username"] == "Mary"), None)
+        bob = next((u for u in top_users if u["username"] == "Bob"), None)
+        alice = next((u for u in top_users if u["username"] == "Alice"), None)
+
+        # Verify that user changes from both sources are accurate. Jim has both
+        # DB and archive data while the others have only one source each.
+        self.assertIsNotNone(jim)
+        self.assertEqual(jim["links_diff"], 3)  # 2 from DB + (2-1) from archive
+
+        self.assertIsNotNone(mary)
+        self.assertEqual(mary["links_diff"], 1)  # Only from DB
+
+        self.assertIsNotNone(bob)
+        self.assertEqual(bob["links_diff"], -1)  # Only from DB
+
+        self.assertIsNotNone(alice)
+        self.assertEqual(alice["links_diff"], -2)  # (2-4) from archive
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages(self, mock_swift_connection):
+        """
+        Test that the top pages view returns the expected data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        url = reverse("organisations:top_pages")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        self.assertIn("top_pages", response_data)
+
+        top_pages = json.loads(response_data["top_pages"])
+        self.assertEqual(len(top_pages), 2)
+
+        # Find the pages in the results.
+        event1 = next((p for p in top_pages if p["page_name"] == "Event 1"), None)
+        event2 = next((p for p in top_pages if p["page_name"] == "Event 2"), None)
+
+        self.assertIsNotNone(event1)
+        self.assertEqual(event1["links_diff"], 2)
+
+        self.assertIsNotNone(event2)
+        self.assertEqual(event2["links_diff"], 0)
+
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_date_filtered(self, mock_swift_connection):
+        """
+        Test that the top pages view handles date filtering correctly.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        form_data = {"start_date": "2019-01-01", "end_date": "2019-02-01"}
+
+        url = reverse("organisations:top_pages")
+        params = {"collection": self.collection1.id, "form_data": json.dumps(form_data)}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_pages = json.loads(response_data["top_pages"])
+
+        # Only 'Event 1' should be in results due to the date filter.
+        self.assertEqual(len(top_pages), 1)
+        self.assertEqual(top_pages[0]["page_name"], "Event 1")
+        self.assertEqual(top_pages[0]["project_name"], "en.wikipedia.org")
+        self.assertEqual(top_pages[0]["links_diff"], 2)
+
+    @mock.patch("extlinks.aggregates.storage.download_aggregates")
+    @mock.patch("swiftclient.Connection")
+    def test_top_pages_with_archives(
+        self, mock_swift_connection, mock_download_aggregates
+    ):
+        """
+        Test that the top pages view correctly merges database and archive data.
+        """
+
+        mock_swift_connection.side_effect = RuntimeError("Swift is disabled")
+
+        # Mock the return of 'download_aggregates' to simulate archived data.
+        mock_download_aggregates.return_value = [
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 2",
+                "full_date": "2021-01-01",
+                "total_links_added": 2,
+                "total_links_removed": 1,
+                "on_user_list": False,
+            },
+            {
+                "project_name": "en.wikipedia.org",
+                "page_name": "Event 3",
+                "full_date": "2021-01-01",
+                "total_links_added": 1,
+                "total_links_removed": 2,
+                "on_user_list": False,
+            },
+        ]
+
+        url = reverse("organisations:top_pages")
+        params = {"collection": self.collection1.id, "form_data": "{}"}
+        response = self.client.get(f"{url}?{urlencode(params)}")
+
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+        top_pages = json.loads(response_data["top_pages"])
+
+        # We should have three pages now. Two from the database and one
+        # additional page (Event 3) from the archive data.
+        self.assertEqual(len(top_pages), 3)
+
+        # Find pages in the results.
+        event1 = next((p for p in top_pages if p["page_name"] == "Event 1"), None)
+        event2 = next((p for p in top_pages if p["page_name"] == "Event 2"), None)
+        event3 = next((p for p in top_pages if p["page_name"] == "Event 3"), None)
+
+        # Verify that page changes from both sources are accurate. Event 2 has
+        # both DB and archive data while the others have only one source each.
+        self.assertIsNotNone(event1)
+        self.assertEqual(event1["links_diff"], 2)  # Only from DB
+
+        self.assertIsNotNone(event2)
+        self.assertEqual(event2["links_diff"], 1)  # 0 from DB + (2-1) from archive
+
+        self.assertIsNotNone(event3)
+        self.assertEqual(event3["links_diff"], -1)  # (1-2) from archive
