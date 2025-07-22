@@ -18,6 +18,11 @@ from extlinks.aggregates.models import (
     PageProjectAggregate,
     UserAggregate,
 )
+from extlinks.aggregates.storage import (
+    find_unique,
+    calculate_totals,
+    download_aggregates,
+)
 from extlinks.common.forms import FilterForm
 from extlinks.common.helpers import (
     get_linksearchtotal_data_by_time,
@@ -192,10 +197,16 @@ class OrganisationDetailView(DetailView):
         existing_link_aggregates = {}
         eventstream_dates = []
         eventstream_net_change = []
-        current_date = date.today()
         filtered_link_aggregate = LinkAggregate.objects.filter(queryset_filter)
         to_date = None
 
+        # Figure out what date the graph should end on.
+        date_cursor = self.request.GET.get("end_date")
+        if date_cursor:
+            date_cursor = datetime.strptime(date_cursor, "%Y-%m-%d").date()
+        else:
+            date_cursor = date.today()
+            
         if filtered_link_aggregate.exists():
             earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
 
@@ -207,7 +218,21 @@ class OrganisationDetailView(DetailView):
         else:
             # No link information from that collection, so setting earliest_link_date
             # to the first of the current month
-            earliest_link_date = current_date.replace(day=1)
+            earliest_link_date = date_cursor.replace(day=1)
+
+        links_aggregated_date = []
+
+        # Download aggregates from object storage and calculate totals grouped
+        # by year and month.
+        totals = calculate_totals(
+            download_aggregates(
+                prefix="aggregates_linkaggregate",
+                queryset_filter=queryset_filter,
+                to_date=to_date,
+            ),
+            group_by=lambda record: (record["year"], record["month"]),
+        )
+        links_aggregated_date.extend(totals)
 
         links_aggregated_date = []
 
@@ -222,7 +247,7 @@ class OrganisationDetailView(DetailView):
             group_by=lambda record: (record["year"], record["month"]),
         )
         links_aggregated_date.extend(totals)
-
+        
         # Fetch remaining aggregates that are present in the database and
         # append them after the aggregates from the archives.
         links_aggregated_date.extend(
@@ -242,10 +267,10 @@ class OrganisationDetailView(DetailView):
                 earliest_link_date = full_date
 
         # Filling an array of dates that should be in the chart
-        while current_date >= earliest_link_date:
-            dates.append(current_date.strftime("%Y-%m"))
+        while date_cursor >= earliest_link_date:
+            dates.append(date_cursor.strftime("%Y-%m"))
             # Figure out what the last month is regardless of today's date
-            current_date = current_date.replace(day=1) - timedelta(days=1)
+            date_cursor = date_cursor.replace(day=1) - timedelta(days=1)
 
         dates = dates[::-1]
 
