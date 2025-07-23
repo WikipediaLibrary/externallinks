@@ -181,15 +181,12 @@ def upload_file(
     object_name = os.path.basename(path)
 
     with open(path, "rb") as f:
-        if not file_exists(conn, container, object_name):
-            conn.put_object(
-                container,
-                object_name,
-                contents=f,
-                content_type=content_type,
-            )
-        else:
-            return False
+        conn.put_object(
+            container,
+            object_name,
+            contents=f,
+            content_type=content_type,
+        )
 
     return object_name
 
@@ -286,15 +283,17 @@ def batch_upload_files(
     failed = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(upload_file, conn, container, f): f for f in files}
+        futures = {
+            executor.submit(upload_file, conn, container, f): f
+            for f in files
+            if executor.submit(file_exists, conn, container, f)
+        }
 
         for future in concurrent.futures.as_completed(futures):
             path = futures[future]
 
             try:
                 object_name = future.result()
-                if not object_name:
-                    logger.info(f"Skipping upload for '%s' - already uploaded", path)
                 logger.info(f"Successfully uploaded '%s' as '%s'", path, object_name)
                 successful.append(path)
             except Exception as exc:
