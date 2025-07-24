@@ -286,7 +286,7 @@ def batch_upload_files(
         futures = {
             executor.submit(upload_file, conn, container, f): f
             for f in files
-            if not executor.submit(file_exists, conn, container, f)
+            if not file_exists(conn, container, f)
         }
 
         for future in concurrent.futures.as_completed(futures):

@@ -1370,6 +1370,12 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_link_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1420,6 +1426,12 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1621,6 +1633,12 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_user_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1671,6 +1689,12 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1877,6 +1901,12 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_pageproject_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1927,6 +1957,12 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
