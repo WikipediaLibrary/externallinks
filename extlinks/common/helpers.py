@@ -19,7 +19,7 @@ def get_month_average(average_data, check_date):
     return 0
 
 
-def get_linksearchtotal_data_by_time(queryset):
+def get_linksearchtotal_data_by_time(queryset, start_date=None, end_date=None):
     """
     Calculates per-unit-time data from a queryset of LinkSearchTotal objects
 
@@ -28,11 +28,10 @@ def get_linksearchtotal_data_by_time(queryset):
 
     Returns two lists: dates and totals
     """
-
     if queryset:
         earliest_date = queryset.earliest("date").date
-        current_date = date.today()
-
+        earliest_date = start_date if start_date is not None else earliest_date
+        current_date = end_date if end_date is not None else date.today()
         linksearch_data = []
         dates = []
 

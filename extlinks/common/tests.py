@@ -54,6 +54,39 @@ class LinkSearchDataByTimeTest(TestCase):
             self.assertEqual(12, len(dates))
             self.assertEqual(12, len(linksearch_data))
 
+    def test_linksearch_start_date_before_current_day(self):
+        with time_machine.travel(date(2020, 4, 29)):
+            linksearch = LinkSearchTotal.objects.all()
+            start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
+            dates, linksearch_data = get_linksearchtotal_data_by_time(
+                queryset=linksearch, start_date=start_date
+            )
+            self.assertEqual(3, len(dates))
+            self.assertEqual(3, len(linksearch_data))
+
+    def test_linksearch_start_date_past_current_day(self):
+        with time_machine.travel(date(2020, 1, 29)):
+            linksearch = LinkSearchTotal.objects.all()
+            start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
+            dates, linksearch_data = get_linksearchtotal_data_by_time(
+                queryset=linksearch, start_date=start_date
+            )
+            self.assertEqual(0, len(dates))
+            self.assertEqual(0, len(linksearch_data))
+
+    def test_linksearch_end_date(self):
+        with time_machine.travel(date(2020, 4, 29)):
+            linksearch = LinkSearchTotal.objects.all()
+            start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
+            end_date = datetime(2020, 2, 20, tzinfo=timezone.utc).date()
+            dates, linksearch_data = get_linksearchtotal_data_by_time(
+                queryset=linksearch,
+                start_date=start_date,
+                end_date=end_date
+            )
+            self.assertEqual(1, len(dates))
+            self.assertEqual(1, len(linksearch_data))
+
 
 class FilterFormTest(TestCase):
 
