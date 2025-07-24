@@ -2,6 +2,10 @@ import os
 import shutil
 import tempfile
 import time_machine
+import glob
+import gzip
+import json
+import swiftclient
 
 from datetime import datetime, date, timedelta, timezone
 from dateutil.relativedelta import relativedelta
@@ -1366,6 +1370,12 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_link_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1416,6 +1426,12 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1617,6 +1633,12 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_user_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1667,6 +1689,12 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1873,6 +1901,12 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
     @mock.patch("swiftclient.Connection")
     def test_pageproject_aggregate_upload(self, mock_swift_connection):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -1923,6 +1957,12 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         self, mock_swift_connection
     ):
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.get_account.return_value = (
             {},
             [{"name": "archive-aggregates-test"}],
@@ -2009,3 +2049,70 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         # Expect that the "recently" created aggregate was not archived.
         self.assertEqual(len(os.listdir(self.output_dir)), 3)
         self.assertEqual(PageProjectAggregate.objects.count(), 1)
+
+
+class UploadAllArchivedAggregatesCommandTest(TransactionTestCase):
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_uploads_all_files_successfully(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-backup-202101"}],
+        )
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
+
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "aggregates_pageprojectaggregate_20210116_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "aggregates.pageprojectaggregate",
+                "pk": 1,
+                "fields": {
+                    "organisation": 21,
+                    "collection": 3,
+                    "project_name": "enwiki",
+                    "page_name": "Wikipedia",
+                    "day": 0,
+                    "month": 1,
+                    "year": 2021,
+                    "total_links_added": 12321,
+                    "total_links_removed": 43,
+                    "on_user_list": True,
+                    "created_at": "2021-01-16T00:00:00Z",
+                    "updated_at": "2021-01-16T00:00:00Z",
+                },
+            }
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "upload_all_archived_aggregates",
+                "--container",
+                "archive-aggregates-test",
+                "--dir",
+                temp_dir,
+            )
+            mock_conn.put_object.assert_called_once()
+
+        finally:
+            pattern = os.path.join(temp_dir, "aggregates_*.json.gz")
+
+            for file in glob.glob(pattern):
+                os.remove(file)

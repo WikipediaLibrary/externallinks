@@ -172,6 +172,12 @@ class SwiftUploadTest(TestCase):
         """
 
         mock_conn = mock_swift_connection.return_value
+        mock_conn.head_object.side_effect = swiftclient.ClientException(
+            "Mocked ClientException",
+            http_status=404,
+            http_reason="Not Found",
+            http_response_content="Object not found",
+        )
         mock_conn.put_object.return_value = ""
 
         files = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]

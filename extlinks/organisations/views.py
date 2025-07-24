@@ -206,7 +206,7 @@ class OrganisationDetailView(DetailView):
             date_cursor = datetime.strptime(date_cursor, "%Y-%m-%d").date()
         else:
             date_cursor = date.today()
-            
+
         if filtered_link_aggregate.exists():
             earliest_link_date = filtered_link_aggregate.earliest("full_date").full_date
 
@@ -247,7 +247,7 @@ class OrganisationDetailView(DetailView):
             group_by=lambda record: (record["year"], record["month"]),
         )
         links_aggregated_date.extend(totals)
-        
+
         # Fetch remaining aggregates that are present in the database and
         # append them after the aggregates from the archives.
         links_aggregated_date.extend(

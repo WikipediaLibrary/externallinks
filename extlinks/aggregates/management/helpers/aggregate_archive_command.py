@@ -204,7 +204,9 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                 end = (datetime.date.today() - relativedelta(years=1)).replace(day=1)
 
         if not container:
-            container = os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates")
+            container = os.environ.get(
+                "SWIFT_CONTAINER_AGGREGATES", "archive-aggregates"
+            )
 
         if end:
             cursor = start
@@ -310,9 +312,7 @@ class AggregateArchiveCommand(ABC, BaseCommand):
                     f"The following {failed} archives failed to upload: {','.join(failed)}"
                 )
         except Exception as e:
-            self.log_msg(
-                f"Failed to upload to Swift: {e}", level="error"
-            )
+            self.log_msg(f"Failed to upload to Swift: {e}", level="error")
             return False
 
     def archive(
