@@ -23,5 +23,9 @@ class Command(BaseCommand):
                 file_path = os.path.join(path, filename)
                 if os.path.isfile(file_path):
                     call_command(
-                        "archive_link_aggregates", "upload", container, file_path
+                        "archive_link_aggregates",
+                        "upload",
+                        file_path,
+                        "--container",
+                        container,
                     )

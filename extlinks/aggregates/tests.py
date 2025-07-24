@@ -2066,7 +2066,13 @@ class UploadAllArchivedAggregatesCommandTest(TransactionTestCase):
             json.dump(json_data, f)
 
         try:
-            call_command("upload_all_archived_aggregates", dir=temp_dir)
+            call_command(
+                "upload_all_archived_aggregates",
+                "--container",
+                "archive-aggregates-test",
+                "--dir",
+                temp_dir,
+            )
             mock_conn.put_object.assert_called_once()
 
         finally:
