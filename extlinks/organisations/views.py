@@ -106,9 +106,21 @@ class OrganisationDetailView(DetailView):
                 )
             )
 
+            start_date_request = self.request.GET.get("start_date")
+            end_date_request = self.request.GET.get("end_date")
+            start_date = (
+                datetime.strptime(start_date_request, "%Y-%m-%d").date().replace(day=1)
+                if start_date_request
+                else None
+            )
+            end_date = (
+                datetime.strptime(end_date_request, "%Y-%m-%d").date().replace(day=1)
+                if end_date_request
+                else None
+            )
             # LinkSearchTotal chart data
             dates, linksearch_data = get_linksearchtotal_data_by_time(
-                this_collection_linksearchtotals
+                this_collection_linksearchtotals, start_date, end_date
             )
 
             context["collections"][collection_key]["linksearch_dates"] = dates
