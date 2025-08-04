@@ -259,6 +259,51 @@ class LinkEventsCollectCommandTest(TestCase):
                 },
             ],
         }
+        self.event_data3 = {
+            "$schema": "/mediawiki/page/links-change/1.0.0",
+            "meta": {
+                "uri": "https://en.wikipedia.org/wiki/Tanya_Tuzova",
+                "request_id": "db830ce7-1aa8-4984-baa3-7598ea7113d2",
+                "id": "4100e9a8-af77-405f-ab13-ec0957a7c24c",
+                "dt": "2020-08-20T21:22:46.998Z",
+                "domain": "en.wikipedia.org",
+                "stream": "mediawiki.page-links-change",
+                "topic": "eqiad.mediawiki.page-links-change",
+                "partition": 0,
+                "offset": 840218818,
+            },
+            "database": "enwiki",
+            "page_id": 63608061,
+            "page_title": "Page1",
+            "page_namespace": 0,
+            "page_is_redirect": False,
+            "rev_id": 974060041,
+            "performer": {
+                "user_text": "User1",
+                "user_groups": ["extendedconfirmed", "*", "user", "autoconfirmed"],
+                "user_is_bot": False,
+                "user_id": 32001896,
+                "user_registration_dt": "2017-09-24T15:12:43Z",
+                "user_edit_count": 6550,
+            },
+            "added_links": [
+                {
+                    "link": "/wiki/Wikipedia:Articles_for_deletion/Tanya_Tuzova",
+                    "external": False,
+                },
+                {"link": "/wiki/Wikipedia:Deletion_policy", "external": False},
+                {"link": "/wiki/Wikipedia:Guide_to_deletion", "external": False},
+                {"link": "/wiki/Wikipedia:Page_blanking", "external": False},
+                {
+                    "link": "https://www-jstor-org.wikipedialibrary.idm.oclc.org/stable/27903775?Search=yes&resultItemClick=true&searchText=%22Evil+as+an+Explanatory+Concept%22&searchUri=/action/doBasicSearch?Query%3D%2522Evil%2Bas%2Ban%2BExplanatory%2BConcept%2522%26acc%3Don%26wc%3Don%26fc%3Doff%26group%3Dnone%26refreqid%3Dsearch%253Aad56779891b6147f11436f1629fe704d&ab_segments=0/basic_SYC-5187_SYC-5188/5188&refreqid=fastly-default:21cde56a64c1528014fba9e12d054b80&seq=1#metadata_info_tab_contents",
+                    "external": True,
+                },
+                {
+                    "link": "https://www-jstor-org.wikipedialibrary.idm.oclc.org/stable/dklsajdlkajslkdjaslkdjalks",
+                    "external": True,
+                },
+            ],
+        }
 
     def test_management_command_non_proxy(self):
         self.assertEqual(LinkEvent.objects.count(), 0)
@@ -272,6 +317,11 @@ class LinkEventsCollectCommandTest(TestCase):
             call_command("linkevents_collect", test=self.event_data2)
         self.assertEqual(LinkEvent.objects.count(), 2)
 
+    def test_management_command_dates_with_micro_seconds(self):
+        self.assertEqual(LinkEvent.objects.count(), 0)
+        with self.assertRaises(SystemExit):
+            call_command("linkevents_collect", test=self.event_data3)
+        self.assertEqual(LinkEvent.objects.count(), 2)
 
 class LinkEventsArchiveCommandTest(TransactionTestCase):
     def setUp(self):

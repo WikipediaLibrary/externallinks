@@ -124,7 +124,9 @@ class Command(BaseCommand):
                         self._add_linkevent_to_db(unquoted_url, change, event_dict)
 
     def _add_linkevent_to_db(self, link, change, event_data):
-        if "Z" in event_data["meta"]["dt"]:
+        if "." in event_data["meta"]["dt"]:
+            string_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+        elif "Z" in event_data["meta"]["dt"]:
             string_format = "%Y-%m-%dT%H:%M:%SZ"
         else:
             string_format = "%Y-%m-%dT%H:%M:%S+00:00"
