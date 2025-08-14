@@ -119,7 +119,7 @@ class OrganisationDetailView(DetailView):
                 else None
             )
             # LinkSearchTotal chart data
-            dates, linksearch_data = get_linksearchtotal_data_by_time(
+            dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(
                 this_collection_linksearchtotals, start_date, end_date
             )
 
@@ -149,6 +149,8 @@ class OrganisationDetailView(DetailView):
             ] = total_current
             context["collections"][collection_key]["linksearch_total_diff"] = total_diff
             context["collections"][collection_key]["linksearch_start_date"] = start_date
+            if as_of_date:
+                context["collections"][collection_key]["as_of_date"] = as_of_date
 
             context["query_string"] = self.request.META["QUERY_STRING"]
 

@@ -40,7 +40,7 @@ class LinkSearchDataByTimeTest(TestCase):
     def test_linksearch_data_empty_queryset(self):
         linksearch_queryset = None
 
-        dates, linksearch_data = get_linksearchtotal_data_by_time(linksearch_queryset)
+        dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(linksearch_queryset)
 
         self.assertEqual(0, len(dates))
         self.assertEqual(0, len(linksearch_data))
@@ -49,44 +49,48 @@ class LinkSearchDataByTimeTest(TestCase):
         with time_machine.travel(date(2020, 12, 31)):
             linksearch = LinkSearchTotal.objects.all()
 
-            dates, linksearch_data = get_linksearchtotal_data_by_time(linksearch)
+            dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(linksearch)
 
             self.assertEqual(12, len(dates))
             self.assertEqual(12, len(linksearch_data))
             self.assertNotIn(0, linksearch_data)
+            self.assertEqual("March 2020", as_of_date)
 
     def test_linksearch_start_date_before_current_day(self):
         with time_machine.travel(date(2020, 4, 29)):
             linksearch = LinkSearchTotal.objects.all()
             start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
-            dates, linksearch_data = get_linksearchtotal_data_by_time(
+            dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(
                 queryset=linksearch, start_date=start_date
             )
             self.assertEqual(3, len(dates))
             self.assertEqual(3, len(linksearch_data))
+            self.assertEqual("March 2020", as_of_date)
 
     def test_linksearch_start_date_past_current_day(self):
         with time_machine.travel(date(2020, 1, 29)):
             linksearch = LinkSearchTotal.objects.all()
             start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
-            dates, linksearch_data = get_linksearchtotal_data_by_time(
+            dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(
                 queryset=linksearch, start_date=start_date
             )
             self.assertEqual(0, len(dates))
             self.assertEqual(0, len(linksearch_data))
+            self.assertEqual([], as_of_date)
 
     def test_linksearch_end_date(self):
         with time_machine.travel(date(2020, 4, 29)):
             linksearch = LinkSearchTotal.objects.all()
             start_date = datetime(2020, 2, 3, tzinfo=timezone.utc).date()
             end_date = datetime(2020, 2, 20, tzinfo=timezone.utc).date()
-            dates, linksearch_data = get_linksearchtotal_data_by_time(
+            dates, linksearch_data, as_of_date = get_linksearchtotal_data_by_time(
                 queryset=linksearch,
                 start_date=start_date,
                 end_date=end_date
             )
             self.assertEqual(1, len(dates))
             self.assertEqual(1, len(linksearch_data))
+            self.assertEqual("February 2020", as_of_date)
 
 
 class FilterFormTest(TestCase):
