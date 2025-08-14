@@ -1,11 +1,12 @@
 import csv
+from urllib.parse import urlparse
+
 import MySQLdb
 import os
 
 from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
 
-from extlinks.links.helpers import split_url_for_query
 from extlinks.links.models import LinkSearchTotal, URLPattern
 from extlinks.settings.base import BASE_DIR
 
@@ -14,7 +15,6 @@ class Command(BaseCommand):
     help = "Updates link totals from externallinks table"
 
     def _handle(self, *args, **options):
-        protocols = ["http", "https"]
 
         with open(os.path.join(BASE_DIR, "wiki-list.csv"), "r") as wiki_list:
             csv_reader = csv.reader(wiki_list)
@@ -41,25 +41,27 @@ class Command(BaseCommand):
                 # For the first language, initialise tracking
                 if i == 0:
                     total_links_dictionary[urlpattern.pk] = 0
+                # adding default protocol even though we don't use it
+                # in our SQL query so that we can leverage urlparse function
+                url = "https://" + urlpattern.url
+                url_parsed = urlparse(url)
+                url_path = url_parsed.path
+                url_host = url_parsed.hostname
+                url_host_reversed = '.'.join(list(reversed(url_host.split("."))))
 
-                url = urlpattern.url
-                optimised_url, url_pattern_end = split_url_for_query(url)
+                query = f"""
+                   SELECT COUNT(*) FROM externallinks
+                    WHERE el_to_domain_index LIKE '%{url_host_reversed}%'
+                    AND el_to_path LIKE '%{url_path}%'
+                    """
 
-                for protocol in protocols:
-                    url_pattern_start = protocol + "://" + optimised_url
+                cur.execute(
+                    query
+                )
 
-                    cur.execute(
-                        """SELECT COUNT(*) FROM externallinks
-                                WHERE el_to_domain_index LIKE '{url_start}'
-                                AND el_to_domain_index LIKE '{url_end}'
-                                """.format(
-                            url_start=url_pattern_start, url_end=url_pattern_end
-                        )
-                    )
+                this_num_urls = cur.fetchone()[0]
 
-                    this_num_urls = cur.fetchone()[0]
-
-                    total_links_dictionary[urlpattern.pk] += this_num_urls
+                total_links_dictionary[urlpattern.pk] += this_num_urls
 
         for urlpattern_pk, total_count in total_links_dictionary.items():
             linksearch_object = LinkSearchTotal(

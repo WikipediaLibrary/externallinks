@@ -20,44 +20,11 @@ from extlinks.organisations.factories import (
     UserFactory,
 )
 from .factories import LinkEventFactory, URLPatternFactory
-from .helpers import link_is_tracked, split_url_for_query
+from .helpers import link_is_tracked
 from .models import URLPattern, LinkEvent
 
 
 class LinksHelpersTest(TestCase):
-    def test_split_url_for_query_1(self):
-        """
-        Given a URL pattern, ensure that our helper function converts it
-        to the expected format for querying replica databases
-        """
-        url = "testurl.com"
-
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%"))
-
-    def test_split_url_for_query_2(self):
-        """
-        Given a URL pattern with a path, ensure that our helper function
-        converts it to the expected format for querying replica databases
-        """
-        url = "testurl.com/test"
-
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%./test%"))
-
-    def test_split_url_for_query_3(self):
-        """
-        Given a URL pattern starting "*.", ensure that our helper function
-        converts it to the expected format for querying replica databases
-        """
-        url = "*.testurl.com/test"
-
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%./test%"))
-
     def test_get_organisation(self):
         """
         Test the get_organisation function on the LinkEvent model.
