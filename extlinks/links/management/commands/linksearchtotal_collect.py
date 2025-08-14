@@ -7,6 +7,7 @@ import os
 from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
 
+from extlinks.links.helpers import reverse_host
 from extlinks.links.models import LinkSearchTotal, URLPattern
 from extlinks.settings.base import BASE_DIR
 
@@ -41,17 +42,20 @@ class Command(BaseCommand):
                 # For the first language, initialise tracking
                 if i == 0:
                     total_links_dictionary[urlpattern.pk] = 0
-                # adding default protocol even though we don't use it
-                # in our SQL query so that we can leverage urlparse function
-                url = "https://" + urlpattern.url
+                # adding default https protocol if we don't already have
+                # a protocol in the url string so that we can leverage urlparse function
+                if "://" not in urlpattern.url:
+                    url = "https://" + urlpattern.url
+                else:
+                    url = urlpattern.url
+
                 url_parsed = urlparse(url)
                 url_path = url_parsed.path
                 url_host = url_parsed.hostname
-                url_host_reversed = '.'.join(list(reversed(url_host.split("."))))
 
                 query = f"""
                    SELECT COUNT(*) FROM externallinks
-                    WHERE el_to_domain_index LIKE '%{url_host_reversed}%'
+                    WHERE el_to_domain_index LIKE '%{reverse_host(url_host)}%'
                     AND el_to_path LIKE '%{url_path}%'
                     """
 

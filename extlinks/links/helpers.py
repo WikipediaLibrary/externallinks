@@ -3,6 +3,9 @@ from urllib.parse import unquote
 from .models import URLPattern
 
 
+def reverse_host(host):
+    return '.'.join(list(reversed(host.split("."))))
+
 def link_is_tracked(link):
     all_urlpatterns = URLPattern.objects.all()
     tracked_links_list = list(all_urlpatterns.values_list("url", flat=True))
