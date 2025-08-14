@@ -53,6 +53,7 @@ class LinkSearchDataByTimeTest(TestCase):
 
             self.assertEqual(12, len(dates))
             self.assertEqual(12, len(linksearch_data))
+            self.assertNotIn(0, linksearch_data)
 
     def test_linksearch_start_date_before_current_day(self):
         with time_machine.travel(date(2020, 4, 29)):
