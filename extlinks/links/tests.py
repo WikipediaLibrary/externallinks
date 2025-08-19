@@ -20,43 +20,24 @@ from extlinks.organisations.factories import (
     UserFactory,
 )
 from .factories import LinkEventFactory, URLPatternFactory
-from .helpers import link_is_tracked, split_url_for_query
+from .helpers import link_is_tracked, reverse_host
 from .models import URLPattern, LinkEvent
 
 
 class LinksHelpersTest(TestCase):
-    def test_split_url_for_query_1(self):
+    def test_reverse_host(self):
         """
-        Given a URL pattern, ensure that our helper function converts it
-        to the expected format for querying replica databases
+        Test the reverse_host function in helpers.py.
         """
-        url = "testurl.com"
+        host = "www.test.org"
+        expected_host = "org.test.www"
+        actual = reverse_host(host)
+        self.assertEqual(expected_host, actual)
 
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%"))
-
-    def test_split_url_for_query_2(self):
-        """
-        Given a URL pattern with a path, ensure that our helper function
-        converts it to the expected format for querying replica databases
-        """
-        url = "testurl.com/test"
-
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%./test%"))
-
-    def test_split_url_for_query_3(self):
-        """
-        Given a URL pattern starting "*.", ensure that our helper function
-        converts it to the expected format for querying replica databases
-        """
-        url = "*.testurl.com/test"
-
-        output = split_url_for_query(url)
-
-        self.assertEqual(output, ("com.testurl.%", "%./test%"))
+        host = "test.com"
+        expected_host = "com.test"
+        actual = reverse_host(host)
+        self.assertEqual(expected_host, actual)
 
     def test_get_organisation(self):
         """

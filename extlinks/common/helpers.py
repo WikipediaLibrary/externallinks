@@ -34,6 +34,7 @@ def get_linksearchtotal_data_by_time(queryset, start_date=None, end_date=None):
         current_date = end_date if end_date is not None else date.today()
         linksearch_data = []
         dates = []
+        has_real_data_flags = []
 
         average_month_data = (
             queryset.annotate(month=TruncMonth("date"))
@@ -47,19 +48,34 @@ def get_linksearchtotal_data_by_time(queryset, start_date=None, end_date=None):
 
             linksearch_data.append(round(this_month_avg))
             dates.append(month_first.strftime("%Y-%m-%d"))
+            has_real_data_flags.append(round(this_month_avg) != 0)
 
             # Figure out what the last month is regardless of today's date
             current_date = month_first - timedelta(days=1)
 
-        # If a month has no data for some reason, we should use whatever
-        # figure we have for the previous month, unless it is the current month
-        for i, data in enumerate(linksearch_data):
-            if data == 0 and i != len(linksearch_data) - 1:
-                linksearch_data[i] = linksearch_data[i + 1]
+        if dates and linksearch_data and has_real_data_flags:
+            as_of_date = None
+            # If a month has no data for some reason, we should use whatever
+            # figure we have for the previous month
+            for i, data in enumerate(linksearch_data):
+                linksearch_data_length = len(linksearch_data)
+                if data == 0 and i != linksearch_data_length - 1:
+                    for j in range(i + 1, linksearch_data_length):
+                        if linksearch_data[j] != 0:
+                            linksearch_data[i] = linksearch_data[j]
+                            has_real_data_flags[i] = False
+                            break
+            dates_reversed = dates[::-1]
+            for date_str, is_real in zip(dates_reversed, has_real_data_flags[::-1]):
+                if is_real:
+                    as_of_date = date_str
 
-        return dates[::-1], linksearch_data[::-1]
+            link_search_data_reversed = linksearch_data[::-1]
+            return dates_reversed, link_search_data_reversed, date.fromisoformat(as_of_date).strftime("%B %Y")
+        else:
+            return [], [], []
     else:
-        return [], []
+        return [], [], []
 
 
 def filter_linksearchtotals(queryset, filter_dict):
