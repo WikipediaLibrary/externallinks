@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import re
-import string
 
 from typing import Callable, Dict, Hashable, Iterable, List, Optional, Set
 
@@ -85,7 +84,7 @@ def decode_archive(archive: bytes) -> List[Dict]:
         return []
 
     decompressed_archive = gzip.decompress(archive)
-    if decompressed_archive is None or not isinstance(decompressed_archive, string):
+    if decompressed_archive is None or not isinstance(decompressed_archive, str):
         return []
 
     return json.loads(decompressed_archive)
