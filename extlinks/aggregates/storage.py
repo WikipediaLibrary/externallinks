@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+from json import JSONDecodeError
 
 from typing import Callable, Dict, Hashable, Iterable, List, Optional, Set
 
@@ -81,7 +82,15 @@ def decode_archive(archive: bytes) -> List[Dict]:
     Decodes a gzipped archive into a list of dictionaries (row records).
     """
     if archive is not None:
-        return json.loads(gzip.decompress(archive))
+        try:
+            decompressed_archive = gzip.decompress(archive)
+            return json.loads(decompressed_archive)
+        except JSONDecodeError as e:
+            logger.error(f"Failed to decode archive {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Failed to decode archive {e}")
+            return []
 
 
 def download_aggregates(
