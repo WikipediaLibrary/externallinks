@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import string
 
 from typing import Callable, Dict, Hashable, Iterable, List, Optional, Set
 
@@ -80,8 +81,14 @@ def decode_archive(archive: bytes) -> List[Dict]:
     """
     Decodes a gzipped archive into a list of dictionaries (row records).
     """
-    if archive is not None:
-        return json.loads(gzip.decompress(archive))
+    if archive is None or not isinstance(archive, (bytes, bytearray)):
+        return []
+
+    decompressed_archive = gzip.decompress(archive)
+    if decompressed_archive is None or not isinstance(decompressed_archive, string):
+        return []
+
+    return json.loads(decompressed_archive)
 
 
 def download_aggregates(
