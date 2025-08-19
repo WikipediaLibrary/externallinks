@@ -80,8 +80,8 @@ def decode_archive(archive: bytes) -> List[Dict]:
     """
     Decodes a gzipped archive into a list of dictionaries (row records).
     """
-
-    return json.loads(gzip.decompress(archive))
+    if archive is not None:
+        return json.loads(gzip.decompress(archive))
 
 
 def download_aggregates(
