@@ -25,11 +25,12 @@
           <td style="text-align: right;">{{ collection.linksearch_total_start }}</td>
         </tr>
         <tr>
-          <td>Total</td>
+          <td>Total
+            {% if collection.as_of_date %}
+              as of {{ collection.as_of_date  }}:
+            {% endif %}
+          </td>
           <td style="text-align: right;">{{ collection.linksearch_total_current }}
-         {% if collection.as_of_date %}
-            as of {{ collection.as_of_date  }}
-         {% endif %}
         </td>
         </tr>
         <tr style="line-height:55px;">
