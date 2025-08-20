@@ -5,7 +5,6 @@ from datetime import datetime, date, timedelta
 from logging import getLogger
 
 from dateutil.relativedelta import relativedelta
-from django.contrib import messages
 from django.db.models import Count, Sum, Q, Prefetch, CharField
 from django.db.models.functions import Cast
 from django.http import JsonResponse
@@ -61,12 +60,6 @@ class OrganisationDetailView(DetailView):
     # This is almost, but not exactly, the same as the program view.
     # As such, most context gathering is split out to a helper.
     def get_context_data(self, **kwargs):
-        messages.warning(
-            self.request,
-            "We have modified where Wikilink obtains its data from. Since some of this work is "
-            "still in flight, the data shown in Wikilink is currently erroneous. ",
-            fail_silently=True,
-        )
         context = super(OrganisationDetailView, self).get_context_data(**kwargs)
         form = self.form_class(self.request.GET)
         context["form"] = form
