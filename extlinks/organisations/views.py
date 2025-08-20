@@ -316,8 +316,10 @@ def get_editor_count(request):
     Ajax request for editor count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = UserAggregate.objects.filter(queryset_filter)
@@ -353,8 +355,10 @@ def get_project_count(request):
     Ajax request for project count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = PageProjectAggregate.objects.filter(queryset_filter)
@@ -390,8 +394,10 @@ def get_links_count(request):
     Ajax request for links count (found in the Statistics table)
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = LinkAggregate.objects.filter(queryset_filter)
@@ -439,8 +445,10 @@ def get_top_pages(request):
     Ajax request for the top pages table for a given collection
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = PageProjectAggregate.objects.filter(queryset_filter)
@@ -496,8 +504,10 @@ def get_top_projects(request):
     Ajax request for the top projects table for a given collection
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = PageProjectAggregate.objects.filter(queryset_filter)
@@ -555,8 +565,10 @@ def get_top_users(request):
     Ajax request for the top users table for a given collection
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     queryset_filter = build_queryset_filters(form_data, {"collection": collection})
     aggregates = UserAggregate.objects.filter(queryset_filter)
@@ -612,8 +624,10 @@ def get_latest_link_events(request):
     Ajax request for the latest link events for a given collection
     """
     form_data = json.loads(request.GET.get("form_data", "{}"))
-    collection_id = int(request.GET.get("collection", None))
-    collection = Collection.objects.get(id=collection_id)
+    collection_id = request.GET.get("collection")
+    if not isinstance(collection_id, str) or not collection_id.isdigit():
+        return JsonResponse({})
+    collection = Collection.objects.get(id=int(collection_id))
 
     linkevents = collection.get_linkevents()
     if form_data:
