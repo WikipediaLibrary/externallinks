@@ -10,6 +10,8 @@ from extlinks.organisations.urls import urlpatterns as organisations_urls
 
 from .views import Homepage, Documentation
 
+handler500 = "extlinks.views.custom_server_error"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", Homepage.as_view(), name="homepage"),
