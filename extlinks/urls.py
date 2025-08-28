@@ -2,6 +2,7 @@ from os import getenv
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
+from django.views.generic import TemplateView
 
 from extlinks.healthcheck.urls import urlpatterns as healthcheck_urls
 from extlinks.programs.urls import urlpatterns as programs_urls
@@ -31,4 +32,8 @@ if settings.DEBUG and reqs == "local.txt":
 
         urlpatterns += [
             path("__debug__/", include(debug_toolbar.urls)),
+            path("400/", TemplateView.as_view(template_name="400.html")),
+            path("403/", TemplateView.as_view(template_name="403.html")),
+            path("404/", TemplateView.as_view(template_name="404.html")),
+            path("500/", TemplateView.as_view(template_name="500/500.html")),
         ]
