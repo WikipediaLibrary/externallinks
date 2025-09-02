@@ -20,7 +20,7 @@ logging.config.dictConfig(
         "formatters": {
             "django.server": {
                 "()": "django.utils.log.ServerFormatter",
-                "format": "[%(server_time)s] %(message)s",
+                "format": "[%(levelname)s] %(message)s",
             }
         },
         "handlers": {
@@ -28,11 +28,13 @@ logging.config.dictConfig(
                 "level": "WARNING",
                 "filters": ["require_debug_false"],
                 "class": "logging.StreamHandler",
+                "formatter": "django.server",
             },
             "debug_console": {
                 "level": "INFO",
                 "filters": ["require_debug_true"],
                 "class": "logging.StreamHandler",
+                "formatter": "django.server",
             },
             "django.server": {
                 "level": "INFO",

@@ -10,10 +10,11 @@ from typing import List, Optional, Type, cast
 
 from django.core import serializers
 from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.management.base import CommandError, CommandParser
 from django.db import models, close_old_connections
 
 from extlinks.common import swift
+from extlinks.common.management.commands import BaseCommand
 
 logger = logging.getLogger("django")
 

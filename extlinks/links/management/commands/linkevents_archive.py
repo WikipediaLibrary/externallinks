@@ -1,4 +1,4 @@
-import gzip, logging, datetime, os
+import gzip, datetime, logging, os
 
 from swiftclient import ClientException
 
@@ -25,37 +25,6 @@ SWIFT_CONTAINER_NAME = os.environ.get("SWIFT_CONTAINER_NAME", "archive-linkevent
 
 class Command(BaseCommand):
     help = "dump & delete or load LinkEvents"
-
-    def log_msg(self, msg, *args, level="info"):
-        """
-        Logs and prints messages so they are visible in both Docker
-        logs and cron job logs
-
-        Parameters
-        ----------
-        msg : str
-            The message to log
-
-        *args : tuple
-            Arguments to be lazily formatted into msg.
-
-        level : str
-            The log level ('info' or 'error'), defaults to 'info'
-
-        Returns
-        -------
-        None
-        """
-        if level == "error":
-            logger.error(msg, *args)
-            formatted_msg = msg % args if args else msg
-            self.stderr.write(formatted_msg)
-            self.stderr.flush()
-        else:
-            logger.info(msg, *args)
-            formatted_msg = msg % args if args else msg
-            self.stdout.write(formatted_msg)
-            self.stdout.flush()
 
     def get_most_recent(self):
         most_recent = []
@@ -100,7 +69,7 @@ class Command(BaseCommand):
             most_recent_aggregates = self.get_most_recent()
 
             if len(most_recent_aggregates) != 3:
-                self.log_msg("All of the aggregate jobs have not been run yet")
+                logger.info("All of the aggregate jobs have not been run yet")
                 return
 
             # Find the oldest start time of the 3 jobs start datetimes we have. All
@@ -155,7 +124,7 @@ class Command(BaseCommand):
 
             filename = f"links_linkevent_{start.strftime('%Y%m%d')}_{iteration}.json.gz"
             local_filepath = os.path.join(output_dir, filename)
-            self.log_msg(
+            logger.info(
                 "Dumping %d LinkEvents into %s", len(linkevents_by_date), local_filepath
             )
 
@@ -169,7 +138,7 @@ class Command(BaseCommand):
                 and object_storage_only
             ):
                 os.remove(local_filepath)
-                self.log_msg(f"Deleted local file {local_filepath} after upload")
+                logger.info(f"Deleted local file {local_filepath} after upload")
 
             if len(results) > CHUNK_SIZE:
                 iteration += 1
@@ -179,7 +148,7 @@ class Command(BaseCommand):
 
             total += len(linkevents_by_date)
 
-        self.log_msg(
+        logger.info(
             "Deleting %d LinkEvents before %s from the database",
             total,
             archive_start_time.strftime("%Y-%m-%d"),
@@ -199,11 +168,11 @@ class Command(BaseCommand):
         """
 
         if not filenames:
-            self.log_msg("No link event archives specified")
+            logger.info("No link event archives specified")
             return
 
         for filename in sorted(filenames):
-            self.log_msg("Loading " + filename)
+            logger.info("Loading " + filename)
             # loaddata supports gzipped fixtures and handles relationships properly
             call_command("loaddata", filename)
 
@@ -229,7 +198,7 @@ class Command(BaseCommand):
         try:
             conn = swift.swift_connection()
         except RuntimeError:
-            self.log_msg("Swift credentials not provided. Skipping upload.")
+            logger.info("Swift credentials not provided. Skipping upload.")
             return False
 
         try:
@@ -237,19 +206,19 @@ class Command(BaseCommand):
             try:
                 was_created = swift.ensure_container_exists(conn, container_name)
                 if was_created:
-                    self.log_msg(f"Created new container: {container_name}")
+                    logger.info(f"Created new container: {container_name}")
             except RuntimeError as e:
-                self.log_msg(str(e), level="error")
+                logger.error(str(e))
                 return False
 
             # Skip uploading the file if it already exists in Swift.
             object_name = os.path.basename(local_filepath)
             try:
                 if swift.file_exists(conn, container_name, object_name):
-                    self.log_msg(f"Skipping upload {object_name} - already uploaded")
+                    logger.info(f"Skipping upload {object_name} - already uploaded")
                     return True
             except ClientException as e:
-                self.log_msg(
+                logger.warning(
                     f"Failed to locate {object_name} in Swift container "
                     f"{container_name} due to an unexpected error: {e}"
                 )
@@ -262,14 +231,12 @@ class Command(BaseCommand):
                 content_type="application/gzip",
             )
 
-            self.log_msg(
+            logger.info(
                 f"Successfully uploaded {local_filepath} to Swift container {container_name}"
             )
             return True
         except Exception as e:
-            self.log_msg(
-                f"Failed to upload {local_filepath} to Swift: {e}", level="error"
-            )
+            logger.error(f"Failed to upload {local_filepath} to Swift: {e}")
             return False
 
     def upload(self, filenames: List[str]):
@@ -286,26 +253,24 @@ class Command(BaseCommand):
         None
         """
         if not filenames:
-            self.log_msg("No link event archives specified for upload.")
+            logger.info("No link event archives specified for upload.")
             return
 
         for filepath in sorted(filenames):
             if not os.path.isfile(filepath):
-                self.log_msg(
-                    f"File {filepath} does not exist. Skipping.", level="error"
-                )
+                logger.error(f"File {filepath} does not exist. Skipping.")
                 continue
 
             filename = os.path.basename(filepath)
 
-            self.log_msg(
+            logger.info(
                 f"Uploading {filepath} to Swift container {SWIFT_CONTAINER_NAME}"
             )
 
             if self.upload_to_swift(filepath, SWIFT_CONTAINER_NAME):
-                self.log_msg(f"Successfully uploaded {filename} to Swift.")
+                logger.info(f"Successfully uploaded {filename} to Swift.")
             else:
-                self.log_msg(f"Failed to upload {filename} to Swift.", level="error")
+                logger.error(f"Failed to upload {filename} to Swift.")
 
     def add_arguments(self, parser):
         parser.add_argument(

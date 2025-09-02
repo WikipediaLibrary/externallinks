@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand as DjangoBaseCommand
 from filelock import FileLock
 import inspect
+import logging
 from os import remove
 from os.path import basename
 

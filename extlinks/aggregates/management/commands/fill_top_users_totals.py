@@ -1,15 +1,14 @@
-import calendar
-import datetime
-import logging
+import calendar, datetime, logging
 
 from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
-from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.management.base import CommandError, CommandParser
 from django.db.models.aggregates import Sum
 from django.db.models.expressions import F
 
 from extlinks.aggregates.models import ProgramTopUsersTotal, UserAggregate
+from extlinks.common.management.commands import BaseCommand
 from extlinks.programs.models import Program
 
 logger = logging.getLogger("django")
