@@ -1,7 +1,6 @@
-import calendar
+import calendar, logging
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-import logging
 
 from extlinks.common.management.commands import BaseCommand
 from django.core.management.base import CommandError
@@ -16,13 +15,6 @@ logger = logging.getLogger("django")
 
 class Command(BaseCommand):
     help = "Adds monthly aggregated data into the UserAggregate table"
-
-    def info(self, msg):
-        # Log and print so that messages are visible
-        # in docker logs (log) and cron job logs (print)
-        logger.info(msg)
-        self.stdout.write(msg)
-        self.stdout.flush()
 
     def add_arguments(self, parser):
         # Option to filter by specific collection(s)
@@ -41,7 +33,7 @@ class Command(BaseCommand):
         )
 
     def _handle(self, *args, **options):
-        self.info("Monthly UserAggregate job started")
+        logger.info("Monthly UserAggregate job started")
 
         if options["year_month"]:
             try:
@@ -61,7 +53,7 @@ class Command(BaseCommand):
             try:
                 oldest_agg = UserAggregate.objects.exclude(day=0).earliest("full_date")
             except UserAggregate.DoesNotExist:
-                self.info("No data to process.")
+                logger.info("No data to process.")
                 return
             oldest_date = oldest_agg.full_date
             monthrange = calendar.monthrange(oldest_date.year, oldest_date.month)
@@ -69,12 +61,12 @@ class Command(BaseCommand):
             last_day_of_month = oldest_date.replace(day=monthrange[1])
             no_later_than_date = today - timedelta(days=10)
             if last_day_of_month > no_later_than_date:
-                self.info(
+                logger.info(
                     f"No data within allowed date range: {no_later_than_date} falls within the month of {oldest_date}"
                 )
                 return
 
-        self.info(f"Processing data from {first_day_of_month} to {last_day_of_month}")
+        logger.info(f"Processing data from {first_day_of_month} to {last_day_of_month}")
         month_filter = Q(
             full_date__gte=first_day_of_month, full_date__lte=last_day_of_month
         )
@@ -85,7 +77,7 @@ class Command(BaseCommand):
         else:
             self._process_aggregation(month_filter)
 
-        self.info("Monthly UserAggregate job ended")
+        logger.info("Monthly UserAggregate job ended")
         close_old_connections()
 
     def _process_aggregation(self, main_filter_query):
@@ -107,7 +99,7 @@ class Command(BaseCommand):
         -------
         None
         """
-        self.info("Fetching the main query")
+        logger.info("Fetching the main query")
 
         aggregated_data = (
             UserAggregate.objects.filter(main_filter_query)
@@ -133,11 +125,11 @@ class Command(BaseCommand):
         for batch_index, batch in enumerate(batch_iterator(aggregated_data), start=1):
             with transaction.atomic():
                 total_aggregations += len(batch)
-                self.info(f"Processing batch {batch_index} (size: {len(batch)})")
+                logger.info(f"Processing batch {batch_index} (size: {len(batch)})")
                 for monthly_aggregation in batch:
                     self._verify_and_save_aggregation(monthly_aggregation)
 
-        self.info(f"Processed a total of {total_aggregations} monthly aggregations")
+        logger.info(f"Processed a total of {total_aggregations} monthly aggregations")
 
     def _verify_and_save_aggregation(self, monthly_aggregation):
         """
