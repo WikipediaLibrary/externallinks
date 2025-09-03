@@ -436,7 +436,7 @@
           tdDomain.innerHTML = latest_link_events[i].domain;
           var tdRev = document.createElement("td");
           var aRev = document.createElement("a");
-          aRev.href = "https://"+latest_link_events[i].domain+"/wiki/Special:Diff" + latest_link_events[i].rev_id;
+          aRev.href = "https://"+latest_link_events[i].domain+"/wiki/Special:Diff/" + latest_link_events[i].rev_id;
           aRev.appendChild(document.createTextNode(latest_link_events[i].date));
           tdRev.appendChild(aRev);
           tr.appendChild(tdLink);
