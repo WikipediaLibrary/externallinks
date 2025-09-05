@@ -88,6 +88,9 @@ services:
       - type: bind
         source: ./static
         target: /app/static
+      - type: bind
+        source: ./extlinks/templates/500
+        target: /app/500
     ports:
       - "80:80"
     depends_on:
