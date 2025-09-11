@@ -291,18 +291,21 @@ class LinkEventsCollectCommandTest(TestCase):
         with self.assertRaises(SystemExit):
             call_command("linkevents_collect", test=self.event_data1)
         self.assertEqual(LinkEvent.objects.count(), 1)
+        self.assertEqual("JSTOR", URLPattern.objects.first().collections.first().name)
 
     def test_management_command_proxy_urls(self):
         self.assertEqual(LinkEvent.objects.count(), 0)
         with self.assertRaises(SystemExit):
             call_command("linkevents_collect", test=self.event_data2)
         self.assertEqual(LinkEvent.objects.count(), 2)
+        self.assertEqual("JSTOR", URLPattern.objects.first().collections.first().name)
 
     def test_management_command_dates_with_micro_seconds(self):
         self.assertEqual(LinkEvent.objects.count(), 0)
         with self.assertRaises(SystemExit):
             call_command("linkevents_collect", test=self.event_data3)
         self.assertEqual(LinkEvent.objects.count(), 2)
+        self.assertEqual("JSTOR", URLPattern.objects.first().collections.first().name)
 
 class LinkEventsArchiveCommandTest(TransactionTestCase):
     def setUp(self):
