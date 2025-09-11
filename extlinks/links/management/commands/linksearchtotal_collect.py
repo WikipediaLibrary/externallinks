@@ -5,6 +5,7 @@ import MySQLdb
 
 from extlinks.common.management.commands import BaseCommand
 from django.db import close_old_connections
+from django.db.utils import IntegrityError
 
 from extlinks.links.helpers import reverse_host
 from extlinks.links.models import LinkSearchTotal, URLPattern
@@ -80,7 +81,10 @@ class Command(BaseCommand):
             linksearch_object = LinkSearchTotal(
                 url=URLPattern.objects.get(pk=urlpattern_pk), total=total_count
             )
-            linksearch_object.save()
             logger.info(f"saving linksearch_object {linksearch_object}")
+            try:
+                linksearch_object.save()
+            except IntegrityError as e:
+                logger.warning(e)
 
         close_old_connections()
