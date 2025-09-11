@@ -80,6 +80,9 @@ class Command(BaseCommand):
             # A tuple value sets each respective value independently.
             # https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
             timeout=(3.05, 7),
+            headers={
+                "User-Agent": 'Wikilink'
+            }
         ):
             if event.event == "message":
                 try:
@@ -208,4 +211,5 @@ class Command(BaseCommand):
         )
         for url_pattern in url_patterns:
             url_pattern.link_events.add(link_event)
+            url_pattern.collections.add(this_link_collection)
             url_pattern.save()
