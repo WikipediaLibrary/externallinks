@@ -25,7 +25,7 @@ logging.config.dictConfig(
         },
         "handlers": {
             "nodebug_console": {
-                "level": "WARNING",
+                "level": "INFO",
                 "filters": ["require_debug_false"],
                 "class": "logging.StreamHandler",
                 "formatter": "django.server",

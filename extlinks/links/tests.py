@@ -23,8 +23,19 @@ from .factories import LinkEventFactory, URLPatternFactory
 from .helpers import link_is_tracked, reverse_host
 from .models import URLPattern, LinkEvent
 
+class BaseTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(BaseTest, cls).setUpClass()
+        cls.tenacity_patcher = mock.patch('tenacity.nap.time')
+        cls.mock_tenacity = cls.tenacity_patcher.start()
 
-class LinksHelpersTest(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super(BaseTest, cls).tearDownClass()
+        cls.tenacity_patcher.stop()
+
+class LinksHelpersTest(BaseTest):
     def test_reverse_host(self):
         """
         Test the reverse_host function in helpers.py.
@@ -58,7 +69,7 @@ class LinksHelpersTest(TestCase):
         self.assertEqual(new_link.get_organisation, organisation2)
 
 
-class LinksTrackedTest(TestCase):
+class LinksTrackedTest(BaseTest):
     def setUp(self):
         _ = URLPatternFactory(url="test.com")
 
@@ -123,7 +134,7 @@ class LinksTrackedTest(TestCase):
         )
 
 
-class URLPatternModelTest(TestCase):
+class URLPatternModelTest(BaseTest):
     def test_get_proxied_url_1(self):
         """
         Test that URLPattern.get_proxied_url transforms a URL correctly
@@ -140,7 +151,7 @@ class URLPatternModelTest(TestCase):
         self.assertEqual(test_urlpattern.get_proxied_url, "platform-almanhal-com")
 
 
-class LinkEventsCollectCommandTest(TestCase):
+class LinkEventsCollectCommandTest(BaseTest):
     def setUp(self):
         self.organisation1 = OrganisationFactory(name="JSTOR")
         self.collection1 = CollectionFactory(
@@ -1250,7 +1261,7 @@ class FixOnUserListCommandTest(TransactionTestCase):
         self.assertEqual(PageProjectAggregate.objects.count(), 2)
 
 
-class UploadAllArchivedTestCase(TestCase):
+class UploadAllArchivedTestCase(BaseTest):
     @mock.patch.dict(
         os.environ,
         {

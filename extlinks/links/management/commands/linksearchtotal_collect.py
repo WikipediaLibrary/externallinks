@@ -32,16 +32,12 @@ class Command(BaseCommand):
         total_links_dictionary = {}
         for i, language in enumerate(wiki_list_data):
             logger.info(f"connecting to db {language}")
-            try:
-                db = MySQLdb.connect(
-                    host=f"{language}wiki.analytics.db.svc.wikimedia.cloud",
-                    user=os.environ["REPLICA_DB_USER"],
-                    passwd=os.environ["REPLICA_DB_PASSWORD"],
-                    db=f"{language}wiki_p",
-                )
-            except MySQLdb.OperationalError as e:
-                logger.error(str(e))
-                sys.exit(1)
+            db = MySQLdb.connect(
+                host=f"{language}wiki.analytics.db.svc.wikimedia.cloud",
+                user=os.environ["REPLICA_DB_USER"],
+                passwd=os.environ["REPLICA_DB_PASSWORD"],
+                db=f"{language}wiki_p",
+            )
 
             cur = db.cursor()
 
