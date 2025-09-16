@@ -35,7 +35,19 @@ from extlinks.organisations.factories import (
 from extlinks.organisations.models import Organisation
 
 
-class LinkAggregateCommandTest(TransactionTestCase):
+class BaseTransactionTest(TransactionTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(BaseTransactionTest, cls).setUpClass()
+        cls.tenacity_patcher = mock.patch('tenacity.nap.time')
+        cls.mock_tenacity = cls.tenacity_patcher.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(BaseTransactionTest, cls).tearDownClass()
+        cls.tenacity_patcher.stop()
+
+class LinkAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -233,7 +245,7 @@ class LinkAggregateCommandTest(TransactionTestCase):
             call_command("fill_link_aggregates", collections=[new_collection.pk])
 
 
-class UserAggregateCommandTest(TransactionTestCase):
+class UserAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -481,7 +493,7 @@ class UserAggregateCommandTest(TransactionTestCase):
             call_command("fill_user_aggregates", collections=[new_collection.pk])
 
 
-class PageProjectAggregateCommandTest(TransactionTestCase):
+class PageProjectAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         # Creating one Collection
         self.organisation = OrganisationFactory(name="ACME Org")
@@ -739,7 +751,7 @@ class PageProjectAggregateCommandTest(TransactionTestCase):
             call_command("fill_pageproject_aggregates", collections=[new_collection.pk])
 
 
-class MonthlyLinkAggregateCommandTest(TransactionTestCase):
+class MonthlyLinkAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -863,7 +875,7 @@ class MonthlyLinkAggregateCommandTest(TransactionTestCase):
             )
 
 
-class MonthlyUserAggregateCommandTest(TransactionTestCase):
+class MonthlyUserAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -1051,7 +1063,7 @@ class MonthlyUserAggregateCommandTest(TransactionTestCase):
             )
 
 
-class MonthlyPageProjectAggregateCommandTest(TransactionTestCase):
+class MonthlyPageProjectAggregateCommandTest(BaseTransactionTest):
     def setUp(self):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(name="ACME", organisation=self.organisation)
@@ -1259,7 +1271,7 @@ class MonthlyPageProjectAggregateCommandTest(TransactionTestCase):
             )
 
 
-class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
+class ArchiveLinkAggregatesCommandTest(BaseTransactionTest):
     def setUp(self):
         self.organisation = OrganisationFactory(name="JSTOR")
         self.collection = CollectionFactory(
@@ -1518,7 +1530,7 @@ class ArchiveLinkAggregatesCommandTest(TransactionTestCase):
         self.assertEqual(LinkAggregate.objects.count(), 1)
 
 
-class ArchiveUserAggregatesCommandTest(TransactionTestCase):
+class ArchiveUserAggregatesCommandTest(BaseTransactionTest):
     def setUp(self):
         self.user = UserFactory(username="jonsnow")
         self.organisation = OrganisationFactory(name="JSTOR")
@@ -1782,7 +1794,7 @@ class ArchiveUserAggregatesCommandTest(TransactionTestCase):
         self.assertEqual(UserAggregate.objects.count(), 1)
 
 
-class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
+class ArchivePageProjectAggregatesCommandTest(BaseTransactionTest):
     def setUp(self):
         self.page = "TestPage"
         self.project = "en.wikipedia.org"
@@ -2051,7 +2063,7 @@ class ArchivePageProjectAggregatesCommandTest(TransactionTestCase):
         self.assertEqual(PageProjectAggregate.objects.count(), 1)
 
 
-class UploadAllArchivedAggregatesCommandTest(TransactionTestCase):
+class UploadAllArchivedAggregatesCommandTest(BaseTransactionTest):
     @mock.patch.dict(
         os.environ,
         {
