@@ -2142,7 +2142,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
         self.url.collection = self.collection
         self.url.save()
 
-    def test_fixes_monthly_aggregates_for_organisation(self):
+    def test_fixes_link_aggregates_for_organisation_and_month(self):
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20241222_0.json.gz"
         archive_path = os.path.join(temp_dir, archive_filename)
@@ -2242,7 +2242,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
 
         try:
             call_command(
-                "fix_aggregates_for_organisation_and_month",
+                "fix_link_aggregates_for_organisation_and_month",
                 "--month",
                 "202412",
                 "--organisation",
@@ -2250,7 +2250,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 "--dir",
                 temp_dir,
             )
-            monthly_aggregate = LinkAggregate.objects.filter(day=0).first()
+            monthly_aggregate = LinkAggregate.objects.all().first()
             self.assertEqual(1, LinkAggregate.objects.count())
             self.assertEqual(2, monthly_aggregate.total_links_added)
             self.assertEqual(1, monthly_aggregate.total_links_removed)
@@ -2259,7 +2259,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
             for file in glob.glob(archive_path):
                 os.remove(file)
 
-    def test_fixes_monthly_aggregates_for_organisation_scopes_to_link_event_archives(self):
+    def test_fixes_link_aggregates_for_organisation_and_month_only_link_event_archives(self):
         temp_dir = tempfile.gettempdir()
         archive_filename = "aggregates_20241222_0.json.gz"
         archive_path = os.path.join(temp_dir, archive_filename)
@@ -2337,7 +2337,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
 
         try:
             call_command(
-                "fix_aggregates_for_organisation_and_month",
+                "fix_link_aggregates_for_organisation_and_month",
                 "--month",
                 "202412",
                 "--organisation",
@@ -2351,7 +2351,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
             for file in glob.glob(archive_path):
                 os.remove(file)
 
-    def test_fixes_monthly_aggregates_for_organisation_scopes_to_link_event_archives_in_correct_zipped_format(self):
+    def test_fixes_link_aggregates_for_organisation_and_month_link_event_archives_in_correct_zipped_format(self):
         temp_dir = tempfile.gettempdir()
         archive_filename = "links_linkevent_20241222_0.json"
         archive_path = os.path.join(temp_dir, archive_filename)
@@ -2429,7 +2429,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
 
         try:
             call_command(
-                "fix_aggregates_for_organisation_and_month",
+                "fix_link_aggregates_for_organisation_and_month",
                 "--month",
                 "202412",
                 "--organisation",
@@ -2543,7 +2543,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
 
         try:
             call_command(
-                "fix_aggregates_for_organisation_and_month",
+                "fix_link_aggregates_for_organisation_and_month",
                 "--month",
                 "202412",
                 '--skip-monthly',
