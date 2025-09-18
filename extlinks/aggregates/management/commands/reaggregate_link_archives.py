@@ -9,7 +9,7 @@ from django.db import transaction
 from extlinks.aggregates.models import LinkAggregate
 from extlinks.common import swift
 from extlinks.common.management.commands import BaseCommand
-from extlinks.links.models import URLPattern
+from extlinks.links.models import URLPattern, LinkEvent
 from extlinks.organisations.models import Organisation
 
 logger = logging.getLogger("django")
@@ -18,7 +18,6 @@ logger = logging.getLogger("django")
 class Command(BaseCommand):
     help = (
         "Loads, parses, and fixes daily or monthly link aggregates for a given organisation. "
-        "WARNING: Only run this command if you are certain the link events have been archived before being aggregated."
     )
 
     def add_arguments(self, parser):
@@ -81,21 +80,25 @@ class Command(BaseCommand):
         url_patterns = URLPattern.objects.filter(collection__in=collections)
 
         if month_to_fix:
+            first_day_of_month = self._get_first_day_of_month(month_to_fix)
+            last_day_of_month = self._get_last_day_of_month(first_day_of_month)
             # if we already have aggregates for this month uploaded, don't try to re-aggregate
+            # or if we have not archived all events for the given timeframe, don't try to re-aggregate
             if self._has_aggregates_for_month(
                 existing_link_aggregates_in_object_storage, month_to_fix
-            ):
+            ) or self._has_link_events_for_month(first_day_of_month, last_day_of_month):
                 return
             # otherwise, attempt re-aggregation
             with transaction.atomic():
                 self._process_monthly_aggregates(
-                    directory, month_to_fix, organisation, url_patterns
+                    directory, month_to_fix, organisation, url_patterns, last_day_of_month
                 )
         else:
             # if we already have aggregates for this day uploaded, don't try to re-aggregate
+            # or if we have not archived all events for the given timeframe, don't try to re-aggregate
             if self._has_aggregates_for_day(
                 existing_link_aggregates_in_object_storage, day_to_fix
-            ):
+            ) or self._has_link_events_for_day(day_to_fix):
                 return
             # otherwise, attempt re-aggregation
             with transaction.atomic():
@@ -179,6 +182,14 @@ class Command(BaseCommand):
             )
             > 0
         )
+
+    def _has_link_events_for_month(self, first_day_of_month, last_day_of_month):
+        return LinkEvent.objects.filter(timestamp__gte=first_day_of_month, timestamp__lte=last_day_of_month).count() > 0
+
+    def _has_link_events_for_day(self, day_to_fix):
+        day = datetime.fromisoformat(day_to_fix)
+        return LinkEvent.objects.filter(timestamp__gte=day, timestamp__lte=day + timedelta(days=1)).count() > 0
+
 
     def _process_daily_aggregates(
         self, collections, day_to_fix, directory, url_patterns
@@ -267,7 +278,7 @@ class Command(BaseCommand):
             existing_link_aggregate.save()
 
     def _process_monthly_aggregates(
-        self, directory, month_to_fix, organisation, url_patterns
+        self, directory, month_to_fix, organisation, url_patterns, last_day_of_month
     ):
         """
         This function loops through each url pattern and link events to fill the monthly aggregates.
@@ -290,8 +301,6 @@ class Command(BaseCommand):
             directory, month_to_fix, [i.url for i in url_patterns]
         )
         # get the first and last day of the month to fix
-        first_day_of_month = self._get_first_day_of_month(month_to_fix)
-        last_day_of_month = self._get_last_day_of_month(first_day_of_month)
         for url_pattern, link_events in events_split_by_url_pattern.items():
             # create monthly aggregates
             self._fill_monthly_aggregate(
