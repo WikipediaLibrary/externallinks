@@ -78,8 +78,8 @@ class Command(BaseCommand):
             logger.info("Swift credentials not provided. Skipping.")
             return False
 
-        # get existing archives to ensure we have not already aggregated
-        existing_link_aggregates_in_object_storage = self._get_existing_link_aggregates(
+        # get existing aggregates to ensure we have not already aggregated for the given timeframe
+        existing_aggregates = self._get_existing_aggregates(
             conn
         )
         # get all URLPatterns for an organisation
@@ -91,7 +91,7 @@ class Command(BaseCommand):
             # if we already have aggregates for this month uploaded, don't try to re-aggregate
             # or if we have not archived all events for the given timeframe, don't try to re-aggregate
             if self._has_aggregates_for_month(
-                existing_link_aggregates_in_object_storage, month_to_fix
+                existing_aggregates, month_to_fix
             ) or self._has_link_events_for_month(first_day_of_month, last_day_of_month):
                 logger.warning(
                     "Organisation already has aggregates or link events for month."
@@ -106,7 +106,7 @@ class Command(BaseCommand):
             # if we already have aggregates for this day uploaded, don't try to re-aggregate
             # or if we have not archived all events for the given timeframe, don't try to re-aggregate
             if self._has_aggregates_for_day(
-                existing_link_aggregates_in_object_storage, day_to_fix
+                existing_aggregates, day_to_fix
             ) or self._has_link_events_for_day(day_to_fix):
                 logger.warning(
                     "Organisation already has aggregates or link events for day."
@@ -118,7 +118,7 @@ class Command(BaseCommand):
                     collections, day_to_fix, directory, url_patterns
                 )
 
-    def _get_existing_link_aggregates(self, conn):
+    def _get_existing_aggregates(self, conn):
         """
         This function gets existing link aggregates from object storage.
         Parameters
@@ -135,7 +135,7 @@ class Command(BaseCommand):
             for i in swift.get_object_list(
                 conn,
                 os.environ.get("SWIFT_CONTAINER_AGGREGATES", "archive-aggregates"),
-                "aggregates_linkaggregate_",
+                "aggregates_",
             )
         ]
         return existing_link_aggregates_in_object_storage
