@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from unittest import mock
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command, CommandError
 from django.test import TransactionTestCase
 
@@ -33,6 +34,7 @@ from extlinks.organisations.factories import (
     UserFactory,
 )
 from extlinks.organisations.models import Organisation
+from ..links.models import URLPattern, LinkEvent
 
 
 class BaseTransactionTest(TransactionTestCase):
@@ -2128,3 +2130,438 @@ class UploadAllArchivedAggregatesCommandTest(BaseTransactionTest):
 
             for file in glob.glob(pattern):
                 os.remove(file)
+
+class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
+
+    def setUp(self):
+        # Creating one Collection, Organisation, and URLPattern
+        self.organisation = OrganisationFactory(name="ACME Org")
+        self.collection = CollectionFactory(organisation=self.organisation)
+        self.user = UserFactory()
+        self.url = URLPatternFactory(url="www.test.com")
+        self.url.collection = self.collection
+        self.url.save()
+
+    def test_fixes_monthly_aggregates_for_organisation(self):
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "fix_aggregates_for_organisation_and_month",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            monthly_aggregate = LinkAggregate.objects.filter(day=0).first()
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(2, monthly_aggregate.total_links_added)
+            self.assertEqual(1, monthly_aggregate.total_links_removed)
+            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    def test_fixes_monthly_aggregates_for_organisation_scopes_to_link_event_archives(self):
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "aggregates_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-01-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "fix_aggregates_for_organisation_and_month",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            self.assertEqual(0, LinkAggregate.objects.count())
+            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    def test_fixes_monthly_aggregates_for_organisation_scopes_to_link_event_archives_in_correct_zipped_format(self):
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-01-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "fix_aggregates_for_organisation_and_month",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            self.assertEqual(0, LinkAggregate.objects.count())
+            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    def test_fixes_aggregates_for_organisation_skips_monthly_aggregation_command(self):
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "fix_aggregates_for_organisation_and_month",
+                "--month",
+                "202412",
+                '--skip-monthly',
+                True,
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            link_aggregate = LinkAggregate.objects.filter(day=16).first()
+            link_aggregate2 = LinkAggregate.objects.filter(day=15).first()
+            self.assertEqual(2, LinkAggregate.objects.count())
+            self.assertEqual(1, link_aggregate.total_links_added)
+            self.assertEqual(0, link_aggregate.total_links_removed)
+            self.assertEqual(1, link_aggregate2.total_links_added)
+            self.assertEqual(1, link_aggregate2.total_links_removed)
+            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
