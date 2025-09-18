@@ -2139,6 +2139,7 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
         self.organisation = OrganisationFactory(name="ACME Org")
         self.collection = CollectionFactory(organisation=self.organisation)
         self.user = UserFactory()
+        self.user2 = UserFactory()
         self.url = URLPatternFactory(url="www.test.com")
         self.url.collection = self.collection
         self.url.save()
@@ -2267,20 +2268,494 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 "--dir",
                 temp_dir,
             )
-            monthly_aggregate = LinkAggregate.objects.all().first()
-            # assert only one monthly aggregates created for on_user_list=True
+            monthly_link_aggregate = LinkAggregate.objects.all().first()
+            monthly_user_aggregates = UserAggregate.objects.all().first()
+            monthly_page_project_aggregates = PageProjectAggregate.objects.all().first()
+            # assert only one monthly aggregate created for on_user_list=True
             self.assertEqual(1, LinkAggregate.objects.count())
-            self.assertEqual(1, LinkAggregate.objects.filter(day=0).count())
+            self.assertEqual(1, PageProjectAggregate.objects.count())
+            self.assertEqual(1, UserAggregate.objects.count())
             # assert daily aggregates were not created
             self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
             self.assertEqual(0, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=15).count())
             # assert totals match expected totals
-            self.assertEqual(2, monthly_aggregate.total_links_added)
-            self.assertEqual(1, monthly_aggregate.total_links_removed)
+            self.assertEqual(2, monthly_link_aggregate.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(2, monthly_user_aggregates.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(2, monthly_page_project_aggregates.total_links_added)
+            self.assertEqual(1, monthly_page_project_aggregates.total_links_removed)
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
 
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_monthly_multiple_projects(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-backup-2024-12-22"}],
+        )
+        mock_conn.get_container.return_value = ({},[])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "cy.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "de.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            monthly_link_aggregate = LinkAggregate.objects.all().first()
+            monthly_user_aggregates = UserAggregate.objects.all().first()
+            monthly_page_project_aggregates_en = PageProjectAggregate.objects.filter(project_name="en.wikipedia.org").first()
+            monthly_page_project_aggregates_de = PageProjectAggregate.objects.filter(project_name="de.wikipedia.org").first()
+            monthly_page_project_aggregates_cy = PageProjectAggregate.objects.filter(project_name="cy.wikipedia.org").first()
+
+            # assert only one monthly aggregate created for on_user_list=True
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(3, PageProjectAggregate.objects.count())
+            self.assertEqual(1, UserAggregate.objects.count())
+            # assert daily aggregates were not created
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(2, monthly_link_aggregate.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(2, monthly_user_aggregates.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_de.total_links_removed)
+            self.assertEqual(0, monthly_page_project_aggregates_de.total_links_added)
+            self.assertEqual(0, monthly_page_project_aggregates_en.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_en.total_links_added)
+            self.assertEqual(0, monthly_page_project_aggregates_cy.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_cy.total_links_added)
+
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_monthly_multiple_pages(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-backup-2024-12-22"}],
+        )
+        mock_conn.get_container.return_value = ({}, [])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test2",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            monthly_link_aggregate = LinkAggregate.objects.all().first()
+            monthly_user_aggregates = UserAggregate.objects.all().first()
+            monthly_page_project_aggregates_page_1 = PageProjectAggregate.objects.filter(page_name="test").first()
+            monthly_page_project_aggregates_page_2 = PageProjectAggregate.objects.filter(page_name="test2").first()
+            # assert only one monthly aggregate created for on_user_list=True
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(2, PageProjectAggregate.objects.count())
+            self.assertEqual(1, UserAggregate.objects.count())
+            # assert daily aggregates were not created
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(2, monthly_link_aggregate.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(2, monthly_user_aggregates.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_page_1.total_links_added)
+            self.assertEqual(1, monthly_page_project_aggregates_page_1.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_page_2.total_links_added)
+            self.assertEqual(0, monthly_page_project_aggregates_page_2.total_links_removed)
+
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_monthly_multiple_users(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [{"name": "archive-aggregates-backup-2024-12-22"}],
+        )
+        mock_conn.get_container.return_value = ({},[])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user2.username,
+                    "rev_id": 485489,
+                    "user_id": self.user2.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user2.username,
+                    "rev_id": 485489,
+                    "user_id": self.user2.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--month",
+                "202412",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            monthly_link_aggregate = LinkAggregate.objects.all().first()
+            monthly_user_aggregates_1 = UserAggregate.objects.filter(username=self.user.username).first()
+            monthly_user_aggregates_2 = UserAggregate.objects.filter(username=self.user2.username).first()
+            monthly_page_project_aggregates = PageProjectAggregate.objects.all().first()
+            # assert only one monthly aggregate created for on_user_list=True
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(1, PageProjectAggregate.objects.count())
+            self.assertEqual(2, UserAggregate.objects.count())
+            # assert daily aggregates were not created
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=15).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(2, monthly_link_aggregate.total_links_added)
+            self.assertEqual(1, monthly_link_aggregate.total_links_removed)
+            self.assertEqual(1, monthly_user_aggregates_1.total_links_added)
+            self.assertEqual(0, monthly_user_aggregates_1.total_links_removed)
+            self.assertEqual(1, monthly_user_aggregates_2.total_links_added)
+            self.assertEqual(1, monthly_user_aggregates_2.total_links_removed)
+            self.assertEqual(2, monthly_page_project_aggregates.total_links_added)
+            self.assertEqual(1, monthly_page_project_aggregates.total_links_removed)
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
 
     @mock.patch.dict(
         os.environ,
@@ -2407,7 +2882,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
             )
             # assert no daily or monthly aggregates created
             self.assertEqual(0, LinkAggregate.objects.count())
-            self.assertEqual(0, LinkAggregate.objects.filter(day=0).count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -2542,7 +3018,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
             )
             # assert no daily or monthly aggregates created
             self.assertEqual(0, LinkAggregate.objects.count())
-            self.assertEqual(0, LinkAggregate.objects.filter(day=0).count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -2671,16 +3148,478 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 "--dir",
                 temp_dir,
             )
-            daily_aggregate = LinkAggregate.objects.all().first()
+            daily_link_aggregate = LinkAggregate.objects.all().first()
+            daily_user_aggregate = UserAggregate.objects.all().first()
+            daily_pageproject_aggregate = PageProjectAggregate.objects.all().first()
             # assert no monthly aggregates created
             self.assertEqual(1, LinkAggregate.objects.count())
-            self.assertEqual(0, LinkAggregate.objects.filter(day=0).count())
+            self.assertEqual(1, UserAggregate.objects.count())
+            self.assertEqual(1, PageProjectAggregate.objects.count())
             # assert daily aggregates were created for the correct day
             self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
             self.assertEqual(1, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(1, UserAggregate.objects.filter(day=15).count())
+            self.assertEqual(1, PageProjectAggregate.objects.filter(day=15).count())
             # assert totals match expected totals
-            self.assertEqual(1, daily_aggregate.total_links_added)
-            self.assertEqual(1, daily_aggregate.total_links_removed)
+            self.assertEqual(1, daily_link_aggregate.total_links_added)
+            self.assertEqual(1, daily_link_aggregate.total_links_removed)
+            self.assertEqual(1, daily_user_aggregate.total_links_added)
+            self.assertEqual(1, daily_user_aggregate.total_links_removed)
+            self.assertEqual(1, daily_pageproject_aggregate.total_links_added)
+            self.assertEqual(1, daily_pageproject_aggregate.total_links_removed)
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_daily_multiple_projects(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [],
+        )
+        mock_conn.get_container.return_value = ({},[])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "cy.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "de.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--day",
+                "20241215",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            daily_link_aggregate = LinkAggregate.objects.all().first()
+            daily_user_aggregate = UserAggregate.objects.all().first()
+            daily_pageproject_aggregate1 = PageProjectAggregate.objects.filter(project_name="en.wikipedia.org").first()
+            daily_pageproject_aggregate2 = PageProjectAggregate.objects.filter(project_name="de.wikipedia.org").first()
+            # assert no monthly aggregates created
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(1, UserAggregate.objects.count())
+            self.assertEqual(2, PageProjectAggregate.objects.count())
+            # assert daily aggregates were created for the correct day
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(1, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(1, UserAggregate.objects.filter(day=15).count())
+            self.assertEqual(2, PageProjectAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(1, daily_link_aggregate.total_links_added)
+            self.assertEqual(1, daily_link_aggregate.total_links_removed)
+            self.assertEqual(1, daily_user_aggregate.total_links_added)
+            self.assertEqual(1, daily_user_aggregate.total_links_removed)
+            self.assertEqual(1, daily_pageproject_aggregate1.total_links_added)
+            self.assertEqual(0, daily_pageproject_aggregate1.total_links_removed)
+            self.assertEqual(0, daily_pageproject_aggregate2.total_links_added)
+            self.assertEqual(1, daily_pageproject_aggregate2.total_links_removed)
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_daily_multiple_pages(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [],
+        )
+        mock_conn.get_container.return_value = ({},[])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test2",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.id,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--day",
+                "20241215",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            daily_link_aggregate = LinkAggregate.objects.all().first()
+            daily_user_aggregate = UserAggregate.objects.all().first()
+            monthly_page_project_aggregates_page_1 = PageProjectAggregate.objects.filter(page_name="test").first()
+            monthly_page_project_aggregates_page_2 = PageProjectAggregate.objects.filter(page_name="test2").first()
+            # assert no monthly aggregates created
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(1, UserAggregate.objects.count())
+            self.assertEqual(2, PageProjectAggregate.objects.count())
+            # assert daily aggregates were created for the correct day
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(1, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(1, UserAggregate.objects.filter(day=15).count())
+            self.assertEqual(2, PageProjectAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(1, daily_link_aggregate.total_links_added)
+            self.assertEqual(1, daily_link_aggregate.total_links_removed)
+            self.assertEqual(1, daily_user_aggregate.total_links_added)
+            self.assertEqual(1, daily_user_aggregate.total_links_removed)
+            self.assertEqual(0, monthly_page_project_aggregates_page_1.total_links_added)
+            self.assertEqual(1, monthly_page_project_aggregates_page_1.total_links_removed)
+            self.assertEqual(1, monthly_page_project_aggregates_page_2.total_links_added)
+            self.assertEqual(0, monthly_page_project_aggregates_page_2.total_links_removed)
+        finally:
+            for file in glob.glob(archive_path):
+                os.remove(file)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "OPENSTACK_AUTH_URL": "fakeurl",
+            "SWIFT_APPLICATION_CREDENTIAL_ID": "fakecredid",
+            "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredsecret",
+        },
+    )
+    @mock.patch("swiftclient.Connection")
+    def test_reaggregate_link_archives_daily_multiple_users(self, mock_swift_connection):
+        mock_conn = mock_swift_connection.return_value
+        mock_conn.get_account.return_value = (
+            {},
+            [],
+        )
+        mock_conn.get_container.return_value = ({},[])
+        temp_dir = tempfile.gettempdir()
+        archive_filename = "links_linkevent_20241222_0.json.gz"
+        archive_path = os.path.join(temp_dir, archive_filename)
+        json_data = [
+            {
+                "model": "links.linkevent",
+                "pk": 1,
+                "fields": {
+                    "link": "https://www.another_domain.com/articles/",
+                    "timestamp": "2024-12-16T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.username,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 2,
+                "fields": {
+                    "link": "https://www.test.com/",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user.username,
+                    "rev_id": 485489,
+                    "user_id": self.user.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 3,
+                "fields": {
+                    "link": "https://www.test.com/3",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user2.username,
+                    "rev_id": 485489,
+                    "user_id": self.user2.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 1,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+            {
+                "model": "links.linkevent",
+                "pk": 4,
+                "fields": {
+                    "link": "https://www.test.com/4",
+                    "timestamp": "2024-12-15T09:15:27.363Z",
+                    "domain": "en.wikipedia.org",
+                    "content_type": ContentType.objects.get_for_model(URLPattern).id,
+                    "object_id": self.url.id,
+                    "username": self.user2.username,
+                    "rev_id": 485489,
+                    "user_id": self.user2.id,
+                    "page_title": "test",
+                    "page_namespace": 0,
+                    "event_id": "",
+                    "user_is_bot": False,
+                    "hash_link_event_id": "",
+                    "change": 0,
+                    "on_user_list": True,
+                    "url": []
+                }
+            },
+        ]
+
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            json.dump(json_data, f)
+
+        try:
+            call_command(
+                "reaggregate_link_archives",
+                "--day",
+                "20241215",
+                "--organisation",
+                self.organisation.id,
+                "--dir",
+                temp_dir,
+            )
+            daily_link_aggregate = LinkAggregate.objects.all().first()
+            daily_user_aggregate = UserAggregate.objects.filter(username=self.user.username).first()
+            daily_user_aggregate2 = UserAggregate.objects.filter(username=self.user2.username).first()
+            # assert no monthly aggregates created
+            self.assertEqual(1, LinkAggregate.objects.count())
+            self.assertEqual(2, UserAggregate.objects.count())
+            self.assertEqual(1, PageProjectAggregate.objects.count())
+            # assert daily aggregates were created for the correct day
+            self.assertEqual(0, LinkAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, UserAggregate.objects.filter(day=16).count())
+            self.assertEqual(0, PageProjectAggregate.objects.filter(day=16).count())
+            self.assertEqual(1, LinkAggregate.objects.filter(day=15).count())
+            self.assertEqual(2, UserAggregate.objects.filter(day=15).count())
+            self.assertEqual(1, PageProjectAggregate.objects.filter(day=15).count())
+            # assert totals match expected totals
+            self.assertEqual(2, daily_link_aggregate.total_links_added)
+            self.assertEqual(1, daily_link_aggregate.total_links_removed)
+            self.assertEqual(1, daily_user_aggregate.total_links_added)
+            self.assertEqual(0, daily_user_aggregate.total_links_removed)
+            self.assertEqual(1, daily_user_aggregate2.total_links_added)
+            self.assertEqual(1, daily_user_aggregate2.total_links_removed)
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -2809,6 +3748,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 temp_dir,
             )
             self.assertEqual(0, LinkAggregate.objects.count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -2940,6 +3881,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 temp_dir,
             )
             self.assertEqual(0, LinkAggregate.objects.count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -3186,7 +4129,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 temp_dir,
             )
             self.assertEqual(0, LinkAggregate.objects.count())
-            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)
@@ -3293,7 +4237,8 @@ class FixAggregatesForOrganisationAndMonthCommandTest(BaseTransactionTest):
                 temp_dir,
             )
             self.assertEqual(0, LinkAggregate.objects.count())
-            self.assertEqual(0, LinkEvent.objects.filter(object_id=self.url.id).count())
+            self.assertEqual(0, UserAggregate.objects.count())
+            self.assertEqual(0, PageProjectAggregate.objects.count())
         finally:
             for file in glob.glob(archive_path):
                 os.remove(file)

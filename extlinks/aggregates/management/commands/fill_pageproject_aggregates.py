@@ -9,7 +9,7 @@ from django.db.models.functions import Cast
 from django.db.models.fields import DateField
 
 from ...models import PageProjectAggregate
-from extlinks.links.models import LinkEvent
+from extlinks.links.models import LinkEvent, URLPattern
 from extlinks.organisations.models import Collection
 
 logger = logging.getLogger("django")
@@ -118,6 +118,8 @@ class Command(BaseCommand):
         None
         """
         url_patterns = collection.get_url_patterns()
+        if len(url_patterns) == 0:
+            url_patterns = URLPattern.objects.filter(collection=collection).all()
         for url_pattern in url_patterns:
             link_events_with_annotated_timestamp = url_pattern.link_events.annotate(
                 timestamp_date=Cast("timestamp", DateField())

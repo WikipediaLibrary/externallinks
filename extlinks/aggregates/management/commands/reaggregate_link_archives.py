@@ -6,19 +6,21 @@ from datetime import datetime, timedelta, date
 
 from django.db import transaction
 
-from extlinks.aggregates.models import LinkAggregate
+from extlinks.aggregates.models import (
+    LinkAggregate,
+    PageProjectAggregate,
+    UserAggregate,
+)
 from extlinks.common import swift
 from extlinks.common.management.commands import BaseCommand
 from extlinks.links.models import URLPattern, LinkEvent
-from extlinks.organisations.models import Organisation
+from extlinks.organisations.models import Organisation, User
 
 logger = logging.getLogger("django")
 
 
 class Command(BaseCommand):
-    help = (
-        "Loads, parses, and fixes daily or monthly link aggregates for a given organisation. "
-    )
+    help = "Loads, parses, and fixes daily or monthly aggregates for a given organisation. "
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -33,7 +35,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--organisation",
-            help="The organisation id to fix link aggregates for.",
+            help="The organisation id to fix aggregates for.",
             type=str,
         )
         parser.add_argument(
@@ -48,10 +50,14 @@ class Command(BaseCommand):
         collections = organisation.collection_set.all()
 
         if not month_to_fix and not day_to_fix:
-            logger.warning("Please provide a month (e.g. 202509) or day (e.g. 20250920 ) to fix.")
+            logger.warning(
+                "Please provide a month (e.g. 202509) or day (e.g. 20250920 ) to fix."
+            )
             return
         if month_to_fix and day_to_fix:
-            logger.warning("Please only provide a month (e.g. 202509) or a day (e.g. 20250920 ) to fix-not both.")
+            logger.warning(
+                "Please only provide a month (e.g. 202509) or a day (e.g. 20250920 ) to fix-not both."
+            )
             return
         if not directory:
             logger.warning("Please provide a directory from which to parse archives.")
@@ -252,6 +258,130 @@ class Command(BaseCommand):
         None
         """
         change_number = link_event["fields"]["change"]
+        self._fill_daily_pageproject_aggregates(change_number, collection, link_event)
+        self._fill_daily_user_aggregate(change_number, collection, link_event)
+        self._fill_daily_link_aggregate(change_number, collection, link_event)
+
+    def _fill_daily_pageproject_aggregates(self, change_number, collection, link_event):
+        """
+        This function updates or creates a daily PageProjectAggregate for a collection and a parsed JSON (LinkEvent).
+        Parameters
+        ----------
+        change_number :  int
+
+        collection :  Collection
+
+        link_event : obj
+
+        Returns
+        -------
+        None
+        """
+        existing_pageproject_aggregate = PageProjectAggregate.objects.filter(
+            organisation=collection.organisation,
+            collection=collection,
+            page_name=link_event['fields']["page_title"],
+            project_name=link_event['fields']["domain"],
+            full_date=datetime.fromisoformat(
+                link_event["fields"]["timestamp"]
+            ).date(),
+            on_user_list=link_event['fields']["on_user_list"],
+        ).exclude(day=0)[:1].all()
+        existing_pageproject_aggregate = (
+            existing_pageproject_aggregate[0] if len(existing_pageproject_aggregate) > 0 else None
+        )
+        if existing_pageproject_aggregate:
+            if change_number == 0:
+                existing_pageproject_aggregate.total_links_removed += 1
+            else:
+                existing_pageproject_aggregate.total_links_added += 1
+            existing_pageproject_aggregate.save()
+        else:
+            # Create a new page project aggregate
+            links_added = change_number if change_number > 0 else 0
+            links_removed = 1 if change_number == 0 else 0
+            PageProjectAggregate.objects.get_or_create(
+                organisation=collection.organisation,
+                collection=collection,
+                page_name=link_event['fields']["page_title"],
+                project_name=link_event['fields']["domain"],
+                full_date=datetime.fromisoformat(
+                    link_event["fields"]["timestamp"]
+                ).date(),
+                total_links_added=links_added,
+                total_links_removed=links_removed,
+                on_user_list=link_event['fields']["on_user_list"],
+            )
+
+    def _fill_daily_user_aggregate(self, change_number, collection, link_event):
+        """
+        This function updates or creates a daily UserAggregate for a collection and a parsed JSON (LinkEvent).
+        Parameters
+        ----------
+        change_number :  int
+
+        collection :  Collection
+
+        link_event : obj
+
+        Returns
+        -------
+        None
+        """
+        try:
+            user_retrieved = User.objects.get(pk=link_event["fields"]["user_id"])
+        except User.DoesNotExist:
+            return
+        exisiting_user_aggregate = (
+            UserAggregate.objects.filter(
+                organisation=collection.organisation,
+                collection=collection,
+                username=user_retrieved.username,
+                full_date=datetime.fromisoformat(
+                    link_event["fields"]["timestamp"]
+                ).date(),
+                on_user_list=link_event["fields"]["on_user_list"],
+            )
+            .exclude(day=0)
+            .first()
+        )
+        if exisiting_user_aggregate:
+            if change_number == 0:
+                exisiting_user_aggregate.total_links_removed += 1
+            else:
+                exisiting_user_aggregate.total_links_added += 1
+            exisiting_user_aggregate.save()
+        else:
+            # Create a new link aggregate
+            links_added = change_number if change_number > 0 else 0
+            links_removed = 1 if change_number == 0 else 0
+            UserAggregate.objects.create(
+                organisation=collection.organisation,
+                collection=collection,
+                username=user_retrieved.username,
+                full_date=datetime.fromisoformat(
+                    link_event["fields"]["timestamp"]
+                ).date(),
+                total_links_added=links_added,
+                total_links_removed=links_removed,
+                on_user_list=link_event["fields"]["on_user_list"],
+            )
+
+    def _fill_daily_link_aggregate(self, change_number, collection, link_event):
+        """
+        This function updates or creates a daily LinkAggregate for a collection and a parsed JSON (LinkEvent).
+        Parameters
+        ----------
+        change_number :  int
+
+        collection :  Collection
+
+        link_event : obj
+
+        Returns
+        -------
+        None
+        """
         existing_link_aggregate = (
             LinkAggregate.objects.filter(
                 organisation=collection.organisation.id,
@@ -378,16 +508,124 @@ class Command(BaseCommand):
         total_added = sum(1 for i in events if i["fields"]["change"] == 1)
         total_removed = sum(1 for i in events if i["fields"]["change"] == 0)
 
-        existing_aggregate = LinkAggregate.objects.filter(
+        # set of tuples that consist of (page_title, domain) for a group of link events
+        page_projects = list(
+            set([(i["fields"]["page_title"], i["fields"]["domain"]) for i in events])
+        )
+        # set of user ids to fill user aggregates for
+        users = list(set([i["fields"]["user_id"] for i in events]))
+        try:
+            for page_project in page_projects:
+                self._fill_monthly_page_project_aggregates(collection, events, last_day_of_month, on_user_list_flag,
+                                                           page_project)
+            for user in users:
+                self._fill_monthly_user_aggregates(
+                    collection, last_day_of_month, link_events, on_user_list_flag, user
+                )
+            self._fill_monthly_link_aggregates(
+                collection,
+                last_day_of_month,
+                on_user_list_flag,
+                organisation,
+                total_added,
+                total_removed,
+            )
+        except Exception as e:
+            print(e)
+
+
+    def _fill_monthly_page_project_aggregates(self, collection, events, last_day_of_month, on_user_list_flag,
+                                              page_project):
+        """
+        This function updates or creates monthly PageProjectAggregate for collection and a parsed array of JSON(LinkEvents).
+        Parameters
+        ----------
+        collection :  Collection
+
+        events : an array of JSON link_events parsed from archives
+
+        last_day_of_month:  date
+
+        on_user_list_flag: bool
+
+        page_project: tuple(str, str)
+
+        Returns
+        -------
+        None
+        """
+        events_for_page_project = [
+            i
+            for i in events
+            if i["fields"]["page_title"] == page_project[0]
+               and i["fields"]["domain"] == page_project[1]
+        ]
+        total_added_page_project = sum(1 for i in events_for_page_project if i["fields"]["change"] == 1)
+        total_removed_page_project = sum(1 for i in events_for_page_project if i["fields"]["change"] == 0)
+        existing_page_project_aggregate = PageProjectAggregate.objects.filter(
+            organisation=collection.organisation,
+            collection=collection,
+            page_name=page_project[0],
+            project_name=page_project[1],
+            day=0,
+            full_date=last_day_of_month,
+            on_user_list=on_user_list_flag,
+        )[:1].all()
+        if existing_page_project_aggregate:
+            existing_page_project_aggregate.total_links_added = total_added_page_project
+            existing_page_project_aggregate.total_links_removed = total_removed_page_project
+            existing_page_project_aggregate.save()
+        else:
+            PageProjectAggregate.objects.get_or_create(
+                organisation=collection.organisation,
+                collection=collection,
+                page_name=page_project[0],
+                project_name=page_project[1],
+                full_date=last_day_of_month,
+                day=0,
+                total_links_added=total_added_page_project,
+                total_links_removed=total_removed_page_project,
+                on_user_list=on_user_list_flag,
+            )
+
+    def _fill_monthly_link_aggregates(
+        self,
+        collection,
+        last_day_of_month,
+        on_user_list_flag,
+        organisation,
+        total_added,
+        total_removed,
+    ):
+        """
+        This function updates or creates monthly LinkAggregate for collection.
+        Parameters
+        ----------
+        collection :  Collection
+
+        last_day_of_month:  date
+
+        on_user_list_flag: bool
+
+        organisation: Organisation
+
+        total_added: int
+
+        total_removed: int
+
+        Returns
+        -------
+        None
+        """
+        existing_link_aggregate = LinkAggregate.objects.filter(
             organisation_id=organisation.id,
             collection_id=collection.id,
             on_user_list=on_user_list_flag,
             full_date=last_day_of_month,
             day=0,
         )
-
-        if existing_aggregate.exists():
-            existing_aggregate.update(
+        if existing_link_aggregate.exists():
+            existing_link_aggregate.update(
                 total_links_added=total_added,
                 total_links_removed=total_removed,
             )
@@ -400,6 +638,65 @@ class Command(BaseCommand):
                 day=0,
                 total_links_added=total_added,
                 total_links_removed=total_removed,
+            )
+    def _fill_monthly_user_aggregates(
+        self, collection, last_day_of_month, link_events, on_user_list_flag, user
+    ):
+        """
+         This function updates or creates monthly UserAggregate for user and collection.
+         Parameters
+         ----------
+         collection :  Collection
+
+         last_day_of_month:  date
+
+         link_events: an array of JSON link_events parsed from archives
+
+         on_user_list_flag: bool
+
+         user :  User
+
+         Returns
+         -------
+         None
+         """
+        try:
+            user_retrieved = User.objects.get(pk=user)
+        except User.DoesNotExist:
+            return
+        events_for_user = [i for i in link_events if i["fields"]["user_id"] is user]
+        total_added_by_user = sum(
+            1 for i in events_for_user if i["fields"]["change"] == 1
+        )
+        total_removed_by_user = sum(
+            1 for i in events_for_user if i["fields"]["change"] == 0
+        )
+        exisiting_user_aggregate = (
+            UserAggregate.objects.filter(
+                organisation_id=collection.organisation.id,
+                collection_id=collection.id,
+                username=user_retrieved.username,
+                full_date=last_day_of_month,
+                day=0,
+                on_user_list=on_user_list_flag,
+            )
+            .first()
+        )
+        if exisiting_user_aggregate:
+            exisiting_user_aggregate.total_links_added = total_added_by_user
+            exisiting_user_aggregate.total_links_removed = total_removed_by_user
+            exisiting_user_aggregate.save()
+        else:
+            # Create a new link aggregate
+            UserAggregate.objects.create(
+                organisation_id=collection.organisation.id,
+                collection_id=collection.id,
+                username=user_retrieved.username,
+                full_date=last_day_of_month,
+                day=0,
+                total_links_added=total_added_by_user,
+                total_links_removed=total_removed_by_user,
+                on_user_list=on_user_list_flag,
             )
 
     def _get_link_events_for_day(
