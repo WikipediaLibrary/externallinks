@@ -48,10 +48,10 @@ class Command(BaseCommand):
         collections = organisation.collection_set.all()
 
         if not month_to_fix and not day_to_fix:
-            logger.warning("Please provide a month or day to fix.")
+            logger.warning("Please provide a month (e.g. 202509) or day (e.g. 20250920 ) to fix.")
             return
         if month_to_fix and day_to_fix:
-            logger.warning("Please only provide a month or a day to fix-not both.")
+            logger.warning("Please only provide a month (e.g. 202509) or a day (e.g. 20250920 ) to fix-not both.")
             return
         if not directory:
             logger.warning("Please provide a directory from which to parse archives.")
@@ -87,6 +87,9 @@ class Command(BaseCommand):
             if self._has_aggregates_for_month(
                 existing_link_aggregates_in_object_storage, month_to_fix
             ) or self._has_link_events_for_month(first_day_of_month, last_day_of_month):
+                logger.warning(
+                    "Organisation already has aggregates or link events for month."
+                )
                 return
             # otherwise, attempt re-aggregation
             with transaction.atomic():
@@ -99,6 +102,9 @@ class Command(BaseCommand):
             if self._has_aggregates_for_day(
                 existing_link_aggregates_in_object_storage, day_to_fix
             ) or self._has_link_events_for_day(day_to_fix):
+                logger.warning(
+                    "Organisation already has aggregates or link events for day."
+                )
                 return
             # otherwise, attempt re-aggregation
             with transaction.atomic():
