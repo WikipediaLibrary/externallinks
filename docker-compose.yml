@@ -1,7 +1,5 @@
 ---
 version: "3.8"
-volumes:
-  mysql:
 
 services:
   externallinks:
@@ -57,10 +55,9 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - type: volume
-        source: mysql
+      - type: bind
+        source: ./mysql
         target: /var/lib/mysql
-        volume: {}
       - type: bind
         source: ./db.cnf
         target: /etc/mysql/conf.d/db.cnf

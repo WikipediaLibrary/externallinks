@@ -1,3 +1,4 @@
+mysql/
 *.log
 .idea
 .vscode

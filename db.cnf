@@ -6,4 +6,5 @@ max_allowed_packet=1024M
 connect_timeout = 1200
 net_read_timeout = 180
 innodb_buffer_pool_size = 512M
-
+innodb_data_file_path = ibdata1:16M:autoextend
+innodb_page_size=32K
