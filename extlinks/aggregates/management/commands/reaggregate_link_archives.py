@@ -286,10 +286,7 @@ class Command(BaseCommand):
                 link_event["fields"]["timestamp"]
             ).date(),
             on_user_list=link_event['fields']["on_user_list"],
-        ).exclude(day=0)[:1].all()
-        existing_pageproject_aggregate = (
-            existing_pageproject_aggregate[0] if len(existing_pageproject_aggregate) > 0 else None
-        )
+        ).exclude(day=0).first()
         if existing_pageproject_aggregate:
             if change_number == 0:
                 existing_pageproject_aggregate.total_links_removed += 1
@@ -570,7 +567,7 @@ class Command(BaseCommand):
             day=0,
             full_date=last_day_of_month,
             on_user_list=on_user_list_flag,
-        )[:1].all()
+        ).first()
         if existing_page_project_aggregate:
             existing_page_project_aggregate.total_links_added = total_added_page_project
             existing_page_project_aggregate.total_links_removed = total_removed_page_project
