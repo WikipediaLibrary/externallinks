@@ -1,0 +1,22 @@
+---
+# Deployment overlay for the CloudVPS Compose Deploy toolkit (rootless docker
+# compose). The toolkit selects this alongside the base via COMPOSE_FILE. The
+# base already declares image: on every service, so the toolkit pulls prebuilt
+# images rather than building on the instance.
+#
+# Only production-runtime concerns belong here. Restart every service so the
+# stack survives a host reboot or a crashed worker; the base leaves restart
+# unset for local dev.
+services:
+  externallinks:
+    restart: unless-stopped
+  crons:
+    restart: unless-stopped
+  db:
+    restart: unless-stopped
+  nginx:
+    restart: unless-stopped
+  eventstream:
+    restart: unless-stopped
+  cache:
+    restart: unless-stopped

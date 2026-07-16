@@ -13,8 +13,6 @@ services:
       - ".env"
     depends_on:
       - db
-    ports:
-      - "8000:8000"
     command: ["/app/bin/gunicorn.sh"]
     volumes:
       - type: bind
@@ -54,8 +52,6 @@ services:
     image: quay.io/wikipedialibrary/mariadb:10-updated
     env_file:
       - ".env"
-    ports:
-      - "3306:3306"
     volumes:
       - type: volume
         source: mysql
@@ -127,8 +123,6 @@ services:
           memory: "48M"
   cache:
     image: quay.io/wikipedialibrary/memcached:latest
-    ports:
-      - "11211:11211"
     entrypoint:
       - memcached
     depends_on:
