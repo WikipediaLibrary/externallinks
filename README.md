@@ -30,6 +30,16 @@ After cloning the repository to your directory of choice:
 
 You should now be able to access the tool via `localhost`.
 
+## Example data
+
+To populate a local instance for testing, run the [`example_data.sh`](bin/example_data.sh)
+script. It generates:
+
+- 10 programs, each with 1-20 organisations, 1-3 collections per organisation,
+  1-2 URL patterns per collection, and 10-50 new users per organisation
+- 60 monthly LinkSearchTotal figures for each URL pattern
+- 10,000 link events across all patterns
+
 ## Running tests
 
 The tests can be run within the container using docker exec. The following command will run the test suite:

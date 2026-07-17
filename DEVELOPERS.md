@@ -67,3 +67,31 @@ Because `env` names the ref, a VM set to `env=<some-branch>` follows that
 branch's tip as you push to it, which is handy for iterating in a
 production-like environment. Set `env` to a tag or commit to freeze on a fixed
 state.
+
+## Backup and restore
+
+Production backs up weekly via cron to `/usr/local/backup` (14-day retention).
+To back up or restore by hand, exec the scripts in the running container:
+
+```
+docker compose exec externallinks bin/backup.sh
+docker compose exec externallinks bin/restore.sh backup/<file>
+```
+
+`restore.sh` confirms before it drops the database, so run it on a TTY;
+`docker compose exec` gives you one, so don't pass `-T`.
+
+## Checking the event stream is current
+
+`linkevents_collect` ingests the page-links-change stream continuously. To see
+how far behind it is, compare the wall clock to the newest stored LinkEvent:
+
+```
+docker compose exec externallinks bash -c \
+  "date --rfc-3339=seconds && echo 'select timestamp from links_linkevent order by timestamp desc limit 1;' | python manage.py dbshell"
+```
+
+Close together means it's tracking live; a large gap means it's stalled or still
+backfilling (right after a restore's `--historical` catch-up, say). The
+`healthcheck` app exposes per-cron health endpoints for the same signal.
+

@@ -55,10 +55,8 @@ the stats:
 
 `aggregates/` precomputes the rollups the org/collection/program pages render;
 `healthcheck/` exposes per-cron health endpoints so a stalled collector or
-aggregate job is visible. Fuller writeups: the wiki's
-[App structure](https://github.com/WikipediaLibrary/externallinks/wiki/App-structure)
-and [Data tracking](https://github.com/WikipediaLibrary/externallinks/wiki/Data-tracking)
-pages.
+aggregate job is visible. Fuller writeups: `./docs/app-structure.md` and
+`./docs/data-tracking.md`.
 
 ## Deployment
 
