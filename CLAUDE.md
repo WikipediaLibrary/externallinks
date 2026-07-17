@@ -60,34 +60,28 @@ aggregate job is visible. Fuller writeups: the wiki's
 and [Data tracking](https://github.com/WikipediaLibrary/externallinks/wiki/Data-tracking)
 pages.
 
-## Deployment, and the migration in flight
+## Deployment
 
-Production today runs on **Docker Swarm** (`bin/swarm_update.sh` does
-`docker stack deploy`; docker-compose is pinned to 1.25.5). The current build is
-documented on the wiki's
-[Debian Server Setup](https://github.com/WikipediaLibrary/externallinks/wiki/Debian-Server-Setup)
-page.
-
-That VM is a deprecated Bullseye instance being replaced under **T402055**
-(deadline 2026-07-31), and the replacement moves deployment to the
+Production is deployed with the
 [CloudVPS Compose Deploy toolkit](https://gitlab.wikimedia.org/repos/modtools/cloudvps-compose-deploy)
-(rootless docker compose), the same toolkit TWLight already runs. Its
-contract sets the target layout:
+(rootless docker compose), the same toolkit TWLight runs. Its contract sets the
+layout:
 
-- One VM runs one environment, and that environment is a git branch (`staging` or
-  `production`) named by the VM's `env` instance metadata.
+- One VM runs one environment, and that environment is the git branch named by
+  the VM's `env` instance metadata; for this repo the deploy branch is `master`.
 - `COMPOSE_FILE` pins `docker-compose.yml` (base) plus `docker-compose.deploy.yml`
   (deploy overlay); `docker-compose.override.yml` is left free as the local-dev
   overlay so a bare `docker compose up` stays a dev command.
-- `template.env` is copied to `.env` on first setup; scheduled jobs live in
-  `conf/crontab`.
+- `template.env` is copied to `.env` on first setup; `conf/crontab` carries the
+  redeploy tick, while the app's own scheduled jobs run in the crons container
+  off `./crontab`.
 
-**Guidance:** favor the migration direction. This repo is already clean (no
-virtualenv-in-container, one compose file, a modest `bin/`); keep it that way, and
-don't add swarm-specific coupling, new overlays, or wrapper-script sprawl. Both
-the swarm path and the new compose path must work during the rollout, so prefer
-additive changes (a new `docker-compose.deploy.yml` alongside the existing file)
-over in-place rewrites of anything the live swarm deployment still depends on.
+The old Bullseye VM ran on **Docker Swarm** (`bin/swarm_update.sh` does
+`docker stack deploy`). It is being retired under **T402055** (deadline
+2026-07-31) and kept live for rollback through the cutover soak, so
+`bin/swarm_update.sh` and the `deploy:` resource blocks in `docker-compose.yml`
+stay until the decommission step removes them. Don't add new swarm-specific
+coupling; the repo is on the compose-deploy path now.
 
 ## Conventions
 
@@ -106,9 +100,8 @@ over in-place rewrites of anything the live swarm deployment still depends on.
   MediaWiki proper, but the principles hold: no synchronous HTTP in the request
   path, batch DB reads, defer slow work to cron. The stream consumer and the
   aggregate fills are the hot spots.
-- Logs go to container stdout; `docker compose logs externallinks` (or the swarm
-  equivalent for now) is the first place to look. Slow queries show up in the `db`
-  container logs.
+- Logs go to container stdout; `docker compose logs externallinks` is the first
+  place to look. Slow queries show up in the `db` container logs.
 
 ## Testing
 
