@@ -46,7 +46,7 @@ jobs:
       - name: Build Images
         run: |
           cp template.env .env
-          docker compose build
+          docker compose build --build-arg EXPIRES=52w
 
       - name: Set commit tag
         id: commit

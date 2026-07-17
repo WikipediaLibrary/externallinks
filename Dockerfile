@@ -1,5 +1,7 @@
 # Dockerfile
 FROM quay.io/wikipedialibrary/python:3.11-bullseye-updated AS eventstream
+ARG EXPIRES=never
+LABEL quay.expires-after=${EXPIRES}
 
 WORKDIR /app
 ARG REQUIREMENTS_FILE
