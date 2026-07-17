@@ -10,7 +10,7 @@ if /app/bin/django_wait_for_db.sh
 then
 
     echo "This may drop the DB. Proceed [y/N]?"
-    read -p "This may drop the DB. Proceed [y/N]?" -n 1 -r
+    read -n 1 -r
     echo ""
     if [[ ! $REPLY =~ ^[Yy]$ ]]
     then
