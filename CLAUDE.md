@@ -146,7 +146,9 @@ use normal PR review flows.
 
 ## Documentation
 
-- Project wiki (the real docs): https://github.com/WikipediaLibrary/externallinks/wiki
+- In-tree docs (the real docs): `./docs/` (app structure, data tracking),
+  `./README.md` (local dev), `./DEVELOPERS.md` (deploy + ops)
+- Project wiki (signposts to the in-tree docs): https://github.com/WikipediaLibrary/externallinks/wiki
 - Phabricator: https://phabricator.wikimedia.org/tag/wikilink-tool/
 - Migration toolkit: https://gitlab.wikimedia.org/repos/modtools/cloudvps-compose-deploy
 - Cloud VPS practice: https://www.mediawiki.org/wiki/Moderator_Tools/Development/Cloud_VPS
