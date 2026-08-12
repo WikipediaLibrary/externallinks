@@ -37,4 +37,4 @@ PATH=/app/bin:/usr/bin:/bin
 0	2	*	*	*	root	python manage.py linkevents_archive dump
 # from extlinks/organisations/cron.py
 # hourly (was every 65 minutes for some reason?)
-5	*	*	*	*	root	python manage.py users_update_lists
+#5	*	*	*	*	root	python manage.py users_update_lists
