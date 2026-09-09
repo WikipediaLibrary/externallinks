@@ -1,5 +1,5 @@
 # Dockerfile
-FROM quay.io/wikipedialibrary/python:3.11-bullseye-updated AS eventstream
+FROM quay.io/wikipedialibrary/python:3.11-trixie-updated AS eventstream
 ARG EXPIRES=never
 LABEL quay.expires-after=${EXPIRES}
 
