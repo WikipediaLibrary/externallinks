@@ -2,8 +2,9 @@
 # service account. The toolkit substitutes the ${...} placeholders via envsubst
 # at provision time (the checkout path and branch are only known then).
 #
-# This carries the redeploy tick only. The app's own scheduled jobs (aggregate
-# fills, linksearchtotal_collect, backups, ...) run inside the crons service off
+# This carries the redeploy tick and a prune job to reclaim disk from old
+# images and volumes. The app's own scheduled jobs (aggregate fills,
+# linksearchtotal_collect, backups, ...) run inside the crons service off
 # ./crontab, independent of how the stack is deployed.
 SHELL=/bin/bash
 PATH=${TOOLKIT_BIN}:${DEPLOY_ROOT}/bin:/usr/bin:/bin
@@ -12,3 +13,7 @@ COMPOSE_FILE=${DEPLOY_ROOT}/docker-compose.yml:${DEPLOY_ROOT}/docker-compose.dep
 
 # git sync, pull, restart the stack on real change
 */5 * * * * deploy.sh ${ENV}
+
+# until=15m spares anything the */5 deploy just built or pulled, so a prune
+# firing mid-deploy can't drop an image or container still coming up.
+*/30 * * * * docker system prune -a -f --filter "until=15m"; docker volume rm $(docker volume ls -qf dangling=true)
