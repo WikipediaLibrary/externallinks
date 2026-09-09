@@ -4,12 +4,16 @@
 db_init_wait=0
 db_init_timeout=60
 function connect() {
+    # dbshell's exit status, not stderr content: the mysql client warns on
+    # every connection (SSL-verify-disabled-for-passwordless-login), success
+    # or not, so a successful connect still has non-empty stderr.
     connect=$(echo 'exit' | python manage.py dbshell 2>&1 >/dev/null)
-    if ${connect} 2>/dev/null
+    status=$?
+    if [ $status -eq 0 ]
     then
         true
     else
-        echo ${connect} | sed -e "s/'--\(user\|password\)=[^']*'/'--\1=******'/g" >/tmp/externallink_db_connect
+        echo "${connect}" | sed -e "s/'--\(user\|password\)=[^']*'/'--\1=******'/g" >/tmp/externallink_db_connect
         false
     fi
 }
