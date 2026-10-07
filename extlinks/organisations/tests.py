@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.test import TestCase, RequestFactory, TransactionTestCase
 from django.urls import reverse
 from django.utils.http import urlencode
+import requests
 
 from extlinks.common.views import (
     CSVPageTotals,
@@ -16,6 +17,8 @@ from extlinks.links.factories import LinkEventFactory, URLPatternFactory
 from extlinks.links.models import LinkEvent
 from extlinks.programs.factories import ProgramFactory
 from .factories import UserFactory, OrganisationFactory, CollectionFactory
+from .management.commands import users_update_lists
+from .models import Organisation, User
 from .views import OrganisationListView, OrganisationDetailView
 
 
@@ -907,3 +910,123 @@ class OrganisationDetailTest(TransactionTestCase):
 
         self.assertIsNotNone(event3)
         self.assertEqual(event3["links_diff"], -1)  # (1-2) from archive
+
+
+@mock.patch.dict("os.environ", {"TWL_API_TOKEN": "test-token"})
+@mock.patch(
+    "extlinks.organisations.management.commands.users_update_lists.requests.get"
+)
+class UsersUpdateListsTest(TestCase):
+    def setUp(self):
+        self.organisation = OrganisationFactory(
+            username_list_url="https://example.org/users/"
+        )
+        self.through = Organisation.username_list.through
+        # close_old_connections() would drop the test transaction's connection.
+        patcher = mock.patch.object(users_update_lists, "close_old_connections")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _run(self):
+        # Bypass BaseCommand so a failure does not wait out its retry backoff.
+        users_update_lists.Command()._handle()
+
+    def _response(self, usernames, status_code=200):
+        response = mock.Mock(status_code=status_code)
+        response.json.return_value = [{"wp_username": u} for u in usernames]
+        if status_code != 200:
+            response.raise_for_status.side_effect = requests.HTTPError(
+                f"{status_code} Error"
+            )
+        return response
+
+    def _usernames(self, organisation):
+        return set(organisation.username_list.values_list("username", flat=True))
+
+    def test_initial_sync(self, mock_get):
+        mock_get.return_value = self._response(["Alice", "Bob", "Alice"])
+        self._run()
+
+        self.assertEqual(self._usernames(self.organisation), {"Alice", "Bob"})
+        self.assertEqual(
+            mock_get.call_args.kwargs["timeout"], users_update_lists.REQUEST_TIMEOUT
+        )
+
+    def test_noop_sync_adds_no_rows(self, mock_get):
+        mock_get.return_value = self._response(["Alice", "Bob"])
+        self._run()
+        ids = set(self.through.objects.values_list("id", flat=True))
+
+        self._run()
+
+        self.assertEqual(set(self.through.objects.values_list("id", flat=True)), ids)
+
+    def test_sync_applies_diff(self, mock_get):
+        mock_get.return_value = self._response(["Alice", "Bob"])
+        self._run()
+        bob_row = self.through.objects.get(user__username="Bob")
+
+        mock_get.return_value = self._response(["Bob", "Carol"])
+        self._run()
+
+        self.assertEqual(self._usernames(self.organisation), {"Bob", "Carol"})
+        # Unchanged membership keeps its row.
+        self.assertTrue(self.through.objects.filter(id=bob_row.id).exists())
+        # Removing a user from the list keeps the User row.
+        self.assertTrue(User.objects.filter(username="Alice").exists())
+
+    def test_reuses_existing_users(self, mock_get):
+        UserFactory(username="Alice")
+        mock_get.return_value = self._response(["Alice"])
+        self._run()
+
+        self.assertEqual(User.objects.filter(username="Alice").count(), 1)
+        self.assertEqual(self._usernames(self.organisation), {"Alice"})
+
+    def test_refuses_to_empty_list(self, mock_get):
+        mock_get.return_value = self._response(["Alice"])
+        self._run()
+
+        mock_get.return_value = self._response([])
+        with self.assertLogs("django", level="ERROR") as logs:
+            self._run()
+
+        self.assertIn("Refusing to empty", "\n".join(logs.output))
+        self.assertEqual(self._usernames(self.organisation), {"Alice"})
+
+    def test_bad_org_does_not_abort_batch(self, mock_get):
+        good_organisation = OrganisationFactory(
+            username_list_url="https://example.org/good/"
+        )
+        old_updated = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        Organisation.objects.filter(pk=self.organisation.pk).update(
+            username_list_updated=old_updated
+        )
+        bad_json = mock.Mock(status_code=200)
+        bad_json.json.side_effect = ValueError("Expecting value")
+        failures = [
+            self._response([], status_code=500),
+            requests.Timeout("Read timed out"),
+            bad_json,
+        ]
+
+        for failure in failures:
+            with self.subTest(failure=failure):
+                def get(url, **kwargs):
+                    if url == self.organisation.username_list_url:
+                        if isinstance(failure, Exception):
+                            raise failure
+                        return failure
+                    return self._response(["Alice"])
+
+                mock_get.side_effect = get
+                with self.assertLogs("django", level="ERROR") as logs:
+                    self._run()
+
+                self.assertIn(self.organisation.name, "\n".join(logs.output))
+                self.assertEqual(self._usernames(good_organisation), {"Alice"})
+                self.organisation.refresh_from_db()
+                self.assertEqual(self._usernames(self.organisation), set())
+                self.assertEqual(
+                    self.organisation.username_list_updated, old_updated
+                )
