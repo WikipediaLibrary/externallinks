@@ -23,6 +23,13 @@ SWIFT_TEST_CREDENTIALS = {
     "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredentialsecret",
 }
 
+SWIFT_TEST_CREDENTIALS_BY_NAME = {
+    "OPENSTACK_AUTH_URL": "fakeauthurl",
+    "SWIFT_APPLICATION_CREDENTIAL_NAME": "fakecredentialname",
+    "SWIFT_APPLICATION_CREDENTIAL_USERNAME": "fakeusername",
+    "SWIFT_APPLICATION_CREDENTIAL_SECRET": "fakecredentialsecret",
+}
+
 
 class LinkSearchDataByTimeTest(TestCase):
     def setUp(self):
@@ -160,8 +167,26 @@ class SwiftConnectionTest(TestCase):
         conn = swift.swift_connection()
         self.assertIsInstance(conn, swiftclient.Connection)
 
+    @mock.patch.dict(os.environ, SWIFT_TEST_CREDENTIALS_BY_NAME, clear=True)
+    def test_swift_connection_by_name(self):
+        conn = swift.swift_connection()
+        self.assertIsInstance(conn, swiftclient.Connection)
+
     @mock.patch.dict(os.environ, {}, clear=True)
     def test_swift_connection_validation(self):
+        with self.assertRaises(RuntimeError):
+            swift.swift_connection()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            k: v
+            for k, v in SWIFT_TEST_CREDENTIALS_BY_NAME.items()
+            if k != "SWIFT_APPLICATION_CREDENTIAL_USERNAME"
+        },
+        clear=True,
+    )
+    def test_swift_connection_validation_name_without_username(self):
         with self.assertRaises(RuntimeError):
             swift.swift_connection()
 
