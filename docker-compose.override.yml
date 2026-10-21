@@ -3,13 +3,27 @@
 # Deployed instances pin COMPOSE_FILE to the base plus docker-compose.deploy.yml,
 # so nothing here reaches production.
 #
-# Runs a throwaway Keystone + Swift for the archive commands to talk to. Its
-# Keystone state lives inside the container, so recreating it starts fresh;
-# swift-init reruns on every `up` and puts the project, user, credential, and
-# endpoints back.
+# Runs a local Keystone + Swift for the archive commands to talk to, kept in
+# volumes like the database so archives survive `docker compose down`.
+# swift-init reruns on every `up` to make sure the project, user, credential,
+# and endpoints match .env.
+volumes:
+  swift_objects:
+  swift_keystone:
+
 services:
+  externallinks:
+    depends_on:
+      swift-init:
+        condition: service_completed_successfully
+  crons:
+    depends_on:
+      swift-init:
+        condition: service_completed_successfully
   swift:
-    image: ghcr.io/cscfi/docker-keystone-swift:latest
+    # Pinned because Keystone's database persists and the image never
+    # migrates it; see the README before bumping.
+    image: ghcr.io/cscfi/docker-keystone-swift:2026.9.0
     healthcheck:
       test:
         [
@@ -19,8 +33,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    volumes:
+      - type: volume
+        source: swift_objects
+        target: /srv/node
+      - type: volume
+        source: swift_keystone
+        target: /var/lib/keystone
   swift-init:
-    image: ghcr.io/cscfi/docker-keystone-swift:latest
+    image: ghcr.io/cscfi/docker-keystone-swift:2026.9.0
     entrypoint: ["/bin/bash", "/app/bin/swift_local_init.sh"]
     env_file:
       - ".env"

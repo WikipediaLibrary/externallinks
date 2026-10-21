@@ -65,7 +65,7 @@ docker exec -ti externallinks-externallinks-1 coverage html
 IMPORTANT: This setup is only for local testing, never production.
 
 A bare `docker compose up` also loads `docker-compose.override.yml`, which runs
-a throwaway Keystone + Swift ([CSCfi/docker-keystone-swift](https://github.com/CSCfi/docker-keystone-swift))
+a local Keystone + Swift ([CSCfi/docker-keystone-swift](https://github.com/CSCfi/docker-keystone-swift))
 as the `swift` service. The one-shot `swift-init` service then runs
 `bin/swift_local_init.sh`, which creates the `wikilink` project, the
 `djangouser` user, and the application credential named in `.env`, and points
@@ -74,9 +74,20 @@ already match, so the archive commands work without further setup. Swift
 containers are created on first upload. An `.env` copied before this setup
 existed needs the Swift block from `template.env` copied over it.
 
-Keystone keeps its state inside the `swift` container, so recreating it (for
-example after `docker compose down`) starts with an empty store; `swift-init`
-sets everything up again on the next `up`.
+The web app and crons wait for `swift-init` to finish before starting.
+Objects and Keystone's database live in the `swift_objects` and
+`swift_keystone` volumes, so like the database they survive
+`docker compose down` and go away with `docker compose down -v`.
+
+The image is pinned because it never migrates Keystone's database on its
+own. After bumping both image tags in `docker-compose.override.yml`,
+migrate it once:
+
+```bash
+docker compose up -d swift
+docker compose exec swift su -s /bin/sh -c "keystone-manage db_sync" keystone
+docker compose restart swift
+```
 
 To look at what's stored:
 
