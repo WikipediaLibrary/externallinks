@@ -60,133 +60,40 @@ You can view this report in your browser (located at `htmlcov/index.html`) by ru
 docker exec -ti externallinks-externallinks-1 coverage html
 ```
 
-## Swift object store - local setup (separate container)
+## Swift object store (local)
 
-IMPORTANT: This setup should NOT be used in production! It is only suitable for local testing.
+IMPORTANT: This setup is only for local testing, never production.
 
-Reference: https://github.com/CSCfi/docker-keystone-swift
+A bare `docker compose up` also loads `docker-compose.override.yml`, which runs
+a local Keystone + Swift ([CSCfi/docker-keystone-swift](https://github.com/CSCfi/docker-keystone-swift))
+as the `swift` service. The one-shot `swift-init` service then runs
+`bin/swift_local_init.sh`, which creates the `wikilink` project, the
+`djangouser` user, and the application credential named in `.env`, and points
+the Swift endpoints at `http://swift:8080`. The defaults in `template.env`
+already match, so the archive commands work without further setup. Swift
+containers are created on first upload. An `.env` copied before this setup
+existed needs the Swift block from `template.env` copied over it.
 
-- Setup a separate single container for the Swift object store + Keystone auth
-  - In terminal, run:
-  ```bash
-  docker run --name externallinks-swift -d \
-    --env S6_LOGGING=0 \
-    -p 8080:8080 \
-    -p 5000:5000 \
-    -p 6000:6000 -p 6001:6001 -p 6002:6002 \
-    -v externallinks_swift:/srv/node \
-    ghcr.io/cscfi/docker-keystone-swift:latest
-  ```
-  - This will create a new single container from a built image from ghcr.io, and will create a local volume (`-v`) so you don't lose everything when restarting the container
-  - `S6_LOGGING` is to enable openstack logging to the console (better visualization in Docker)
-  - Known possible errors:
-    - If you have a service already using one of those ports, you can remap as you wish `-p 5001:5000 \`
+The web app and crons wait for `swift-init` to finish before starting.
+Objects and Keystone's database live in the `swift_objects` and
+`swift_keystone` volumes, so like the database they survive
+`docker compose down` and go away with `docker compose down -v`.
 
-- Connect the network between this new container and the Django `externallinks` stack
-  - When you run `docker network ls`, it is expected you'd get something like
-    ```
-    NETWORK ID     NAME                            DRIVER    SCOPE
-    12e998998050   externallinks_default           bridge    local
-    ```
-  - `externallinks_default` is the network from the `externallinks` stack (the Django app), connect it to the new container
-    ```
-    docker network connect externallinks_default externallinks-swift
-    ```
-  - To make calls from Django to Swift (locally), you can now use the URL `http://externallinks-swift:{port}`
-    - The env var `OPENSTACK_AUTH_URL` can now be set to `http://externallinks-swift:5001/v3` (in the Django app)
-    - Also set the env var `SWIFT_CONTAINER_NAME` to the name of the Swift container you want to use, e.g. 'wikilink'
-      - You do not need to create this Swift container yourself as it will be created automatically
-- Setup the new container
-  - Access the running container
-    ```
-    docker exec -it externallinks-swift bash
-    ```
-  - Create the wikilink project
-    ```
-    openstack project create --domain default --description "Wikilink" wikilink
-    +-------------+----------------------------------+
-    | Field       | Value                            |
-    +-------------+----------------------------------+
-    | description | Wikilink                         |
-    | domain_id   | default                          |
-    | enabled     | True                             |
-    | id          | 544303a08953422b848a2393616adf63 |
-    | is_domain   | False                            |
-    | name        | wikilink                         |
-    | options     | {}                               |
-    | parent_id   | default                          |
-    | tags        | []                               |
-    +-------------+----------------------------------+
-    ```
-  - Create a new user (you can use one of the pre-configured users, skip this if you want)
-    ```
-    openstack user create --domain default --password djangopass djangouser
-    +---------------------+----------------------------------+
-    | Field               | Value                            |
-    +---------------------+----------------------------------+
-    | domain_id           | default                          |
-    | enabled             | True                             |
-    | id                  | ec41d7c9923e4b06821eca9fb40df2ab |
-    | name                | djangouser                       |
-    | options             | {}                               |
-    | password_expires_at | None                             |
-    +---------------------+----------------------------------+
-    ```
-  - Assign user to the project
-    ```
-    openstack role add --project wikilink --user djangouser admin
-    ```
-  - Update the environment variables in your current bash session (not .env) to start using the created user and project
-    ```
-    export OS_USERNAME=djangouser
-    export OS_PASSWORD=djangopass
-    export OS_PROJECT_NAME=wikilink
-    ```
-    - You can set these values as default in your Docker, otherwise you need to remember to set this whenever you want to bash into this container
-  - Create an application credential (copy the obtained `id` and `secret`)
-    ```
-    openstack application credential create --role admin django_admin_credential
-    +--------------+----------------------------------------------------------------------------------------+
-    | Field        | Value                                                                                  |
-    +--------------+----------------------------------------------------------------------------------------+
-    | description  | None                                                                                   |
-    | expires_at   | None                                                                                   |
-    | id           | f85b36fcf5754ddb9fefe676b4e08286                                                       |
-    | name         | django_admin_credential                                                                |
-    | project_id   | 544303a08953422b848a2393616adf63                                                       |
-    | roles        | admin                                                                                  |
-    | secret       | LjEcrcS2A70DFYOxJayPuB336CqMPvUBr-8RWEV7anW3U-99bKPUqTf5jfwEr9dU-rhQt-WXRLfftGC04w4fzA |
-    | system       | None                                                                                   |
-    | unrestricted | False                                                                                  |
-    | user_id      | ec41d7c9923e4b06821eca9fb40df2ab                                                       |
-    +--------------+----------------------------------------------------------------------------------------+
-    ```
-    - Copy the credential id value to the env var `SWIFT_APPLICATION_CREDENTIAL_ID` in the Django app
-    - Copy the secret value to the env var `SWIFT_APPLICATION_CREDENTIAL_SECRET` in the Django app
-  - One final step now is to set the local Swift endpoint to the network we connected previously
-    - When you execute the command `openstack endpoint list`, you'd see something like
-      ```
-      +----------------------------------+-----------+--------------+--------------+---------+-----------+--------------------------------------------+
-      | ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                                        |
-      +----------------------------------+-----------+--------------+--------------+---------+-----------+--------------------------------------------+
-      | a4b6a66d5b204afaab8afbe6d3521c8a | RegionOne | keystone     | identity     | True    | public    | http://localhost:5000/v3                   |
-      | a98f5748c124489291747fcfb7a1a84a | RegionOne | keystone     | identity     | True    | internal  | http://localhost:5000/v3                   |
-      | c9c933e896074f7880ff00b9aafec468 | RegionOne | keystone     | identity     | True    | admin     | http://localhost:5000/v3                   |
-      | 3b5bdc053046452b943ed2d021cf1d3a | RegionOne | swift        | object-store | True    | internal  | http://0.0.0.0:8080/v1/AUTH_%(project_id)s |
-      | b5f6dc8fde7d4cd59ce616edcbf47a58 | RegionOne | swift        | object-store | True    | admin     | http://0.0.0.0:8080/v1                     |
-      | 3af31d12aa1b40c2b24fbc9eeef57f6d | RegionOne | swift        | object-store | True    | public    | http://0.0.0.0:8080/v1/AUTH_%(project_id)s |
-      +----------------------------------+-----------+--------------+--------------+---------+-----------+--------------------------------------------+
-      ```
-    - Notice how the URL for the Swift service are pointing to localhost, they need to target the connection we created
-    - Delete the existing Swift endpoints (pay attention to the IDs)
-      ```
-      openstack endpoint delete 3b5bdc053046452b943ed2d021cf1d3a
-      openstack endpoint delete b5f6dc8fde7d4cd59ce616edcbf47a58
-      openstack endpoint delete 3af31d12aa1b40c2b24fbc9eeef57f6d
-      ```
-    - And finally, create the endpoints with the correct URL
-      ```
-      openstack endpoint create --region RegionOne object-store public http://externallinks-swift:8080/v1/AUTH_%\(project_id\)s
-      openstack endpoint create --region RegionOne object-store internal http://externallinks-swift:8080/v1/AUTH_%\(project_id\)s
-      openstack endpoint create --region RegionOne object-store admin http://externallinks-swift:8080/v1
-      ```
+The image is pinned because it never migrates Keystone's database on its
+own. After bumping both image tags in `docker-compose.override.yml`,
+migrate it once:
+
+```bash
+docker compose up -d swift
+docker compose exec swift su -s /bin/sh -c "keystone-manage db_sync" keystone
+docker compose restart swift
+```
+
+To look at what's stored:
+
+```bash
+docker compose exec -e OS_USERNAME=djangouser -e OS_PASSWORD=djangopass \
+  -e OS_PROJECT_NAME=wikilink swift swift list archive-linkevents
+```
+
+If `swift-init` fails, `docker compose logs swift swift-init` shows why.

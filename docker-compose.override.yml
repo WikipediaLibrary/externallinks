@@ -1,0 +1,57 @@
+---
+# Local dev overlay, loaded automatically by a bare `docker compose` command.
+# Deployed instances pin COMPOSE_FILE to the base plus docker-compose.deploy.yml,
+# so nothing here reaches production.
+#
+# Runs a local Keystone + Swift for the archive commands to talk to, kept in
+# volumes like the database so archives survive `docker compose down`.
+# swift-init reruns on every `up` to make sure the project, user, credential,
+# and endpoints match .env.
+volumes:
+  swift_objects:
+  swift_keystone:
+
+services:
+  externallinks:
+    depends_on:
+      swift-init:
+        condition: service_completed_successfully
+  crons:
+    depends_on:
+      swift-init:
+        condition: service_completed_successfully
+  swift:
+    # Pinned because Keystone's database persists and the image never
+    # migrates it; see the README before bumping.
+    image: ghcr.io/cscfi/docker-keystone-swift:2026.9.0
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:5000/v3 && curl -sf http://localhost:8080/healthcheck",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - type: volume
+        source: swift_objects
+        target: /srv/node
+      - type: volume
+        source: swift_keystone
+        target: /var/lib/keystone
+  swift-init:
+    image: ghcr.io/cscfi/docker-keystone-swift:2026.9.0
+    entrypoint: ["/bin/bash", "/app/bin/swift_local_init.sh"]
+    env_file:
+      - ".env"
+    # Keystone's catalog lists itself at localhost:5000, so share swift's
+    # network for the openstack CLI to follow it.
+    network_mode: service:swift
+    depends_on:
+      swift:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./bin/swift_local_init.sh
+        target: /app/bin/swift_local_init.sh
