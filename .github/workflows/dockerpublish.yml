@@ -17,9 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build and Start Images
+        # Base file only: the tests mock Swift, so skip the local dev overlay.
         run: |
           cp template.env .env
-          docker compose up -d --build
+          docker compose -f docker-compose.yml up -d --build
       - name: Validate deploy overlay merge
         # CI builds and starts the base above; the toolkit additionally layers
         # docker-compose.deploy.yml. Validate that merge too so an overlay typo

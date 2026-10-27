@@ -19,6 +19,9 @@ def swift_connection() -> swiftclient.Connection:
     Creates a swiftclient Connection configured using environment variables.
 
     This method works with v3 application credentials authentication only.
+    The credential is identified by its ID, or by its name plus the owning
+    username when no ID is set. The local dev Swift container uses the
+    latter, since Keystone generates IDs we can't know ahead of time.
 
     Returns
     -------
@@ -28,13 +31,18 @@ def swift_connection() -> swiftclient.Connection:
 
     auth_url = os.environ.get("OPENSTACK_AUTH_URL")
     credential_id = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_ID")
+    credential_name = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_NAME")
+    credential_username = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_USERNAME")
     credential_secret = os.environ.get("SWIFT_APPLICATION_CREDENTIAL_SECRET")
 
-    if not auth_url or not credential_id or not credential_secret:
+    has_identifier = credential_id or (credential_name and credential_username)
+    if not auth_url or not has_identifier or not credential_secret:
         raise RuntimeError(
-            "The 'OPENSTACK_AUTH_URL', 'SWIFT_APPLICATION_CREDENTIAL_ID' and "
-            "'SWIFT_APPLICATION_CREDENTIAL_SECRET' environment variables must "
-            "be defined to use the Swift client"
+            "The 'OPENSTACK_AUTH_URL' and 'SWIFT_APPLICATION_CREDENTIAL_SECRET' "
+            "environment variables must be defined, along with either "
+            "'SWIFT_APPLICATION_CREDENTIAL_ID' or both "
+            "'SWIFT_APPLICATION_CREDENTIAL_NAME' and "
+            "'SWIFT_APPLICATION_CREDENTIAL_USERNAME', to use the Swift client"
         )
 
     return swiftclient.Connection(
@@ -42,6 +50,8 @@ def swift_connection() -> swiftclient.Connection:
             auth=identity.ApplicationCredential(
                 auth_url=auth_url,
                 application_credential_id=credential_id,
+                application_credential_name=credential_name,
+                username=credential_username,
                 application_credential_secret=credential_secret,
                 user_domain_id="default",
             )
